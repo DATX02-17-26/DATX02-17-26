@@ -1,0 +1,21 @@
+language: haskell
+
+cache:
+  directories:
+  - $HOME/.ghc
+  - $HOME/.cabal
+
+ghc:
+  - 8.0
+  - 7.10
+
+before_install:
+  - ghc --version
+  - cabal --version
+
+install:
+  - cabal update
+  - cabal install --only-dependencies --enable-tests
+
+script:
+  - cabal configure --enable-tests && cabal build && cabal test
