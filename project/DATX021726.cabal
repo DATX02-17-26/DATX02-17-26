@@ -1,0 +1,23 @@
+name:                DATX021726
+version:             0.1.0.0
+category:            Testing
+synopsis:            automated assessment of programming exercises
+description:         Bachelors thesis investigating the automated assessment of programming exercises of imperative languages, specifically Java.
+homepage:            https://github.com/Centril/DATX02-17-26
+license:             AllRightsReserved
+license-file:        LICENSE.md
+author:              Maximilian Algehed <m.algehed@gmail.com>
+                     Simon Boij <simon@boij.net>
+                     Mazdak Farrokhzad <twingoow@gmail.com>
+                     Joel Hultin <joel.hultin@gmail.com>
+                     Brage Salhus Bunk <bragesb@gmail.com>
+                     Aleksander Stern Kaar <sternkaar@gmail.com>
+maintainer:          twingoow@gmail.com
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+cabal-version:       >=1.10
+executable DATX021726
+  main-is:             Main.hs
+  build-depends:       base >=4.9 && <4.10
+  hs-source-dirs:      src
+  default-language:    Haskell2010
