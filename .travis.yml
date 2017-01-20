@@ -4,8 +4,11 @@ sudo: false
 # Do not choose a language; we provide our own build tools.
 language: generic
 
-# Caching so the next build will be fast too.
+notifications:
+  slack:
+    secure: Ijx3WXSRr2TGWqNO6+zLJ1LWerDE0LQaVcMRZhDaQOJCiL98JrNBNwVcb1c+SOGg4/NPbidMiK9a0oxSn84l3SZC+MFIgz5418x/FcaxTiGBiRVUtxnGdYyvsPmMkj/Fs7/viwREcW1TxvOIImr7/bxkBO0cQLSs/HYlgHF68d4F6x5w00ExuTQ+TKOg6kwf9D2iAqZOU6Y9pusMmNg2izGvtxReDlgv4Gi8GV5uGre/gQnRtsgOPI/ftkO/OaMLHtJk1T/jEMgm23chOQNkRP0M4VeQ1qPv+qM7cfCLa4F1J8wysMSLFDrlz7izBeMuICf/XJ7fS2ezwn/9j+VY4vSsPMXcowXup5X2U2mMhCrFNJqfWASqp1tBzKemslWcP6/DVRrC0P9ARRnk0W1KdLOWJ3Rou/qJcRGTIxiTV+HxYxoR2XfEYrmYsFiNnEcFpQVWw6qH5m0edGcbQeoKHebexP0YXK8bXCdXqULahiOKagus91wnxBrsrtXw5mrQnVp7XWnf1SSSG6q+HwLbqX/Pikbx8bTCc8NBxKlJ8jF27SBY2vdMxFAoYDaUgYTGPiib+iEmTzeLTMr9WxcFIILKZp8nI25F6cLT3rOsxn6TdMhPkz0wf0b3ceidOi6XSOQbv/L0oNoBlI3V/LGgLJyD3iN5XbBG5DC0e8EQn/U=
 
+# Caching so the next build will be fast too.
 before_cache:
   - rm -fv $HOME/.cabal/packages/hackage.haskell.org/build-reports.log
   - rm -fv $HOME/.cabal/packages/hackage.haskell.org/00-index.tar
