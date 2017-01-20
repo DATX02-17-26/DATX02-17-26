@@ -1,6 +1,7 @@
 name:         DATX021726
 category:     Testing, Compiler, Language
 version:      0.1.0.0
+cabal-version: >=1.10
 synopsis:     automated assessment of programming exercises
 
 description:  Bachelors thesis investigating the automated assessment of programming exercises of imperative languages, specifically Java.
@@ -21,15 +22,19 @@ maintainer:   twingoow@gmail.com
 build-type:   Simple
 
 extra-source-files:
-    docs/*
+    docs/*.md
     .gitignore
     .travis.yml
     CHANGELOG.md
     README.md
 
-cabal-version: >=1.10
 tested-with:   GHC == 7.10.3,
                GHC == 8.0.2
+
+source-repository head
+  type:     git
+  branch:   dev
+  location: git://github.com/Centril/DATX02-17-26.git
 
 executable DATX021726
     main-is:          Main.hs
