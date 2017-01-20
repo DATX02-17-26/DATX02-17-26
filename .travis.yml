@@ -7,15 +7,15 @@ cache:
 
 ghc:
   - 8.0
-  - 7.10
+  - 7.10.3
 
 before_install:
   - ghc --version
   - cabal --version
 
 install:
-  - cabal update
-  - cabal install --only-dependencies --enable-tests
+  - cd project && cabal update
+  - cd project && cabal install --only-dependencies --enable-tests
 
 script:
-  - cabal configure --enable-tests && cabal build && cabal test
+  - cd project && cabal configure --enable-tests && cabal build && cabal test
