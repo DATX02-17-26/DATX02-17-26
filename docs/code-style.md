@@ -186,12 +186,13 @@ directions = [ North
 
 ## Pragmas
 
-Put pragmas immediately following the function they apply to. Example:
+Put pragmas immediately before the function signature of the function they apply to, but after any haddock documentation for that function. Example:
 
 ```haskell
+-- | The identity function.
+{-# INLINE id #-}
 id :: a -> a
 id x = x
-{-# INLINE id #-}
 ```
 
 In the case of data type definitions you must put the pragma before the type it applies to. Example:
