@@ -39,6 +39,7 @@ source-repository head
 
 executable DATX021726
     main-is:          Main.hs
+    other-modules:    Context
     build-depends:
           base >=4.8 && < 5
         , lens >= 4.15
