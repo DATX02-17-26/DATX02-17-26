@@ -17,6 +17,20 @@
  -}
 
 module Main where
+import Context
+import System.Environment
 
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = do
+  args <- getArgs 
+
+  -- Unsafe, add sanity checks
+  let studentSolution     = args !! 0
+      dirOfModelSolutions = args !! 1
+
+  -- Get the context from the arguments supplied
+  context <- readRawContext studentSolution dirOfModelSolutions
+
+  print context
+
+  return ()
