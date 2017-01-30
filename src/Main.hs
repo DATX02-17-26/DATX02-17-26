@@ -17,7 +17,7 @@
  -}
 
 module Main where
-import Context
+import SolutionContext
 import System.Environment
 
 main :: IO ()
