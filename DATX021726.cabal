@@ -7,9 +7,9 @@ synopsis:     automated assessment of programming exercises
 description:  Bachelors thesis investigating the automated assessment of programming exercises of imperative languages, specifically Java.
 
 homepage:     https://github.com/Centril/DATX02-17-26
-bug-reports:  http://github.com/Centril/DATX02-17-26/issues
+bug-reports:  https://github.com/Centril/DATX02-17-26/issues
 
-license:      AllRightsReserved
+license:      GPL-2
 license-file: LICENSE.md
 author:       Maximilian Algehed <m.algehed@gmail.com>
               Simon Boij <simon@boij.net>
@@ -26,6 +26,7 @@ extra-source-files:
     .gitignore
     .travis.yml
     CHANGELOG.md
+    AUTHORS.md
     README.md
 
 tested-with:   GHC == 7.10.3,
