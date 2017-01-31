@@ -4,6 +4,8 @@ This document discusses the code style used in this project. It is mainly focuse
 
 It is partly based on [tibbes haskell-style-guide](https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md).
 
+GitHub does not always render code correctly, so check the raw file instead.
+
 ## American vs. British
 
 Only english is used.
@@ -18,9 +20,9 @@ Use `<= 80` characters per line.
 
 ## Indentation
 
-**`4` spaces should be used for indentation everywhere.**
+**`2` spaces should be used for indentation everywhere.**
 
-Tabs and `2` spaces should never be used, except for places where it must be used.
+Tabs and `4` spaces should never be used, except for places where it must be used.
 
 Sometimes other amounts of spaces may be used when it makes sense for readability, as specified in the rest of this document.
 
@@ -88,14 +90,14 @@ Format export lists as follows:
 
 ```haskell
 module Data.Set (
-      -- * The @Set@ type
-      Set
-    , empty
-    , singleton
+    -- * The @Set@ type
+    Set
+  , empty
+  , singleton
 
-      -- * Querying
-    , member
-    ) where
+    -- * Querying
+  , member
+  ) where
 ```
 
 ## Imports
@@ -123,36 +125,36 @@ For long type names the following formatting is also acceptable:
 
 ```haskell
 data HttpException
-    = InvalidStatusCode Int
-    | MissingContentHeader
-    deriving (Eq, Show)
+  = InvalidStatusCode Int
+  | MissingContentHeader
+  deriving (Eq, Show)
 ```
 
 Format records as follows:
 
 ```haskell
 data Person = Person
-    { _firstName :: !String  -- ^ First name
-    , _lastName  :: !String  -- ^ Last name
-    , _age       :: !Int     -- ^ Age
-    } deriving (Eq, Show)
+  { _firstName :: !String  -- ^ First name
+  , _lastName  :: !String  -- ^ Last name
+  , _age       :: !Int     -- ^ Age
+  } deriving (Eq, Show)
 ```
 
 Or:
 
 ```haskell
 data Expr
-	= ELit {
-		_elit :: Integer -- ^ Integer literal
-      }
-    | EVar {
-		_evar :: Ident -- ^ Variable identifier
-  	  }
-  	| EPlus {
-		_eleft  :: Expr -- ^ Left expression
-	  , _eright :: Expr -- ^ Left expression
-  	  }
-  	deriving (Eq, Show)
+  = ELit {
+      _elit :: Integer -- ^ Integer literal
+    }
+  | EVar {
+      _evar :: Ident -- ^ Variable identifier
+    }
+  | EPlus {
+      _eleft  :: Expr -- ^ Left expression
+    , _eright :: Expr -- ^ Left expression
+    }
+  deriving (Eq, Show)
 ```
 
 Prefer records over not using records, and prefix (function) names with `_`.
@@ -168,10 +170,10 @@ Align the elements in the list. Example:
 
 ```haskell
 exceptions =
-    [ InvalidStatusCode
-    , MissingContentHeader
-    , InternalServerError
-    ]
+  [ InvalidStatusCode
+  , MissingContentHeader
+  , InternalServerError
+  ]
 ```
 
 Optionally, you can skip the first newline. Use your judgement.
@@ -199,8 +201,8 @@ In the case of data type definitions you must put the pragma before the type it 
 
 ```haskell
 data Array e = Array
-    {-# UNPACK #-} !Int
-    !ByteArray
+  {-# UNPACK #-} !Int
+  !ByteArray
 ```
 
 ## Type signatures
@@ -223,9 +225,9 @@ Otherwise, you should indent to the typing judgement `::` as follows:
 
 ```haskell
 myfunc :: (Ord a, Monad f, MyOtherConstraint (f a), ...)
-	   => (Expr -> Expr -> Expr)
-	   -> Expr -> Expr
-	   -> Expr
+       => (Expr -> Expr -> Expr)
+       -> Expr -> Expr
+       -> Expr
 ```
 
 Here, the constraints, the resulting type, HOFs have all been put on their own lines.
@@ -234,9 +236,9 @@ Functions in higher order functions (HOF) should **not** be broken into several 
 
 ```haskell
 myfunc :: (MyLongType -> OtherLongType -> ThirdLongType -> FourthLongType ->
-		   FifthLongType)
-	   -> SomeInput
-	   -> Output
+           FifthLongType)
+       -> SomeInput
+       -> Output
 ```
 
 This indicates that they belong to a "unit". This also applies to constraints. You should in general not have to do this very often. However, it might be better to create a `type` alias for the function or constraint.
@@ -248,8 +250,8 @@ This indicates that they belong to a "unit". This also applies to constraints. Y
 Legitimate uses of `let` and `where` include the following:
 
 + you repeat an expression many times
-	- in many **different patterns** and you do not want to repeat yourself (**DRY**).
-	- as a **sub expression** of a larger one you DRY and you also want haskell to **optimize performance** by causing haskell to not evaluate expressions try (call by need vs. call by value).
+  - in many **different patterns** and you do not want to repeat yourself (**DRY**).
+  - as a **sub expression** of a larger one you DRY and you also want haskell to **optimize performance** by causing haskell to not evaluate expressions try (call by need vs. call by value).
 + you want to avoid exceeding `80` characters (only applies to let).
 
 When you use `where` clauses, they should be indented as follows:
@@ -257,8 +259,8 @@ When you use `where` clauses, they should be indented as follows:
 ```haskell
 myfunc :: TheSignature
 myfunc a b c = some_expr
-	where name1 = some_local_expr
-		  name2 = another_local_expr
+  where n1    = some_local_expr
+        name2 = another_local_expr
 ```
 
 And `let` bindings should be indented as follows:
@@ -266,8 +268,8 @@ And `let` bindings should be indented as follows:
 ```haskell
 myfunc :: TheSignature
 myfunc a b c = let left  = some_local_expr
-				   right = another_local_expr
-			   in  some_expr
+                   right = another_local_expr
+               in  some_expr
 ```
 
 ## if-then-else clauses
@@ -284,20 +286,20 @@ foo = if ...
       else ...
 ```
 
-Otherwise, you should be consistent with the 4-spaces indent rule, and the then and the else keyword should be aligned. Examples:
+Otherwise, you should be consistent with the 2-spaces indent rule, and the then and the else keyword should be aligned. Examples:
 
 ```haskell
 foo = do
-    someCode
-    if condition
-        then someMoreCode
-        else someAlternativeCode
+  someCode
+  if condition
+    then someMoreCode
+    else someAlternativeCode
 ```
 
 ```haskell
 foo = bar $ \qux -> if predicate qux
-    then doSomethingSilly
-    else someOtherCode
+  then doSomethingSilly
+  else someOtherCode
 ```
 
 ## Pattern matching
@@ -306,17 +308,17 @@ Prefer `case` expressions for pattern matching instead of using pattern matching
 
 ```haskell
 data Expr = Var  { ident :: Ident }
-		  | Lit  { lit   :: Int }
-		  | Plus { left  :: Expr, right :: Expr }
+          | Lit  { lit   :: Int }
+          | Plus { left  :: Expr, right :: Expr }
 ```
 
 ```haskell
 -- good:
 eval :: MyType
 eval e = case e of
-	Var  v   -> exp1
-	Lit  i   -> exp2
-	Plus l r -> exp3
+  Var  v   -> exp1
+  Lit  i   -> exp2
+  Plus l r -> exp3
 
 -- bad:
 eval :: MyType
@@ -334,9 +336,9 @@ tuplefun (name1, name2) = exp1
 
 -- bad:
 listfun l = case l of
-	(x:xs) -> exp1
+  (x:xs) -> exp1
 tuplefun pair = case pair of
-	(name1, name2) -> exp1
+  (name1, name2) -> exp1
 ```
 
 If you can eta-reduce your `case` expression, use `LambdaCase` as follows:
@@ -344,9 +346,9 @@ If you can eta-reduce your `case` expression, use `LambdaCase` as follows:
 ```haskell
 eval :: MyType
 eval = \case
-	Var  v   -> exp1
-	Lit  i   -> exp2
-	Plus l r -> exp3
+  Var  v   -> exp1
+  Lit  i   -> exp2
+  Plus l r -> exp3
 ```
 
 Align variables and the `->` arrows when it helps readability.
@@ -362,8 +364,8 @@ You may or may not indent the code following a "hanging" lambda. Use your judgem
 ```haskell
 bar :: IO ()
 bar = forM_ [1, 2, 3] $ \n -> do
-          putStrLn "Here comes a number!"
-          print n
+        putStrLn "Here comes a number!"
+        print n
 ```
 
 ```haskell
@@ -445,23 +447,23 @@ Record example:
 ```haskell
 -- | Bla bla bla.
 data Person = Person
-    { age  :: !Int     -- ^ Age
-    , name :: !String  -- ^ First name
-    }
+  { age  :: !Int     -- ^ Age
+  , name :: !String  -- ^ First name
+  }
 ```
 
 For fields that require longer comments format them like so:
 
 ```haskell
 data Record = Record
-    { -- | This is a very very very long comment that is split over
-      -- multiple lines.
-      field1 :: !Text
+  { -- | This is a very very very long comment that is split over
+    -- multiple lines.
+    field1 :: !Text
 
-      -- | This is a second very very very long comment that is split
-      -- over multiple lines.
-    , field2 :: !Int
-    }
+    -- | This is a second very very very long comment that is split
+    -- over multiple lines.
+  , field2 :: !Int
+  }
 ```
 
 ### End-of-Line Comments
@@ -470,12 +472,12 @@ Separate end-of-line comments from the code using 2 spaces. Align comments for d
 
 ```haskell
 data Parser = Parser
-    !Int         -- Current position
-    !ByteString  -- Remaining input
+  !Int         -- Current position
+  !ByteString  -- Remaining input
 
 foo :: Int -> Int
 foo n = salt * 32 + 9
-	where salt = 453645243  -- Magic hash salt.
+  where salt = 453645243  -- Magic hash salt.
 ```
 
 ### Links
