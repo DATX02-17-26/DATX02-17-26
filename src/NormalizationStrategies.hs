@@ -17,7 +17,22 @@
  -}
 
 {-# LANGUAGE TemplateHaskell #-}
-module NormalizationStrategies where
+module NormalizationStrategies
+       ( NormalizationStrategy
+       , NormalizationRule
+       , Normalizer
+       , execute
+       , name
+       , stages
+       , (><)
+       , (<>)
+       , include
+       , ignore
+       , ignoreStages
+       , onlyStages
+       , executeNormalizer
+       )
+where
 import Control.Lens
 import Data.List
 

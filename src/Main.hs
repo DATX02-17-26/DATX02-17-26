@@ -17,6 +17,7 @@
  -}
 
 module Main where
+import NormalizationStrategies
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
