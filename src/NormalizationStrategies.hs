@@ -86,7 +86,7 @@ onlyStages xs = (each . stages) %~ (intersect xs)
 executeNormalizerStage :: Normalizer a -> Int -> a -> a
 executeNormalizerStage inputRules stage a = loop a
   where
-    rules = filter (\rule -> stage `elem` _stages rule) inputRules 
+    rules = filter (\r -> stage `elem` (_stages r)) inputRules 
 
     -- Loop until no rules apply
     loop a = case thread a rules of
@@ -110,4 +110,4 @@ executeNormalizer norm a = foldl (flip $ executeNormalizerStage norm) a (allStag
 
 -- | Obtain all stages presenting in a normalizer
 allStages :: Normalizer a -> [Int]
-allStages norm = sort $ nub $ concat $ map _stages norm
+allStages = sort . nub . concat . map _stages
