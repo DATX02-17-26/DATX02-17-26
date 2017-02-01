@@ -96,13 +96,13 @@ executeNormalizerStage inputRules stage a = loop a
 -- | Thread an `a` through a normalizer, returns `Just a'` if `a` normalized to `a'` and
 --   `Nothing` if no rules in the normalizer applied to `a`
 thread :: a -> Normalizer a -> Maybe a
-thread a norm = thread' a norm False
+thread = thread' False
   where
-    thread' a [] True            = Just a
-    thread' a [] False           = Nothing
-    thread' a (r:rls) hasChanged = case _execute r a of
-      Nothing -> thread' a  rls hasChanged
-      Just a' -> thread' a' rls True -- A normalization succeded
+    thread' True a []            = Just a
+    thread' False a []           = Nothing
+    thread' hasChanged a (r:rls) = case _execute r a of
+      Nothing -> thread' hasChanged a rls
+      Just a' -> thread' True a' rls -- A normalization succeded
 
 -- | Execute a normalizer on an `a`
 executeNormalizer :: Normalizer a -> a -> a
