@@ -107,5 +107,7 @@ thread a norm = thread' a norm False
 -- | Execute a normalizer on an `a`
 executeNormalizer :: Normalizer a -> a -> a
 executeNormalizer norm a = foldl (flip $ executeNormalizerStage norm) a (allStages norm)
-  where
-    allStages norm = sort $ nub $ concat $ map _stages norm
+
+-- | Obtain all stages presenting in a normalizer
+allStages :: Normalizer a -> [Int]
+allStages norm = sort $ nub $ concat $ map _stages norm
