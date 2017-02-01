@@ -76,11 +76,11 @@ ignore rules = filter (flip elem rules)
 
 -- | Ignore a list of stages
 ignoreStages :: [Int] -> NormalizationStrategy a
-ignoreStages xs = \rules -> [rule {_stages = _stages rule \\ xs} | rule <- rules]
+ignoreStages xs = (each . stages) %~ (flip (\\) xs)
 
 -- | Execute only a list of stages
 onlyStages :: [Int] -> NormalizationStrategy a
-onlyStages xs = \rules -> [rule {_stages = _stages rule `intersect` xs} | rule <- rules]
+onlyStages xs = (each . stages) %~ (intersect xs)
 
 -- | Execute a stage of a normalizer
 executeNormalizerStage :: Normalizer a -> Int -> a -> a
@@ -108,4 +108,4 @@ thread a norm = thread' a norm False
 executeNormalizer :: Normalizer a -> a -> a
 executeNormalizer norm a = foldl (flip $ executeNormalizerStage norm) a (allStages norm)
   where
-    allStages norm = sort $ nub $ concat $ [_stages rule | rule <- norm]
+    allStages norm = sort $ nub $ concat $ map _stages norm
