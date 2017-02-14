@@ -30,6 +30,7 @@ separator Modif " " ;
 
 --coercions FDec 2 ;
 
+--Declarations 
 MDecl.  Decl ::= [Modif] Type Id "(" [Arg] ")" "{" [Stm] "}" ;
 VDecl.  Decl ::= [Modif] Type [VarDecl]  ";" ;
 --VIDecl. Decl ::= [Modif] Type Id "=" Exp ;  
@@ -45,17 +46,70 @@ VDecAr.	DeclName ::= Id [Bracket] ;
 Bra.	Bracket ::= "[]" ;
 separator nonempty Bracket "" ;
 
-TInt.   BasicType ::= "int" ;
+--Types
+TInt.    BasicType ::= "int" ;
+TDouble. BasicType ::= "double" ;
+TFloat.  BasicType ::= "float" ;
+TChar.   BasicType ::= "char" ;
+TBool.   BasicType ::= "boolean" ;
+TShort.  BasicType ::= "short" ;
+TByte.   BasicType ::= "byte" ;
 
+BAType.  Type ::= BasicType [Bracket] ;
 BType.   Type ::= BasicType ;
 
-MArg.	Arg ::= Type Id ;
+MArg.	Arg ::= Type DeclName ;
 separator Arg "," ;
 
+--Statements
 EStm.	Stm ::= Exp ;
 separator Stm ";" ;
 
-EInt.	Exp ::= Integer ;
+--Expressions
+EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
+EIndex.     Exp15  ::= Exp16 "[" Exp "]";
+
+EPoint.		Exp14  ::= Exp14 "->" Exp15 ;
+EStruVar.	Exp14  ::= Exp14 "." Exp15 ;
+EPosIncr.	Exp14  ::= Exp15 "++" ;
+EPosDecr.  	Exp14  ::= Exp15 "--" ;
+
+EPrIncr.   	Exp13  ::= "++" Exp14 ;
+EPrDecr.   	Exp13  ::= "--" Exp14 ;
+ENeg.    	Exp13  ::= "*" Exp14 ;
+ENega.    	Exp13  ::= "!" Exp14 ;
+
+EMul.    	Exp12  ::= Exp12 "*"  Exp13 ;
+EDiv.   	Exp12  ::= Exp12 "/"  Exp13 ;
+EMod.   	Exp12  ::= Exp12 "%"  Exp13 ;
+
+EAdd.   	Exp11  ::= Exp11 "+"  Exp12 ;
+ESub.    	Exp11  ::= Exp11 "-"  Exp12 ;
+
+ELShift.	Exp10  ::= Exp10 "<<" Exp11 ;
+ERShift.	Exp10  ::= Exp10 ">>" Exp11 ;
+
+ELt.    	Exp9   ::= Exp9  "<"  Exp10 ;
+EGt.     	Exp9   ::= Exp9  ">"  Exp10 ;
+ELEq.    	Exp9   ::= Exp9  "<=" Exp10 ;
+EGEq.    	Exp9   ::= Exp9  ">=" Exp10 ;
+
+EEq.     	Exp8   ::= Exp8  "==" Exp9 ;
+ENEq.    	Exp8   ::= Exp8  "!=" Exp9 ;
+
+EAnd.    	Exp4   ::= Exp4  "&&" Exp5 ;
+
+EOr.     	Exp3   ::= Exp3  "||" Exp4 ;
+
+EAss.    	Exp2   ::= Exp3 "=" Exp2 ;
+EPAss.		Exp2   ::= Exp3 "+=" Exp2 ;
+ENAss.		Exp2   ::= Exp3 "-=" Exp2 ;
+ECond.		Exp2   ::= Exp3 "?" Exp2 ":" Exp2 ;
+
+Ethr.		Exp1	::= "throw" Exp2 ;
+
+coercions 	Exp 16 ;
+separator Exp "," ;
 
 
 token Id (letter (letter | digit | '_')*) ;
