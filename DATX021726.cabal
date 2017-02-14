@@ -40,7 +40,8 @@ source-repository head
 executable DATX021726
     main-is:          Main.hs
     other-modules:    SolutionContext,
-                      EvaluationMonad
+                      EvaluationMonad,
+                      RunJavac
     build-depends:
           base >=4.8 && < 5
         , lens >= 4.15
