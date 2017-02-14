@@ -25,15 +25,16 @@ module EvaluationMonad (
   runEvalM,
   executeEvalM
 ) where
-import Control.Monad.Trans.Class
+import Control.Monad.Trans.Class hiding (liftIO)
 import Control.Monad.Trans.Except as E
 import Control.Monad.Fail
-import Control.Monad.Writer.Lazy
+import Control.Monad.Writer.Lazy hiding (liftIO)
+import Control.Exception hiding (throw)
 import System.Exit
 
 -- | A monad for evaluating student solutions
 newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (WriterT [LogMessage] IO) a }
-  deriving (Monad, Applicative, Functor, MonadWriter [LogMessage], MonadIO)
+  deriving (Monad, Applicative, Functor, MonadWriter [LogMessage])
 
 -- | For now we just log strings
 type LogMessage = String
@@ -46,8 +47,17 @@ logMessage :: LogMessage -> EvalM ()
 logMessage l = tell [l]
 
 -- | Throw an error
-throw :: EvalError -> EvalM ()
+throw :: EvalError -> EvalM a
 throw = EvalM . throwE
+
+-- | Lift an IO action and throw an exception if the
+-- IO action throws an exception
+liftIO :: IO a -> EvalM a
+liftIO io = EvalM $ do
+  result <- lift $ lift $ catch (Right <$> io) (\e -> return $ Left $ show (e :: SomeException))
+  case result of
+    Left err -> throwE err
+    Right a  -> return a
 
 -- | Run an `EvalM` computation
 runEvalM :: EvalM a -> IO (Either EvalError a, [LogMessage])

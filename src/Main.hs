@@ -34,6 +34,4 @@ main = void $ executeEvalM "logfile.log" $ do
   -- Get the context from the arguments supplied
   context <- readRawContext studentSolution dirOfModelSolutions
 
-  liftIO $ print context
-
   return ()

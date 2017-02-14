@@ -51,6 +51,7 @@ readRawContext studentPath modelDir = do
 
     -- Do some more logging
     logMessage $ "Found the following model solutions in " ++ modelDir ++ ":\n" ++ unlines modelDirJavaFiles
+    logMessage $ "Reading model solutions"
 
     -- Get the contents of the model solutions
     modelSolutions    <- liftIO $ withCurrentDirectory modelDir
