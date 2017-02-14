@@ -36,7 +36,7 @@ VDecl.  Decl ::= [Modif] Type [VarDecl]  ";" ;
 --VIDecl. Decl ::= [Modif] Type Id "=" Exp ;  
 terminator Decl "" ;
 
-VDec.	VarDecl ::= DeclName ;
+VDec.	 VarDecl ::= DeclName ;
 VDecE.   VarDecl ::= DeclName "=" Exp ;
 separator VarDecl "," ;
 
@@ -64,10 +64,14 @@ separator Arg "," ;
 --Statements
 StE.	  Stm ::= Exp ;
 StReturn. Stm ::= "return" Exp ;
+StCond.   Stm ::= "if" "(" Exp ")" Stm Rest ;
 StFor.    Stm ::= ForLoop ;
 StWhile.  Stm ::= "while" "(" Exp ")" Stm ;
 StBlock.  Stm ::= "{" [Stm] "}" ;
 separator Stm ";" ;
+
+REsle.    Rest ::= "else" Stm ;
+REmpty.   Rest ::= ;
 
 --For loop, separeted as there are different for loops
 IncFor. ForLoop ::= "for" "(" ForInit ";" Exp ";" Exp ")" Stm ;
@@ -76,7 +80,6 @@ IncFor. ForLoop ::= "for" "(" ForInit ";" Exp ";" Exp ")" Stm ;
 ForExp.   ForInit ::= [Exp] ;
 ForVDecl. ForInit ::= Type [VarDecl] ;
 ForFinal. ForInit ::= "final" Type [VarDecl] ;
---ForEmpty. ForInit ::= ;
 
 --Expressions
 EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
