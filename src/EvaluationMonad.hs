@@ -33,11 +33,17 @@ import Control.Exception hiding (throw)
 import System.Exit
 
 -- | A monad for evaluating student solutions
-newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (WriterT [LogMessage] IO) a }
-  deriving (Monad, Applicative, Functor, MonadWriter [LogMessage])
+newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (WriterT Log IO) a }
+  deriving (Monad, Applicative, Functor, MonadWriter Log)
 
 -- | For now we just log strings
 type LogMessage = String
+type Log        = [LogMessage]
+
+-- | `printLog log` converts the log to a format suitable
+-- for logfiles
+printLog :: Log -> String
+printLog = unlines
 
 -- | Evaluation errors are also just strings
 type EvalError  = String
@@ -65,7 +71,7 @@ instance MonadIO EvalM where
   liftIO = performIO
 
 -- | Run an `EvalM` computation
-runEvalM :: EvalM a -> IO (Either EvalError a, [LogMessage])
+runEvalM :: EvalM a -> IO (Either EvalError a, Log)
 runEvalM = runWriterT . runExceptT . unEvalM
 
 -- | Execute an `EvalM logfile` computation, reporting
@@ -78,6 +84,6 @@ executeEvalM logfile eval = do
     Left e -> do
       putStrLn $ "Error: " ++ e
       putStrLn $ "The log has been written to " ++ logfile
-      writeFile logfile $ unlines w
+      writeFile logfile $ printLog w
       exitFailure
     Right a -> return a

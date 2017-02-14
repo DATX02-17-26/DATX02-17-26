@@ -25,7 +25,6 @@ import EvaluationMonad
 
 main :: IO ()
 main = void $ executeEvalM "logfile.log" $ do
-
   args <- liftIO $ getArgs 
 
   -- Unsafe, add sanity checks
