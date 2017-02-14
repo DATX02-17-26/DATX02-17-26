@@ -25,13 +25,17 @@ import EvaluationMonad
 
 main :: IO ()
 main = void $ executeEvalM "logfile.log" $ do
+
   args <- liftIO $ getArgs 
 
   -- Unsafe, add sanity checks
   let studentSolution     = args !! 0
       dirOfModelSolutions = args !! 1
 
+  -- Get the filepaths of the student and model solutions
+  paths <- getFilePathContext studentSolution dirOfModelSolutions
+
   -- Get the context from the arguments supplied
-  context <- readRawContext studentSolution dirOfModelSolutions
+  context <- readRawContext paths
 
   return ()

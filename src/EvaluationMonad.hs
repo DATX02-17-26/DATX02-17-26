@@ -25,10 +25,10 @@ module EvaluationMonad (
   runEvalM,
   executeEvalM
 ) where
-import Control.Monad.Trans.Class hiding (liftIO)
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except as E
 import Control.Monad.Fail
-import Control.Monad.Writer.Lazy hiding (liftIO)
+import Control.Monad.Writer.Lazy
 import Control.Exception hiding (throw)
 import System.Exit
 
@@ -52,12 +52,17 @@ throw = EvalM . throwE
 
 -- | Lift an IO action and throw an exception if the
 -- IO action throws an exception
-liftIO :: IO a -> EvalM a
-liftIO io = EvalM $ do
+performIO :: IO a -> EvalM a
+performIO io = EvalM $ do
   result <- lift $ lift $ catch (Right <$> io) (\e -> return $ Left $ show (e :: SomeException))
   case result of
     Left err -> throwE err
     Right a  -> return a
+
+-- | A `MonadIO` instance where
+-- lifting means catching and rethrowing exceptions
+instance MonadIO EvalM where
+  liftIO = performIO
 
 -- | Run an `EvalM` computation
 runEvalM :: EvalM a -> IO (Either EvalError a, [LogMessage])
