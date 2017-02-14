@@ -31,21 +31,23 @@ separator Modif " " ;
 --coercions FDec 2 ;
 
 MDecl.  Decl ::= [Modif] Type Id "(" [Arg] ")" "{" [Stm] "}" ;
-VDecl.  Decl ::= [Modif] Type [VarDecl] ;
+VDecl.  Decl ::= [Modif] Type [VarDecl]  ";" ;
 --VIDecl. Decl ::= [Modif] Type Id "=" Exp ;  
 terminator Decl "" ;
 
-VDec.	VarDecl ::= DeclNam ;
-VDecE.   VarDecl ::= DeclNam "=" Exp ;
+VDec.	VarDecl ::= DeclName ;
+VDecE.   VarDecl ::= DeclName "=" Exp ;
 separator VarDecl "," ;
 
-VDecNa.	DeclNam ::= Id ;
-VDecAr.	DeclNam ::= Id [Bracket] ;
+VDecNa.	DeclName ::= Id ;
+VDecAr.	DeclName ::= Id [Bracket] ;
 
 Bra.	Bracket ::= "[]" ;
 separator nonempty Bracket "" ;
 
-TInt.   Type ::= "int" ;
+TInt.   BasicType ::= "int" ;
+
+BType.   Type ::= BasicType ;
 
 MArg.	Arg ::= Type Id ;
 separator Arg "," ;
