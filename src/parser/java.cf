@@ -62,8 +62,21 @@ MArg.	Arg ::= Type DeclName ;
 separator Arg "," ;
 
 --Statements
-EStm.	Stm ::= Exp ;
+StE.	  Stm ::= Exp ;
+StReturn. Stm ::= "return" Exp ;
+StFor.    Stm ::= ForLoop ;
+StWhile.  Stm ::= "while" "(" Exp ")" Stm ;
+StBlock.  Stm ::= "{" [Stm] "}" ;
 separator Stm ";" ;
+
+--For loop, separeted as there are different for loops
+IncFor. ForLoop ::= "for" "(" ForInit ";" Exp ";" Exp ")" Stm ;
+
+--As for loops has the same rules (ish) as variable declaration there are a lot of special cases
+ForExp.   ForInit ::= [Exp] ;
+ForVDecl. ForInit ::= Type [VarDecl] ;
+ForFinal. ForInit ::= "final" Type [VarDecl] ;
+--ForEmpty. ForInit ::= ;
 
 --Expressions
 EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
