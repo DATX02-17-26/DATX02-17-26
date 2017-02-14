@@ -22,6 +22,8 @@ import System.FilePath.Glob
 import Control.Lens hiding (Context)
 import Control.Monad.Trans.State
 
+import EvaluationMonad
+
 -- | The context in which we are investigating a student solution
 data SolutionContext a = Ctx { _studentSolution :: a
                              , _modelSolutions  :: [a]
@@ -36,16 +38,22 @@ instance Functor SolutionContext where
   fmap f (Ctx ss ms) = Ctx (f ss) (f <$> ms)
 
 -- | Read the context in which we are working from the directory
-readRawContext :: FilePath -> FilePath -> IO (SolutionContext String)
+readRawContext :: FilePath -> FilePath -> EvalM (SolutionContext String)
 readRawContext studentPath modelDir = do
+    -- Do some logging
+    logMessage $ "Reading student solution from: " ++ studentPath 
+
     -- Read the student solution
-    studentSolution   <- readFile studentPath
+    studentSolution <- liftIO $ readFile studentPath
 
     -- Get the .java files in the model solution directory
-    modelDirJavaFiles <- filter (match $ compile "*.java") <$> listDirectory modelDir 
+    modelDirJavaFiles <- liftIO $ filter (match $ compile "*.java") <$> listDirectory modelDir 
+
+    -- Do some more logging
+    logMessage $ "Found the following model solutions in " ++ modelDir ++ ":\n" ++ unlines modelDirJavaFiles
 
     -- Get the contents of the model solutions
-    modelSolutions    <- withCurrentDirectory modelDir
+    modelSolutions    <- liftIO $ withCurrentDirectory modelDir
                       $ sequence $ readFile <$> modelDirJavaFiles
 
     -- Return the contest

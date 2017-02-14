@@ -17,12 +17,15 @@
  -}
 
 module Main where
-import SolutionContext
 import System.Environment
+import Control.Monad
+
+import SolutionContext
+import EvaluationMonad
 
 main :: IO ()
-main = do
-  args <- getArgs 
+main = void $ executeEvalM "logfile.log" $ do
+  args <- liftIO $ getArgs 
 
   -- Unsafe, add sanity checks
   let studentSolution     = args !! 0
@@ -31,6 +34,6 @@ main = do
   -- Get the context from the arguments supplied
   context <- readRawContext studentSolution dirOfModelSolutions
 
-  print context
+  liftIO $ print context
 
   return ()
