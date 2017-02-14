@@ -1,0 +1,9 @@
+JClass. Class ::= Visib "class" Id ;
+
+Pub.	Visib ::= "public" ;
+Priv.	Visib ::= "private" ;
+Prot.	Visib ::= "protected" ;
+Unsp.	Visib ::=  ;
+
+token Id (letter (letter | digit | '_')*) ;
+separator nonempty Id "," ; 
