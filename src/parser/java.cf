@@ -1,9 +1,61 @@
-JClass. Class ::= Visib "class" Id ;
 
-Pub.	Visib ::= "public" ;
-Priv.	Visib ::= "private" ;
-Prot.	Visib ::= "protected" ;
-Unsp.	Visib ::=  ;
+--class declarations
+JClass. Class ::= [Modif] "class" Id "{" [Decl] "}" ;
+
+--visibility levels
+Pub.    Modif ::= "public" ;
+Priv.   Modif ::= "private" ;
+Prot.   Modif ::= "protected" ;
+Stat.   Modif ::= "static" ;
+separator Modif " " ;
+
+--Unsp.   Visib ::=  ;
+
+--UVis.   UVisib ::= ;
+
+--instance type for methods
+
+--MUns.    MInsTyp ::= ;
+
+--instance type for vars
+--VStat.  VInsTyp ::= "static" ;
+--VUns.   VInsTyp ::= ;
+
+--VIDecl.  FDec ::= Visib ;
+--IVDecl.  FDec ::= MInsTyp ;
+--EDecl.   FDec ::= ;
+--UMVDec. FDec ::= UVisib MInsTyp Visib ;
+--VMDec.  FDec ::= Visib MInsTyp ;
+--UMDec.  FDec ::= UVisib MInsTyp ;
+
+--coercions FDec 2 ;
+
+MDecl.  Decl ::= [Modif] Type Id "(" [Arg] ")" "{" [Stm] "}" ;
+VDecl.  Decl ::= [Modif] Type [VarDecl] ;
+--VIDecl. Decl ::= [Modif] Type Id "=" Exp ;  
+terminator Decl "" ;
+
+VDec.	VarDecl ::= DeclNam ;
+VDecE.   VarDecl ::= DeclNam "=" Exp ;
+separator VarDecl "," ;
+
+VDecNa.	DeclNam ::= Id ;
+VDecAr.	DeclNam ::= Id [Bracket] ;
+
+Bra.	Bracket ::= "[]" ;
+separator nonempty Bracket "" ;
+
+TInt.   Type ::= "int" ;
+
+MArg.	Arg ::= Type Id ;
+separator Arg "," ;
+
+EStm.	Stm ::= Exp ;
+separator Stm ";" ;
+
+EInt.	Exp ::= Integer ;
+
 
 token Id (letter (letter | digit | '_')*) ;
+
 separator nonempty Id "," ; 
