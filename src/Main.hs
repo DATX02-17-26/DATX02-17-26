@@ -22,6 +22,7 @@ import Control.Monad
 
 import SolutionContext
 import EvaluationMonad
+import RunJavac
 
 main :: IO ()
 main = void $ executeEvalM "logfile.log" $ do
@@ -33,6 +34,12 @@ main = void $ executeEvalM "logfile.log" $ do
 
   -- Get the filepaths of the student and model solutions
   paths <- getFilePathContext studentSolution dirOfModelSolutions
+
+  -- Try to compile the student and model solutions
+  compilationStatus <- compileContext paths "compilationDirectory"  
+  case compilationStatus of
+    Succeeded -> return ()
+    _         -> liftIO $ putStrLn "Student solution does not compile!"
 
   -- Get the context from the arguments supplied
   context <- readRawContext paths

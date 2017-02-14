@@ -50,31 +50,31 @@ getFilePathContext studentPath modelDir = do
     throw $ "Couldn't read student solution from: " ++ studentPath
 
   -- Get the .java files in the model solution directory
-  logMessage $ "Checking for model solutions in " ++ modelDir
+  logMessage $ "Checking for model solutions in directory \"" ++ modelDir ++ "\""
 
   modelDirJavaFiles <- liftIO $ filter ((".java" ==) . takeExtension) <$> listDirectory modelDir 
 
-  logMessage $ "Found the following model solutions in " ++ modelDir ++ ":\n" ++ unlines modelDirJavaFiles
+  logMessage $ "Found the following model solutions in directory \"" ++ modelDir ++ "\":\n" ++ init (unlines modelDirJavaFiles)
 
   return $ Ctx studentPath (combine modelDir <$> modelDirJavaFiles)
 
 -- | Read the context in which we are working from the directory
 readRawContext :: SolutionContext FilePath -> EvalM (SolutionContext String)
 readRawContext ctx = do
-    -- Do some logging
-    logMessage $ "Reading student solution"
+  -- Do some logging
+  logMessage $ "Reading student solution"
 
-    -- Read the student solution
-    studentSolution <- liftIO $ readFile $ ctx ^. studentSolution
+  -- Read the student solution
+  studentSolution <- liftIO $ readFile $ ctx ^. studentSolution
 
-    -- Do some more logging
-    logMessage $ "Reading model solutions"
+  -- Do some more logging
+  logMessage $ "Reading model solutions"
 
-    -- Get the contents of the model solutions
-    modelSolutions <- liftIO $ sequence $ readFile <$> ctx ^. modelSolutions
+  -- Get the contents of the model solutions
+  modelSolutions <- liftIO $ sequence $ readFile <$> ctx ^. modelSolutions
 
-    -- Return the contest
-    return $ Ctx studentSolution modelSolutions
+  -- Return the contest
+  return $ Ctx studentSolution modelSolutions
 
 -- | Check if a student solution matches any of the model solutions
 studentSolutionMatches :: (a -> a -> Bool) -> SolutionContext a -> Bool

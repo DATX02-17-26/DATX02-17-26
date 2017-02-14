@@ -19,10 +19,13 @@ module RunJavac where
 
 import System.Process
 import System.Exit
+import System.Directory
+import Control.Lens
 
 import SolutionContext
 import EvaluationMonad
 
+-- | The result of compiling a program with `javac`
 data CompilationStatus = FailedWith { stdout :: String, stderr :: String }
                        | Succeeded
                        deriving (Show, Eq) 
@@ -33,7 +36,7 @@ data CompilationStatus = FailedWith { stdout :: String, stderr :: String }
 tryCompile :: FilePath -> FilePath -> EvalM CompilationStatus
 tryCompile dir path = do
   -- Run javac with the -d option
-  let command = "javac -d" ++ dir ++ " " ++ path 
+  let command = "javac -d " ++ dir ++ " " ++ path 
   logMessage $ "Running the command: " ++ command 
   (exitCode, stdin, stderr) <- liftIO $ readCreateProcessWithExitCode (shell command) ""
 
@@ -42,12 +45,29 @@ tryCompile dir path = do
     ExitSuccess   -> return Succeeded
 
     -- ExitFailure 2 means javac failed because it couldn't find the file
-    ExitFailure 2 -> throw $ "Javac failed to find the file: " ++ path
+    ExitFailure 2 -> throw $ "Javac failed without compiling"
 
     -- Treat all other exit codes as compilation failures
     ExitFailure _ -> return $ FailedWith stdin stderr
 
+-- | `compileThrow dir path` tries to compile the file
+-- `path` using the `javac` command, putting the resulting
+-- class files in `dir`
+compileThrow :: FilePath -> FilePath -> EvalM ()
+compileThrow dir path = do
+  result <- tryCompile dir path
+  case result of
+    Succeeded -> return ()
+    _         -> throw $ "The file " ++ path ++ " failed to compile"
+
 -- | `compileContext ctx dir` tries to compile all the files in the given context,
--- using the directory `dir` for the intermidiary files
-compileContext :: SolutionContext FilePath -> FilePath
-compileContext ctx dir = undefined -- TODO
+-- using the directory `dir` for the intermidiary files.
+--
+-- Will throw an exception if any of the model solutions fail to compile and returns
+-- the compilation status of the student solution
+compileContext :: SolutionContext FilePath -> FilePath -> EvalM CompilationStatus
+compileContext ctx = withTemporaryDirectory inner
+  where
+    inner dir = do
+      sequence $ compileThrow dir <$> ctx ^. modelSolutions
+      tryCompile dir (ctx ^. studentSolution)

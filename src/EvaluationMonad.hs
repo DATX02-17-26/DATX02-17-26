@@ -20,17 +20,19 @@
 module EvaluationMonad (
   liftIO,
   throw,
+  catch,
   logMessage,
+  withTemporaryDirectory,
   EvalM,
   runEvalM,
   executeEvalM
 ) where
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except as E
-import Control.Monad.Fail
 import Control.Monad.Writer.Lazy
-import Control.Exception hiding (throw)
+import qualified Control.Exception as Exc
 import System.Exit
+import System.Directory
 
 -- | A monad for evaluating student solutions
 newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (WriterT Log IO) a }
@@ -56,11 +58,15 @@ logMessage l = tell [l]
 throw :: EvalError -> EvalM a
 throw = EvalM . throwE
 
+-- | Catch an error
+catch :: EvalM a -> (EvalError -> EvalM a) -> EvalM a
+catch action handler = EvalM $ catchE (unEvalM action) (unEvalM . handler)
+
 -- | Lift an IO action and throw an exception if the
 -- IO action throws an exception
 performIO :: IO a -> EvalM a
 performIO io = EvalM $ do
-  result <- lift $ lift $ catch (Right <$> io) (\e -> return $ Left $ show (e :: SomeException))
+  result <- lift $ lift $ Exc.catch (Right <$> io) (\e -> return $ Left $ show (e :: Exc.SomeException))
   case result of
     Left err -> throwE err
     Right a  -> return a
@@ -87,3 +93,11 @@ executeEvalM logfile eval = do
       writeFile logfile $ printLog w
       exitFailure
     Right a -> return a
+
+-- | Run an `EvalM` computation with a temporary directory
+withTemporaryDirectory :: (FilePath -> EvalM a) -> FilePath -> EvalM a
+withTemporaryDirectory f dir = do
+  liftIO $ createDirectoryIfMissing True dir
+  result <- catch (f dir) $ \e -> liftIO (removeDirectoryRecursive dir) >> throw e 
+  liftIO $ removeDirectoryRecursive dir
+  return result
