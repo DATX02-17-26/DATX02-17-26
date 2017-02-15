@@ -9,3 +9,401 @@
 
 
 ---- Joel + Brage start:
+
+-------------------------------------------------------------------------------
+-- Productions from §14 (Blocks and Statements)
+-------------------------------------------------------------------------------
+
+
+{-
+block
+	:	'{' blockStatements? '}'
+	;
+-}
+
+Block. Block ::= "{" MBlockStatements "}" ;
+
+JBlockStatements. MBlockStatements ::= BlockStatements ;
+NBlockStatements. MBlockStatements ::= ;
+
+{-
+
+blockStatements
+	:	blockStatement blockStatement*
+	;
+
+blockStatement
+	:	localVariableDeclStatement
+	|	classDecl
+	|	statement
+	;
+
+-}
+
+BlockStatements. BlockStatements ::= BlockStatement [BlockStatement] ;
+
+LocalVariableDeclStatement. 	BlockStatement ::= LocalVariableDeclStatement;
+ClassDecl.	 					BlockStatement ::= ClassDecl;
+Statement. 						BlockStatement ::= Statement;
+separator BlockStatement "" ;
+
+{-
+
+localVariableDeclStatement
+	:	localVariableDecl ';'
+	;
+
+-}
+
+LocalVariableDecl. LocalVariableDeclStatement ::= LocalVariableDecl ";" ;
+
+{-
+
+localVariableDecl
+	:	variableModifier* unannType variableDeclaratorList
+	;
+
+-}
+
+LocalVarDecl. 	LocalVariableDecl ::= [VariableModifier] UnannType VariableDeclaratorList ;
+
+{-
+
+statement
+	:	statementWithoutTrailingSubstatement
+	|	labeledStatement
+	|	ifThenStatement
+	|	ifThenElseStatement
+	|	whileStatement
+	|	forStatement
+	;
+
+	-}
+
+StatementWoTrail. 	Statement ::= StatementWithoutTrailingSubstatement ;
+LbldStatement. 		Statement ::= LabeledStatement ;
+IfThenStn.			Statement ::= IfThenStatement ;
+IfElseStn.			Statement ::= IfThenElseStatement ;
+WhileStn.			Statement ::= WhileStatement ;
+ForStn.				Statement ::= ForStatement ;
+
+	{-
+
+statementNoShortIf
+	:	statementWithoutTrailingSubstatement
+	|	labeledStatementNoShortIf
+	|	ifThenElseStatementNoShortIf
+	|	whileStatementNoShortIf
+	|	forStatementNoShortIf
+	;
+
+	-}
+
+NoIfWoTrail. 	StatementNoShortIf ::= StatementWithoutTrailingSubstatement ;
+LbldStnNSIf. 	StatementNoShortIf ::= LabeledStatementNoShortIf ;
+IfElseStnNSIf. 	StatementNoShortIf ::= IfThenElseStatementNoShortIf ;
+WhileStnNSIf.	StatementNoShortIf ::= WhileStatementNoShortIf ;
+ForStnNSIf. 	StatementNoShortIf ::= ForStatementNoShortIf ;
+
+{-
+statementWithoutTrailingSubstatement
+	:	block
+	|	emptyStatement
+	|	expressionStatement
+	|	assertStatement
+	|	switchStatement
+	|	doStatement
+	|	breakStatement
+	|	continueStatement
+	|	returnStatement
+	|	synchronizedStatement
+	|	throwStatement
+	|	tryStatement
+	;
+
+-}
+
+BlockWoTrail.		StatementWithoutTrailingSubstatement ::= Block ;
+EmptyStnWoTrail.	StatementWithoutTrailingSubstatement ::= EmptyStatement ;
+ExprStnWoTrail.		StatementWithoutTrailingSubstatement ::= ExpressionStatement ;
+AssertStnWoTrail.	StatementWithoutTrailingSubstatement ::= AssertStatement ;
+SwitchStnWoTrail.	StatementWithoutTrailingSubstatement ::= SwitchStatement ;
+DoStnWoTrail.		StatementWithoutTrailingSubstatement ::= DoStatement ;
+BreakStnWoTrail.	StatementWithoutTrailingSubstatement ::= BreakStatement ;
+ContStnWoTrail.		StatementWithoutTrailingSubstatement ::= ContinueStatement ;
+RtnStnWoTrail.		StatementWithoutTrailingSubstatement ::= ReturnStatement ;
+SynchStnWoTrail.	StatementWithoutTrailingSubstatement ::= SynchronizedStatement ;
+ThrowStnWoTrail.	StatementWithoutTrailingSubstatement ::= ThrowStatement ;
+TryStnWoTrail.		StatementWithoutTrailingSubstatement ::= TryStatement ;
+
+{-
+
+emptyStatement
+	:	';'
+	;
+
+-}
+
+EmptyStn. EmptyStatement ::= ";" ;
+
+{-
+
+labeledStatement
+	:	Identifier ':' statement
+	;
+
+-}
+
+LblStn. LabeledStatement ::= Identifier ":" Statement ;
+
+{-
+
+labeledStatementNoShortIf
+	:	Identifier ':' statementNoShortIf
+	;
+
+-}
+
+IdStnNSIf. LabeledStatementNoShortIf ::= Identifier ":" StatementNoShortIf ;
+
+{-
+expressionStatement
+	:	statementExpression ';'
+	;
+-}
+
+StnExp. ExpressionStatement ::= StatementExpression ";" ;
+
+{-
+statementExpression
+	:	assignment
+	|	preIncrementExpression
+	|	preDecrementExpression
+	|	postIncrementExpression
+	|	postDecrementExpression
+	|	methodInvocation
+	|	classInstanceCreationExpression
+	;
+-}
+
+AssignExpr. 			StatementExpression ::= Assignment ;
+PreIncrExpr. 			StatementExpression ::= PreIncrementExpression;
+PreDecrExpr. 			StatementExpression ::= PreDecrementExpression;
+PostIncrExpr. 			StatementExpression ::= PostIncrementExpression;
+PostDecrExpr. 			StatementExpression ::= PostDecrementExpression;
+MethodInvocationExpr. 	StatementExpression ::= MethodInvocation;
+ClassInstCreationExpr. 	StatementExpression ::= ClassInstanceCreationExpression;
+
+{-
+ifThenStatement
+	:	'if' '(' expression ')' statement
+	;
+-}
+
+IfThenStatement. IfThenStatement ::= "if" "(" Expression ")" Statement ;
+
+{-
+ifThenElseStatement
+	:	'if' '(' expression ')' statementNoShortIf 'else' statement
+	;
+-}
+
+IfThenElseStatement. IfThenElseStatement ::= "if" "(" Expression ")" StatementNoShortIf "else" Statement ;
+
+{-
+ifThenElseStatementNoShortIf
+	:	'if' '(' expression ')' statementNoShortIf 'else' statementNoShortIf
+	;
+-}
+
+IfThenElseStatementNoShortIf. IfThenElseStatementNoShortIf ::= "if" "(" Expression ")" StatementNoShortIf "else" StatementNoShortIf ;
+
+{-
+assertStatement
+	:	'assert' expression ';'
+	|	'assert' expression ':' expression ';'
+	;
+-}
+
+AssertExpr. 	AssertStatement ::= "assert" Expression ";" ;
+AssertExprExpr. AssertStatement ::= "assert" Expression ":" Expression ";" ;
+
+{-
+switchStatement
+	:	'switch' '(' expression ')' switchBlock
+	;
+-}
+
+SwitchStatement. SwitchStatement ::= "switch" "(" Expression ")" SwitchBlock ;
+ 
+{-
+switchBlock
+	:	'{' switchBlockStatementGroup* switchLabel* '}'
+	;
+-}
+
+SwitchBlock. SwitchBlock ::= "{" [SwitchBlockStatementGroup] [SwitchLabel] "}" ;
+
+{-
+switchBlockStatementGroup
+	:	switchLabels blockStatements
+	;
+-}
+
+SwitchBlockStatementGroup. SwitchBlockStatementGroup ::= SwitchLabels BlockStatements ;
+
+{-
+switchLabels
+	:	switchLabel switchLabel*
+	;
+-}
+
+SwitchLabels. SwitchLabels ::= SwitchLabel [SwitchLabel] ;
+
+{-
+switchLabel
+	:	'case' constantExpression ':'
+	|	'case' enumConstantName ':'
+	|	'default' ':'
+	;
+-}
+
+ConstantSwitchLabel. SwitchLabel ::= "case" ConstantExpression ":" ;
+EnumSwitchLabel. SwitchLabel ::= "case" EnumConstantName ":" ;
+DefaultSwitchLabel. SwitchLabel ::= "default" ":" ;
+
+{-
+enumConstantName
+	:	Identifier
+	;
+-}
+
+EnumConstantName. EnumConstantName ::= Identifier ;
+
+{-
+whileStatement
+	:	'while' '(' expression ')' statement
+	;
+-}
+
+WhileStatement. WhileStatement ::= "while" "(" Expression ")" Statement ;
+
+{-
+whileStatementNoShortIf
+	:	'while' '(' expression ')' statementNoShortIf
+	;
+-}
+
+WhileStatementNSIf. WhileStatementNoShortIf ::= "while" "(" Expression ")" StatementNoShortIf ;
+
+{-
+doStatement
+	:	'do' statement 'while' '(' expression ')' ';'
+	;
+-}
+
+DoStatement. DoStatement ::= "do" Statement "while" "(" Expression ")" ";" ;
+
+{-
+forStatement
+	:	basicForStatement
+	|	enhancedForStatement
+	;
+
+forStatementNoShortIf
+	:	basicForStatementNoShortIf
+	|	enhancedForStatementNoShortIf
+	;
+
+basicForStatement
+	:	'for' '(' forInit? ';' expression? ';' forUpdate? ')' statement
+	;
+
+basicForStatementNoShortIf
+	:	'for' '(' forInit? ';' expression? ';' forUpdate? ')' statementNoShortIf
+	;
+
+forInit
+	:	statementExpressionList
+	|	localVariableDecl
+	;
+
+forUpdate
+	:	statementExpressionList
+	;
+
+statementExpressionList
+	:	statementExpression (',' statementExpression)*
+	;
+
+enhancedForStatement
+	:	'for' '(' variableModifier* unannType variableDeclaratorId ':' expression ')' statement
+	;
+
+enhancedForStatementNoShortIf
+	:	'for' '(' variableModifier* unannType variableDeclaratorId ':' expression ')' statementNoShortIf
+	;
+
+breakStatement
+	:	'break' Identifier? ';'
+	;
+
+continueStatement
+	:	'continue' Identifier? ';'
+	;
+
+returnStatement
+	:	'return' expression? ';'
+	;
+
+throwStatement
+	:	'throw' expression ';'
+	;
+
+synchronizedStatement
+	:	'synchronized' '(' expression ')' block
+	;
+
+tryStatement
+	:	'try' block catches
+	|	'try' block catches? finally_
+	|	tryWithResourcesStatement
+	;
+
+catches
+	:	catchClause catchClause*
+	;
+
+catchClause
+	:	'catch' '(' catchFormalParameter ')' block
+	;
+
+catchFormalParameter
+	:	variableModifier* catchType variableDeclaratorId
+	;
+
+catchType
+	:	unannClassType ('|' classType)*
+	;
+
+finally_
+	:	'finally' block
+	;
+
+tryWithResourcesStatement
+	:	'try' resourceSpecification block catches? finally_?
+	;
+
+resourceSpecification
+	:	'(' resourceList ';'? ')'
+	;
+
+resourceList
+	:	resource (';' resource)*
+	;
+
+resource
+	:	variableModifier* unannType variableDeclaratorId '=' expression
+	;
+
+-}
