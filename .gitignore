@@ -21,3 +21,4 @@ cabal.project.local
 dist/
 mods/
 stud.java
+logfile.log

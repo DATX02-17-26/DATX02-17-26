@@ -36,7 +36,7 @@ source-repository head
   branch:   dev
   location: git://github.com/Centril/DATX02-17-26.git
 
-executable DATX021726
+executable JAA 
     main-is:          Main.hs
     other-modules:    SolutionContext,
                       EvaluationMonad,

@@ -19,6 +19,7 @@
 module Main where
 import System.Environment
 import Control.Monad
+import System.Exit
 
 import SolutionContext
 import EvaluationMonad
