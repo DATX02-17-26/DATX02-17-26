@@ -6,7 +6,7 @@ import Test.Tasty.QuickCheck
 -- | HUnit unit tests
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
-  [ testCase "1 == 1" $ 1 @?= (1 :: Int)
+  [ testCase "1 == 2" $ 2 @?= (1 :: Int)
   ]
 
 -- | QuickCheck property based tests
