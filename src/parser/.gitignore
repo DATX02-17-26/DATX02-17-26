@@ -3,3 +3,6 @@
 *.exe
 *.y
 *.x
+*.bak
+*.java
+TestJava
