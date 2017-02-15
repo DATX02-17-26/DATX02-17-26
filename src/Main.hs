@@ -20,19 +20,36 @@ module Main where
 import System.Environment
 import Control.Monad
 import System.Exit
+import Options.Applicative
+import Data.Semigroup
 
 import SolutionContext
 import EvaluationMonad
 import RunJavac
 
-main :: IO ()
-main = void $ executeEvalM defaultEnv $ do
-  args <- liftIO $ getArgs 
+-- | The command line arguments
+data CommandLineArguments = CMD { studentSolutionPath :: FilePath
+                                , modelSolutionsPath  :: FilePath
+                                , environment         :: Env
+                                } deriving Show
 
-  -- Unsafe, add sanity checks
-  let studentSolution     = args !! 0
-      dirOfModelSolutions = args !! 1
+-- | A parser for command line arguments
+arguments :: Parser CommandLineArguments
+arguments =  CMD
+         <$> argument str (metavar "STUDENT_SOLUTION")
+         <*> argument str (metavar "MODEL_SOLUTIONS_DIR")
+         <*> parseEnv
 
+-- | Full parser for arguments
+argumentParser :: ParserInfo CommandLineArguments
+argumentParser = info (arguments <**> helper)
+                 (  fullDesc
+                 <> header "JAA, a program for Java Automated Assessment"
+                 )
+
+-- | The actual entry point of the application
+application :: FilePath -> FilePath -> EvalM ()
+application studentSolution dirOfModelSolutions = do
   -- Get the filepaths of the student and model solutions
   paths <- getFilePathContext studentSolution dirOfModelSolutions
 
@@ -46,3 +63,16 @@ main = void $ executeEvalM defaultEnv $ do
   context <- readRawContext paths
 
   return ()
+
+main :: IO ()
+main = do
+  -- Parse command line arguments
+  args <- execParser argumentParser  
+
+  -- Get all the relevant parts of the arguments
+  let env                 = environment args
+      studentSolution     = studentSolutionPath args
+      dirOfModelSolutions = modelSolutionsPath  args
+
+  -- Run the actual application
+  executeEvalM env $ application studentSolution dirOfModelSolutions

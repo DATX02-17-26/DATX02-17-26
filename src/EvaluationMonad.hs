@@ -59,7 +59,9 @@ data Env = Env { verbose :: Bool
 
 -- | The default environment
 defaultEnv :: Env
-defaultEnv = Env { verbose = False, logfile = "logfile.log" }
+defaultEnv = Env { verbose = False
+                 , logfile = "logfile.log"
+                 }
 
 -- | A parser for environments
 parseEnv :: Parser Env
@@ -133,9 +135,9 @@ executeEvalM env eval = do
     Right a -> return a
 
 -- | Run an `EvalM` computation with a temporary directory
-withTemporaryDirectory :: (FilePath -> EvalM a) -> FilePath -> EvalM a
-withTemporaryDirectory f dir = do
+withTemporaryDirectory :: EvalM a -> FilePath -> EvalM a
+withTemporaryDirectory evalm dir = do
   liftIO $ createDirectoryIfMissing True dir
-  result <- catch (f dir) $ \e -> liftIO (removeDirectoryRecursive dir) >> throw e 
+  result <- catch evalm $ \e -> liftIO (removeDirectoryRecursive dir) >> throw e 
   liftIO $ removeDirectoryRecursive dir
   return result

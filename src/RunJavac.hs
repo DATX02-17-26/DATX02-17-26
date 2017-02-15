@@ -66,8 +66,8 @@ compileThrow dir path = do
 -- Will throw an exception if any of the model solutions fail to compile and returns
 -- the compilation status of the student solution
 compileContext :: SolutionContext FilePath -> FilePath -> EvalM CompilationStatus
-compileContext ctx = withTemporaryDirectory inner
+compileContext ctx dir = withTemporaryDirectory inner dir
   where
-    inner dir = do
+    inner = do
       sequence $ compileThrow dir <$> ctx ^. modelSolutions
       tryCompile dir (ctx ^. studentSolution)
