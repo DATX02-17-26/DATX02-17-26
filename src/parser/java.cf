@@ -4,6 +4,181 @@
 
 
 ---- Alex start:
+{-
+/*
+ * Productions from §6 (Names)
+ */
+
+packageName
+	:	Identifier
+	|	packageName '.' Identifier
+	;
+-}
+
+PackIdent.  Package ::= Id ;
+PackDotId.  Package ::= Package "." Id ;
+
+{-
+typeName
+	:	Identifier
+	|	packageOrTypeName '.' Identifier
+;
+-}
+
+TypeNameId. TypeName ::= Id ;
+PorTDotId.  TypeName ::= PackOrType "." Id ;
+
+{-
+packageOrTypeName
+	:	Identifier
+	|	packageOrTypeName '.' Identifier
+;
+-}
+
+PackOrTypeId. PackOrType ::= Id ;
+POrTNDotId.   PackOrType ::= PackOrType "." Id ;
+
+{-expressionName
+	:	Identifier
+	|	ambiguousName '.' Identifier
+;
+-}
+
+ExpNamId.    ExpName ::= Id ;
+AmbNamId.    ExpName ::= AmbName "." Id ;
+
+{-
+methodName
+	:	Identifier
+;
+-}
+
+MetNam.    MethodName ::= Id ;
+
+{-
+ambiguousName
+	:	Identifier
+	|	ambiguousName '.' Identifier
+;
+-}
+
+AmbId.     AmbName ::= Id ;
+AmbNamId.  AmbName ::= AmbName "." Id ;
+
+{-
+/*
+ * Productions from §7 (Packages)
+ */
+-}
+
+{-
+compilationUnit
+	:	packageDeclaration? importDeclaration* typeDeclaration* EOF
+;
+-}
+
+--MIGHT BE WRONG!!
+CompUni.  ComUnit ::= PackDec [ImpDec] [TypDec] ;
+
+{-
+packageDeclaration
+	:	packageModifier* 'package' Identifier ('.' Identifier)* ';'
+;
+-}
+PDec.     PackDec ::= [PackModi] "package" Id ["." Id] ";" ;
+
+{-
+packageModifier
+	:	annotation
+;
+-}
+
+PMod.     PackModi ::= Annotation ;
+
+{-
+importDeclaration
+	:	singleTypeImportDeclaration
+	|	typeImportOnDemandDeclaration
+	|	singleStaticImportDeclaration
+	|	staticImportOnDemandDeclaration
+;
+-}
+SingImp.  ImpDec ::= SingImpDec ;
+TypImp.   ImpDec ::= TypImpDec ;
+SiStI.    ImpDec ::= SiStatDec ;
+StatImp.  ImpDec ::= StatImpDec ;
+separator ImpDec ";" ;
+
+{-
+singleTypeImportDeclaration
+	:	'import' typeName ';'
+;
+-}
+SiTypIm.  SingImpDec ::= "import" TypeName ";" ;
+
+{-
+typeImportOnDemandDeclaration
+	:	'import' packageOrTypeName '.' '*' ';'
+;
+-}
+TyImDec.  TypImpDec ::= "import" PackOrType "." "*" ";" ;
+
+{-
+
+singleStaticImportDeclaration
+	:	'import' 'static' typeName '.' Identifier ';'
+;
+-}
+SiStImp.   SiStatDec ::= "import" "static" TypeName "." Id ";" ;
+
+{-
+staticImportOnDemandDeclaration
+	:	'import' 'static' typeName '.' '*' ';'
+;
+-}
+StImpDec.  StatImpDec ::= "import" "static" TypeName "." "*" ";" ;
+
+{-
+typeDeclaration
+	:	classDeclaration
+	|	interfaceDeclaration
+	|	';'
+;
+-}
+
+TClDec.   TypDec ::= ClassDec ;
+InFaDec.  TypDec ::= IntrfcDec ;
+--ETyDe.    TypDec ::= ";"
+separator TypDec ";" ;
+
+{-
+/*
+ * Productions from §8 (Classes)
+ */
+ -}
+
+{-
+classDeclaration
+	:	normalClassDeclaration
+	|	enumDeclaration
+;
+-}
+
+NCDe.    ClassDec ::= NCDec ;
+EnDe.    ClassDec ::= EnDec ;
+
+{-
+normalClassDeclaration
+	:	classModifier* 'class' Identifier typeParameters? superclass? superinterfaces? classBody
+;
+-}
+
+
+
+
+
+
+
 
 
 
