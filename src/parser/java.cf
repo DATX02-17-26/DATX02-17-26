@@ -379,9 +379,52 @@ normalClassDeclaration
 	:	classModifier* 'class' Identifier typeParameters? superclass? superinterfaces? classBody
 ;
 -}
+NCDe.    NCDec ::= [CMod] "class" Id  TypParams SupCla SupIntr CBod ;
+
+{-
+	classModifier
+	:	annotation
+	|	'public'
+	|	'protected'
+	|	'private'
+	|	'abstract'
+	|	'static'
+	|	'final'
+	|	'strictfp'
+;
+-}
+CAnn.   CMod ::= Annotation ;
+CPub.   CMod ::= "public" ;
+CPro.   CMod ::= "protected" ;
+CPri.   CMod ::= "private" ;
+CAbs.   CMod ::= "abstract" ;
+CSta.   CMod ::= "static" ;
+CFin.   CMod ::= "final" ;
+CSFp.   CMod ::= "strictfp" ;
+
+{-
+typeParameters
+	:	'<' typeParameterList '>'
+;
+-}
+TPar.   TypeParams ::= "<" [TypeParameter] ">" ;
+TPEm.   TypeParams ::= ;
 
 
+{-
+typeParameterList
+	:	typeParameter (',' typeParameter)*
+;
+-}
+separator TypeParameter "," ;
 
+{-
+superclass
+	:	'extends' classType
+;
+-}
+
+SCla.   SupCla ::= "extends" ClassType ;
 
 
 
