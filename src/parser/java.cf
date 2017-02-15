@@ -793,6 +793,18 @@ enhancedForStatementNoShortIf
 	:	'for' '(' variableModifier* unannType variableDeclaratorId ':' expression ')' statementNoShortIf
 	;
 
+-}
+
+StatementExpList. 		StatementExpressionList ::= StatementExpression "," [StatementExpression] ; --TODO change to MStatementExpressions?
+StatementExpListSingle. StatementExpressionList ::= StatementExpression ;
+
+separator statementExpression "," ;
+
+EnhancedForStatement. 		EnhancedForStatement ::= "for" "(" [variableModifier] UnannType VariableDeclaratorId ":" Expression ")" Statement ;
+EnhancedForStatementNSIf.	EnhancedForStatement ::= "for" "(" [variableModifier] UnannType VariableDeclaratorId ":" Expression ")" StatementNoShortIf ;
+
+{-
+
 breakStatement
 	:	'break' Identifier? ';'
 	;
@@ -813,6 +825,15 @@ synchronizedStatement
 	:	'synchronized' '(' expression ')' block
 	;
 
+-}
+
+BreakStatement.			BreakStatement ::= "break" MIdentifier ";" ;
+ContinueStatement. 		BreakStatement ::= "continue" MIdentifier ";" ;
+ReturnStatement. 		BreakStatement ::= "return" MIdentifier ";" ;
+ThrowStatement. 		BreakStatement ::= "throw" MIdentifier ";" ;
+SynchronizedStatement. 	BreakStatement ::= "synchronized" "(" Expression ")" Block ;
+
+{-
 tryStatement
 	:	'try' block catches
 	|	'try' block catches? finally_
@@ -839,6 +860,33 @@ finally_
 	:	'finally' block
 	;
 
+-}
+
+TryStatement. 	TryStatement ::= "try" Block Catches ;
+TryStnFinally. 	TryStatement ::= "try" Block MCatches Finally ;
+TryStResources.	TryStatement ::= TryWithResourcesStatement ;
+
+JCatches. MCatches ::= Catches ;
+NCatches. MCatches ::= ;
+Catches. Catches ::= CatchClause [CatchClause] ;
+
+CatchClause. 	CatchClause ::= "catch" "(" CatchFormalParameter ")" Block ;
+separator 		CatchClause "";
+
+CatchFormalParameter. CatchFormalParameter ::= [VariableModifier] CatchType VariableDeclaratorId ;
+
+CatchType. CatchType ::= UnannClassType "|" CatchClassType; -- TODO change to MCatchClassTypes?
+CatchType. CatchType ::= UnannClassType;
+
+CatchClassTypes. 	CatchClassType ::= ClassType;
+separator 			CatchClassTypes "|" ;
+
+JFinally. MFinally ::= Finally ;
+NFinally. MFinally ::= ;
+Finally. Finally ::= "finally" Block ;
+
+{-
+
 tryWithResourcesStatement
 	:	'try' resourceSpecification block catches? finally_?
 	;
@@ -856,3 +904,16 @@ resource
 	;
 
 -}
+
+TryWithResources. TryWithResourcesStatement ::= "try" ResourceSpecification Block MCatches MFinally ;
+
+ResourceSpecification. resourceSpecification ::= "C" ResourceList MSemi ")" ;
+
+ResourceList. 		ResourceList ::= Resource ";" [Resource] ;
+ResourceListSolo. 	ResourceList ::= Resource ;
+
+Resource. Resource ::= [VariableModifier] UnannType VariableDeclaratorId "=" Expression ;
+separator Resource ";" ;
+
+JSemi. 	MSemi ::= ";" ;
+NSemi.	MSemi ::= ;
