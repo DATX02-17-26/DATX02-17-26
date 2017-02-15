@@ -1,14 +1,15 @@
+entrypoints Class ;
 
 --class declarations
 JClass. Class ::= [Modif] "class" Id "{" [Decl] "}" ;
 
 --visibility levels
-Pub.    Modif ::= "public" ;
-Priv.   Modif ::= "private" ;
-Prot.   Modif ::= "protected" ;
-Stat.   Modif ::= "static" ;
-Final.  Modif ::= "final" ;
-separator Modif " " ;
+Public.      Modif ::= "public" ;
+Private.     Modif ::= "private" ;
+Protected.   Modif ::= "protected" ;
+Static.      Modif ::= "static" ;
+Final.       Modif ::= "final" ;        
+separator    Modif "" ;
 
 --Unsp.   Visib ::=  ;
 
@@ -33,60 +34,69 @@ separator Modif " " ;
 
 --Declarations 
 MDecl.  Decl ::= [Modif] Type Id "(" [Arg] ")" "{" [Stm] "}" ;
-VDecl.  Decl ::= [Modif] Type [VarDecl]  ";" ;
+--VDecl.  Decl ::= [Modif] Type [VarDecl]  ";" ;
 --VIDecl. Decl ::= [Modif] Type Id "=" Exp ;  
 terminator Decl "" ;
 
 VDec.	 VarDecl ::= DeclName ;
 VDecE.   VarDecl ::= DeclName "=" Exp ;
-separator VarDecl "," ;
+separator nonempty VarDecl "," ;
 
 VDecNa.	DeclName ::= Id ;
-VDecAr.	DeclName ::= Id [Bracket] ;
+VDecAr.	DeclName ::= Id [Dimension] ;
 
-Bra.	Bracket ::= "[]" ;
-separator nonempty Bracket "" ;
+Dim.	Dimension ::= "[]" ;
+separator nonempty Dimension "" ;
 
 --Types
-TInt.    BasicType ::= "int" ;
-TDouble. BasicType ::= "double" ;
-TFloat.  BasicType ::= "float" ;
-TChar.   BasicType ::= "char" ;
-TBool.   BasicType ::= "boolean" ;
-TShort.  BasicType ::= "short" ;
-TByte.   BasicType ::= "byte" ;
+TInt.    PrimitiveType ::= "int" ;
+TDouble. PrimitiveType ::= "double" ;
+TLong.   PrimitiveType ::= "long" ;
+TFloat.  PrimitiveType ::= "float" ;
+TChar.   PrimitiveType ::= "char" ;
+TBool.   PrimitiveType ::= "boolean" ;
+TShort.  PrimitiveType ::= "short" ;
+TByte.   PrimitiveType ::= "byte" ;
+TVoid.   PrimitiveType ::= "void" ;
 
-BAType.  Type ::= BasicType [Bracket] ;
-BType.   Type ::= BasicType ;
+--TODO Not all uses of types can have Dimensions
+TPrim.   Type2 ::= PrimitiveType ;
+TObject. Type2 ::= Id ;
+TArray.  Type1 ::= Type2 [Dimension] ;
+_.       Type1 ::= Type2 ;
+_.       Type  ::= Type1 ;
+
+
+FType.   FType ::= "final" Type ;
 
 MArg.	Arg ::= Type DeclName ;
 separator Arg "," ;
 
---Statements
+--Statements"
 StE.	  Stm ::= Exp ;
 StReturn. Stm ::= "return" Exp ;
 StIf.     Stm ::= "if" "(" Exp ")" Stm ;
+StIfEle.  Stm ::= "if" "(" Exp ")" Stm "else" Stm ;
 StSwitch. Stm ::= "switch" "(" Exp ")" Stm ;
 StCase.   Stm ::= "case" Exp ":" ;
 StBreak.  Stm ::= "break" ;
+
 StFor.    Stm ::= ForLoop ;
+
 StWhile.  Stm ::= "while" "(" Exp ")" Stm ;
 StDoWhi.  Stm ::= "do" Stm "while" "(" Exp ")" ;
 StBlock.  Stm ::= "{" [Stm] "}" ;
 separator Stm ";" ;
-
-REsle.    Rest ::= "else" Stm ;
-REmpty.   Rest ::= ;
 
 --For loop, separeted as there are different for loops
 IncFor. ForLoop ::= "for" "(" ForInit ";" Exp ";" Exp ")" Stm ;
 
 --As for loops has the same rules (ish) as variable declaration there are a lot of special cases
 ForExp.   ForInit ::= [Exp] ;
+ForFinal. ForInit ::= FType [VarDecl] ;
 ForVDecl. ForInit ::= Type [VarDecl] ;
-ForFinal. ForInit ::= "final" Type [VarDecl] ;
 
-EQuaId.		Exp16 ::= Id ;
+EId.		Exp16 ::= Id ;
 EInt.		Exp16 ::= Integer ;
 EDouble.	Exp16 ::= Double ;
 EString.	Exp16 ::= [String] ;
@@ -95,17 +105,19 @@ EChar.		Exp16 ::= Char ;
 separator nonempty String "" ;
 
 --Expressions
-EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
-EIndex.     Exp15  ::= Exp16 "[" Exp "]";
---There might be a problem with constructs like a.b().get(i).hej ?
+EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ; --TODO dubble check this
+EIndex.     Exp15  ::= Exp16 "[" Exp "]"; --TODO dubble check this
+
 EStruVar.	Exp14  ::= Exp14 "." Exp15 ;
 EPosIncr.	Exp14  ::= Exp15 "++" ;
 EPosDecr.  	Exp14  ::= Exp15 "--" ;
+Epreop.     Exp14  ::= UnaryOperator Ex13 ;
+EPrIncr.   	Exp14  ::= "++" Exp14 ;
+EPrDecr.   	Exp14  ::= "--" Exp14 ;
 
-EPrIncr.   	Exp13  ::= "++" Exp14 ;
-EPrDecr.   	Exp13  ::= "--" Exp14 ;
-ENeg.    	Exp13  ::= "*" Exp14 ;
-ENega.    	Exp13  ::= "!" Exp14 ;
+Eexpcoercion.  	Exp13 ::= "(" Exp ")" Exp15;
+--Earrcoercion.	Exp13 ::= "(" Id [Dimension] ")" Exp13;
+Ebcoercion.	Exp13 ::= "(" Type ")" Exp13;
 
 EMul.    	Exp12  ::= Exp12 "*"  Exp13 ;
 EDiv.   	Exp12  ::= Exp12 "/"  Exp13 ;
@@ -114,6 +126,7 @@ EMod.   	Exp12  ::= Exp12 "%"  Exp13 ;
 EAdd.   	Exp11  ::= Exp11 "+"  Exp12 ;
 ESub.    	Exp11  ::= Exp11 "-"  Exp12 ;
 
+Etrip.      Exp10  ::= Exp10 ">>>" Exp11;
 ELShift.	Exp10  ::= Exp10 "<<" Exp11 ;
 ERShift.	Exp10  ::= Exp10 ">>" Exp11 ;
 
@@ -124,7 +137,9 @@ EGEq.    	Exp9   ::= Exp9  ">=" Exp10 ;
 
 EEq.     	Exp8   ::= Exp8  "==" Exp9 ;
 ENEq.    	Exp8   ::= Exp8  "!=" Exp9 ;
-
+Ebitand.    Exp7   ::= Exp7  "&"  Exp8 ;
+Ebitexor.   Exp6   ::= Exp6  "^"  Exp7 ;
+EBitor.     Exp5   ::= Exp5  "|"  Exp6 ;
 EAnd.    	Exp4   ::= Exp4  "&&" Exp5 ;
 
 EOr.     	Exp3   ::= Exp3  "||" Exp4 ;
@@ -132,10 +147,30 @@ EOr.     	Exp3   ::= Exp3  "||" Exp4 ;
 EAss.    	Exp2   ::= Exp3 "=" Exp2 ;
 EPAss.		Exp2   ::= Exp3 "+=" Exp2 ;
 ENAss.		Exp2   ::= Exp3 "-=" Exp2 ;
-ECond.		Exp2   ::= Exp3 "?" Exp2 ":" Exp2 ;
+ECond.		Exp2   ::= Exp3 "?" Exp1 ":" Exp2 ;
+EType.      Exp1   ::= Exp14 "instanceof" Type ;
+EAssign.    Exp1   ::= Exp14 AssignmentOp Exp ;
 
 coercions 	Exp 16 ;
 separator Exp "," ;
+
+Plus.        UnaryOperator ::= "+" ;
+Negative.    UnaryOperator ::= "-" ;
+Complement.  UnaryOperator ::= "~" ;
+Logicalneg.  UnaryOperator ::= "!" ;
+
+Assign.       AssignmentOp ::= "=" ;
+AssignMul.    AssignmentOp ::= "*=" ;
+AssignDiv.    AssignmentOp ::= "/=" ;
+AssignMod.    AssignmentOp ::= "%=" ;
+AssignAdd.    AssignmentOp ::= "+=" ;
+AssignSub.    AssignmentOp ::= "-=" ;
+AssignLeft.   AssignmentOp ::= "<<=" ;
+AssignRight.  AssignmentOp ::= ">>=" ;
+AssignTrip.   AssignmentOp ::= ">>>=" ;
+AssignAnd.    AssignmentOp ::= "&=" ;
+AssignXor.    AssignmentOp ::= "^=" ;
+AssignOr.     AssignmentOp ::= "|=" ;
 
 
 token Id (letter (letter | digit | '_')*) ;
