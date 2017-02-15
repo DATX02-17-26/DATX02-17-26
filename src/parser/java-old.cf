@@ -1,0 +1,218 @@
+entrypoints Class ;
+{-
+Prpkg.		ProgramFile ::= "package" ImportId ";" [Import] Class;
+ProgF.		ProgramFile ::= [Import] Class;
+
+ImportN. 	Import ::= "import" [ImportId] ";";
+ImportA.	Import ::= "import" [ImportId] ".*" ";";
+
+separator Import "";
+
+token ImportId (letter (letter | digit | '_')*) ;
+
+separator nonempty ImportId "." ; 
+-}
+--class declarations
+JClass. Class ::= [Modif] "class" Id "{" [Decl] "}" ;
+
+--visibility levels
+Public.      Modif ::= "public" ;
+Private.     Modif ::= "private" ;
+Protected.   Modif ::= "protected" ;
+Static.      Modif ::= "static" ;
+Final.       Modif ::= "final" ;        
+separator    Modif "" ;
+
+--Unsp.   Visib ::=  ;
+
+--UVis.   UVisib ::= ;
+
+--instance type for methods
+
+--MUns.    MInsTyp ::= ;
+
+--instance type for vars
+--VStat.  VInsTyp ::= "static" ;
+--VUns.   VInsTyp ::= ;
+
+--VIDecl.  FDec ::= Visib ;
+--IVDecl.  FDec ::= MInsTyp ;
+--EDecl.   FDec ::= ;
+--UMVDec. FDec ::= UVisib MInsTyp Visib ;
+--VMDec.  FDec ::= Visib MInsTyp ;
+--UMDec.  FDec ::= UVisib MInsTyp ;
+
+--coercions FDec 2 ;
+
+--Declarations 
+MDecl.  Decl ::= [Modif] Type Id "(" [Arg] ")" "{" [Stm] "}" ;
+VDecl.  Decl ::= [Modif] Type [VarDecl]  ";" ;
+VIDecl. Decl ::= [Modif] Type Id "=" Exp ;  
+terminator Decl "" ;
+
+VDec.	 VarDecl ::= DeclName ;
+VDecE.   VarDecl ::= DeclName "=" Exp ;
+separator nonempty VarDecl "," ;
+
+VDecNa.	DeclName ::= Id ;
+VDecAr.	DeclName ::= Id [Dimension] ;
+
+Dim.	Dimension ::= "[" "]" ;
+separator nonempty Dimension "" ;
+     
+
+--------------------------------------------------------------------------------
+-- Types:
+--------------------------------------------------------------------------------
+
+-- Integral types:
+TByte.   IntegralType ::= "byte"  ;
+TShort.  IntegralType ::= "short" ;
+TInt.    IntegralType ::= "int"   ;
+TLong.   IntegralType ::= "long"  ;
+TChar.   IntegralType ::= "char"  ;
+
+-- Floating types:
+TFloat.  FloatingType ::= "float"  ;
+TDouble. FloatingType ::= "double" ;
+
+-- Numeric Types:
+TIntegral. NumericType  ::= IntegralType ;
+TFloating. NumericType  ::= FloatingType ;
+
+-- Primitive Types:
+TNum.   PrimitiveType ::= NumericType ;
+TBool.  PrimitiveType ::= "boolean" ;
+
+
+--TODO Not all uses of types can have Dimensions
+TPrim.   Type2 ::= PrimitiveType ;
+TObject. Type2 ::= Id ;
+TArray.  Type1 ::= Type2 [Dimension] ;
+_.       Type1 ::= Type2 ;
+_.       Type  ::= Type1 ;
+
+
+FType.   FType ::= "final" Type ;
+
+MArg.	Arg ::= Type DeclName ;
+separator Arg "," ;
+
+--Statements"
+StE.	  Stm ::= Exp ;
+StIf.     Stm ::= "if" "(" Exp ")" Stm ;
+StIfEle.  Stm ::= "if" "(" Exp ")" Stm "else" Stm ;
+StSwitch. Stm ::= "switch" "(" Exp ")" Stm ;
+StCase.   Stm ::= "case" Exp ":" ;
+StDflt.	  Stm ::= "default" ":";
+StBreak.  Stm ::= JumpStm ;
+StFor.    Stm ::= ForLoop ;
+StWhile.  Stm ::= "while" "(" Exp ")" Stm ;
+StDoWhi.  Stm ::= "do" Stm "while" "(" Exp ")" ;
+StBlock.  Stm ::= "{" [Stm] "}" ;
+separator Stm ";" ;
+
+Break.			JumpStm ::= "break" ";";
+Brlabel.		JumpStm ::= "break" Id ";";
+Continue.		JumpStm ::= "continue" ";";
+Continuelabel.	JumpStm ::= "continue" Id ";";
+Return.			JumpStm ::= "return" ";";
+ReturnExp.		JumpStm ::= "return" Exp ";";
+Throw.			JumpStm ::= "throw" Exp ";";
+
+--For loop, separeted as there are different for loops
+IncFor. ForLoop ::= "for" "(" ForInit ";" Exp ";" Exp ")" Stm ;
+
+--As for loops has the same rules (ish) as variable declaration there are a lot of special cases
+ForExp.   ForInit ::= [Exp] ;
+ForFinal. ForInit ::= FType [VarDecl] ;
+ForVDecl. ForInit ::= Type [VarDecl] ;
+
+EId.		Exp16 ::= Id ;
+EConstant.  Exp16 ::= Constant ;
+Especname.	Exp16 ::= SpecName ;
+
+separator nonempty String "" ;
+
+--Expressions
+
+EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
+EIndex.     Exp15  ::= Exp16 "[" Exp "]";
+
+EStruVar.	Exp14  ::= Exp14 "." Exp15 ;
+EPosIncr.	Exp14  ::= Exp15 "++" ;
+EPosDecr.  	Exp14  ::= Exp15 "--" ;
+Epreop.     Exp14  ::= UnaryOperator Exp13 ;
+EPrIncr.   	Exp14  ::= "++" Exp14 ;
+EPrDecr.   	Exp14  ::= "--" Exp14 ;
+
+Eexpcoercion.  	Exp13 ::= "(" Exp ")" Exp15;
+--Earrcoercion.	Exp13 ::= "(" Id [Dimension] ")" Exp13;
+Ebcoercion.	Exp13 ::= "(" Type ")" Exp13;
+
+EMul.    	Exp12  ::= Exp12 "*"  Exp13 ;
+EDiv.   	Exp12  ::= Exp12 "/"  Exp13 ;
+EMod.   	Exp12  ::= Exp12 "%"  Exp13 ;
+
+EAdd.   	Exp11  ::= Exp11 "+"  Exp12 ;
+ESub.    	Exp11  ::= Exp11 "-"  Exp12 ;
+
+Etrip.      Exp10  ::= Exp10 ">>>" Exp11;
+ELShift.	Exp10  ::= Exp10 "<<" Exp11 ;
+ERShift.	Exp10  ::= Exp10 ">>" Exp11 ;
+
+ELt.    	Exp9   ::= Exp9  "<"  Exp10 ;
+EGt.     	Exp9   ::= Exp9  ">"  Exp10 ;
+ELEq.    	Exp9   ::= Exp9  "<=" Exp10 ;
+EGEq.    	Exp9   ::= Exp9  ">=" Exp10 ;
+
+EEq.     	Exp8   ::= Exp8  "==" Exp9 ;
+ENEq.    	Exp8   ::= Exp8  "!=" Exp9 ;
+Ebitand.    Exp7   ::= Exp7  "&"  Exp8 ;
+Ebitexor.   Exp6   ::= Exp6  "^"  Exp7 ;
+EBitor.     Exp5   ::= Exp5  "|"  Exp6 ;
+EAnd.    	Exp4   ::= Exp4  "&&" Exp5 ;
+
+EOr.     	Exp3   ::= Exp3  "||" Exp4 ;
+
+ECond.		Exp2   ::= Exp3 "?" Exp1 ":" Exp2 ;
+EType.      Exp1   ::= Exp14 "instanceof" Type ;
+EAssign.    Exp1   ::= Exp14 AssignmentOp Exp ;
+
+coercions 	Exp 16 ;
+separator Exp "," ;
+
+EInt.		Constant ::= Integer ;
+EDouble.	Constant ::= Double ;
+EString.	Constant ::= [String] ;
+EChar.		Constant ::= Char ;
+Etrue.	    Constant ::= "true";
+Efalse.	    Constant ::= "false";
+
+SSsuper.	 SpecName ::= "super";
+SSthis.		 SpecName ::= "this";
+SSnull.		 SpecName ::= "null";
+
+Plus.        UnaryOperator ::= "+" ;
+Negative.    UnaryOperator ::= "-" ;
+Complement.  UnaryOperator ::= "~" ;
+Logicalneg.  UnaryOperator ::= "!" ;
+
+Assign.       AssignmentOp ::= "=" ;
+AssignMul.    AssignmentOp ::= "*=" ;
+AssignDiv.    AssignmentOp ::= "/=" ;
+AssignMod.    AssignmentOp ::= "%=" ;
+AssignAdd.    AssignmentOp ::= "+=" ;
+AssignSub.    AssignmentOp ::= "-=" ;
+AssignLeft.   AssignmentOp ::= "<<=" ;
+AssignRight.  AssignmentOp ::= ">>=" ;
+AssignTrip.   AssignmentOp ::= ">>>=" ;
+AssignAnd.    AssignmentOp ::= "&=" ;
+AssignXor.    AssignmentOp ::= "^=" ;
+AssignOr.     AssignmentOp ::= "|=" ;
+
+
+token Id (letter (letter | digit | '_')*) ;
+
+separator nonempty Id "," ; 
+
