@@ -64,9 +64,11 @@ separator Arg "," ;
 --Statements
 StE.	  Stm ::= Exp ;
 StReturn. Stm ::= "return" Exp ;
-StCond.   Stm ::= "if" "(" Exp ")" Stm Rest ;
+StIf.     Stm ::= "if" "(" Exp ")" Stm Rest ;
+StCase.   Stm ::= "case" Exp ":" ;
 StFor.    Stm ::= ForLoop ;
 StWhile.  Stm ::= "while" "(" Exp ")" Stm ;
+StDoWhi.  Stm ::= "do" Stm "while" "(" Exp ")" ;
 StBlock.  Stm ::= "{" [Stm] "}" ;
 separator Stm ";" ;
 
@@ -81,11 +83,18 @@ ForExp.   ForInit ::= [Exp] ;
 ForVDecl. ForInit ::= Type [VarDecl] ;
 ForFinal. ForInit ::= "final" Type [VarDecl] ;
 
+EQuaId.		Exp16 ::= Id ;
+EInt.		Exp16 ::= Integer ;
+EDouble.	Exp16 ::= Double ;
+EString.	Exp16 ::= [String] ;
+EChar.		Exp16 ::= Char ;
+
+separator nonempty String "" ;
+
 --Expressions
 EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
 EIndex.     Exp15  ::= Exp16 "[" Exp "]";
-
-EPoint.		Exp14  ::= Exp14 "->" Exp15 ;
+--There might be a problem with constructs like a.b().get(i).hej?
 EStruVar.	Exp14  ::= Exp14 "." Exp15 ;
 EPosIncr.	Exp14  ::= Exp15 "++" ;
 EPosDecr.  	Exp14  ::= Exp15 "--" ;
@@ -121,8 +130,6 @@ EAss.    	Exp2   ::= Exp3 "=" Exp2 ;
 EPAss.		Exp2   ::= Exp3 "+=" Exp2 ;
 ENAss.		Exp2   ::= Exp3 "-=" Exp2 ;
 ECond.		Exp2   ::= Exp3 "?" Exp2 ":" Exp2 ;
-
-Ethr.		Exp1	::= "throw" Exp2 ;
 
 coercions 	Exp 16 ;
 separator Exp "," ;
