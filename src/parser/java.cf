@@ -436,6 +436,28 @@ SCla.   SupCla ::= "extends" ClassType ;
 ---- Joel + Brage start:
 
 -------------------------------------------------------------------------------
+-- Productions from §10 (Arrays)
+-------------------------------------------------------------------------------
+
+{-
+arrayInitializer
+	:	'{' variableInitializerList? ','? '}'
+	;
+
+variableInitializerList
+	:	variableInitializer (',' variableInitializer)*
+;
+
+-}
+
+ArrayInit. ArrayInitializer ::= "{" MVariableInitializerList MComma "}" ;
+
+MVarInitList. MVariableInitializerList ::= [VariableInitializer] ;
+
+VarInitList. VariableInitializerList ::= VariableInitializer "," [VariableInitializer] ;
+VarInitList. VariableInitializerList ::= VariableInitializer ;
+
+-------------------------------------------------------------------------------
 -- Productions from §14 (Blocks and Statements)
 -------------------------------------------------------------------------------
 
