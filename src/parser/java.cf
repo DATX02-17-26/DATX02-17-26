@@ -1,5 +1,212 @@
 ---- Mazdak start:
 
+entrypoints Program ;
+
+Program. Program ::= Identifier ;
+
+--------------------------------------------------------------------------------
+-- Productions from §4 (Types, Values, and Variables)
+--------------------------------------------------------------------------------
+
+-- TODO: fix this, later...
+Annotation. Annotation ::= ;
+separator Annotation "" ;
+
+-- TODO: fix this, later...
+Id. Identifier ::= Ident;
+
+{-
+integralType
+	:	'byte'
+	|	'short'
+	|	'int'
+	|	'long'
+	|	'char'
+	;
+-}
+
+-- Integral types:
+TByte.   IntegralType ::= "byte"  ;
+TShort.  IntegralType ::= "short" ;
+TInt.    IntegralType ::= "int"   ;
+TLong.   IntegralType ::= "long"  ;
+TChar.   IntegralType ::= "char"  ;
+
+{-
+floatingPointType
+	:	'float'
+	|	'double'
+	;
+-}
+
+-- Floating types:
+TFloat.  FloatingType ::= "float"  ;
+TDouble. FloatingType ::= "double" ;
+
+{-
+numericType
+	:	integralType
+	|	floatingPointType
+	;
+-}
+
+-- Numeric Types:
+TIntegral. NumericType  ::= IntegralType ;
+TFloating. NumericType  ::= FloatingType ;
+
+{-
+primitiveType
+	:	annotation* numericType
+	|	annotation* 'boolean'
+	;
+-}
+
+-- Primitive Types:
+TNumeric.  PrimitiveType ::= [Annotation] NumericType ;
+TBool.     PrimitiveType ::= [Annotation] "boolean" ;
+
+{-
+referenceType
+	:	classOrInterfaceType
+	|	typeVariable
+	|	arrayType
+	;
+-}
+
+TRClassIface. ReferenceType ::= CIType         ;
+TTypeVar.     ReferenceType ::= TypeVariable   ;
+TArrayType.   ReferenceType ::= ArrayType      ;
+
+ClassCIType. CIType ::= ClassType ;
+IfaceCIType. CIType ::= IfaceType ;
+
+TopCT.   ClassType ::= [Annotation] Identifier MTypeArgs ;
+InnerCT. ClassType ::= CIType "." [Annotation] Identifier MTypeArgs ;
+
+IfaceType. IfaceType ::= ClassType ;
+
+{-
+typeVariable
+    :   annotation* Identifier
+    ;
+-}
+
+TypeVar. TypeVariable ::= [Annotation] Identifier ;
+
+{-
+arrayType
+    :   primitiveType dims
+    |   classOrInterfaceType dims
+    |   typeVariable dims
+    ;
+-}
+
+PrimArrType. ArrayType ::= PrimitiveType [Dim] ;
+CIArrType.   ArrayType ::= CIType [Dim] ;
+TVArrType.   ArrayType ::= TypeVariable [Dim] ;
+
+{-
+dims
+	:	annotation* '[' ']' (annotation* '[' ']')*
+	;
+-}
+
+Dim. Dim ::= [Annotation] "[" "]" ;
+separator nonempty Dim "" ;
+
+{-
+typeParameter
+	:	typeParameterModifier* Identifier typeBound?
+	;
+-}
+TypeParam. TypeParameter ::= [TypeParamModif] Identifier MTypeBound ;
+
+{-
+typeParameterModifier
+	:	annotation
+	;
+-}
+
+TypeParamModif.  TypeParamModif  ::= Annotation ;
+separator TypeParamModif "" ;
+
+{-
+typeBound
+	:	'extends' typeVariable
+	|	'extends' classOrInterfaceType additionalBound*
+	;
+-}
+
+JTypeBound. MTypeBound ::= TypeBound ;
+NTypeBound. MTypeBound ::= ;
+TBTypVar. TypeBound ::= "extends" TypeVariable ;
+TBAddit.  TypeBound ::= "extends" CIType [AdditionalBound] ;
+
+{-
+additionalBound
+	:	'&' interfaceType
+	;
+-}
+
+AdditionalBound. AdditionalBound ::= "&" IfaceType ;
+separator AdditionalBound "" ;
+
+{-
+typeArguments
+	:	'<' typeArgumentList '>'
+	;
+-}
+
+JTypeArgs. MTypeArgs ::= TypeArgs ;
+NTypeArgs. MTypeArgs ::= ;
+TypeArgs.  TypeArgs ::= "<" [TypeArg] ">" ;
+
+{-
+typeArgumentList
+    :   typeArgument (',' typeArgument)*
+    ;
+
+typeArgument
+    :   referenceType
+    |   wildcard
+    ;
+-}
+
+TArgRef. TypeArg ::= ReferenceType ;
+TArgWC.  TypeArg ::= Wildcard ;
+separator nonempty TypeArg "," ;
+
+{-
+wildcard
+	:	annotation* '?' wildcardBounds?
+	;
+-}
+
+Wildcard. Wildcard ::= [Annotation] "?" MWildcardBounds ;
+
+{-
+wildcardBounds
+    :   'extends' referenceType
+    |   'super' referenceType
+;
+-}
+
+JWBounds. MWildcardBounds ::= WildcardBounds ;
+NWBounds. MWildcardBounds ::= ;
+
+WBExtends. WildcardBounds ::= "extends" ReferenceType ;
+WBSuper.   WildcardBounds ::= "super"   ReferenceType ;
+
+{-
+type
+	:	primitiveType
+	|	referenceType
+	;
+-}
+
+TPrim. Type ::= PrimitiveType ;
+TRef.  Type ::= ReferenceType ;
+
 
 
 
