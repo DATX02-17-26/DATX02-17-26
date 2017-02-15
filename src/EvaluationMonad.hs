@@ -25,34 +25,72 @@ module EvaluationMonad (
   withTemporaryDirectory,
   EvalM,
   runEvalM,
-  executeEvalM
+  executeEvalM,
+  Env(..),
+  defaultEnv,
+  parseEnv 
 ) where
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except as E
-import Control.Monad.Writer.Lazy
+import Control.Monad.Writer.Lazy hiding ((<>))
+import Control.Monad.Reader
 import qualified Control.Exception as Exc
 import System.Exit
 import System.Directory
+import Options.Applicative
+import Data.Semigroup
 
 -- | A monad for evaluating student solutions
-newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (WriterT Log IO) a }
-  deriving (Monad, Applicative, Functor, MonadWriter Log)
+newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (ReaderT Env (WriterT Log IO)) a }
+  deriving (Monad, Applicative, Functor, MonadWriter Log, MonadReader Env)
 
 -- | For now we just log strings
 type LogMessage = String
 type Log        = [LogMessage]
+
+-- | Evaluation errors are also just strings
+type EvalError  = String
+
+-- | The environment of the program
+data Env = Env { verbose :: Bool
+               , logfile :: FilePath
+               }
+  deriving Show
+
+-- | The default environment
+defaultEnv :: Env
+defaultEnv = Env { verbose = False, logfile = "logfile.log" }
+
+-- | A parser for environments
+parseEnv :: Parser Env
+parseEnv =  Env
+        <$> switch
+              (  long    "verbose"
+              <> short   'v'
+              <> help    "Prints log messages during execution"
+              )
+        <*> strOption
+              (  long    "logfile"
+              <> short   'l'
+              <> value   "logfile.log"
+              <> metavar "LOGFILE"
+              <> help    "Change the default logfile produced on program crash"
+              )
 
 -- | `printLog log` converts the log to a format suitable
 -- for logfiles
 printLog :: Log -> String
 printLog = unlines
 
--- | Evaluation errors are also just strings
-type EvalError  = String
-
 -- | Log a message
 logMessage :: LogMessage -> EvalM ()
-logMessage l = tell [l]
+logMessage l = do
+  tell [l]
+  verb <- verbose <$> ask
+  if verb then
+    liftIO $ putStrLn l
+  else
+    return ()
 
 -- | Throw an error
 throw :: EvalError -> EvalM a
@@ -66,7 +104,7 @@ catch action handler = EvalM $ catchE (unEvalM action) (unEvalM . handler)
 -- IO action throws an exception
 performIO :: IO a -> EvalM a
 performIO io = EvalM $ do
-  result <- lift $ lift $ Exc.catch (Right <$> io) (\e -> return $ Left $ show (e :: Exc.SomeException))
+  result <- lift $ lift $ lift $ Exc.catch (Right <$> io) (\e -> return $ Left $ show (e :: Exc.SomeException))
   case result of
     Left err -> throwE err
     Right a  -> return a
@@ -77,20 +115,20 @@ instance MonadIO EvalM where
   liftIO = performIO
 
 -- | Run an `EvalM` computation
-runEvalM :: EvalM a -> IO (Either EvalError a, Log)
-runEvalM = runWriterT . runExceptT . unEvalM
+runEvalM :: Env -> EvalM a -> IO (Either EvalError a, Log)
+runEvalM env = runWriterT . flip runReaderT env . runExceptT . unEvalM
 
 -- | Execute an `EvalM logfile` computation, reporting
 -- errors to the user and dumping the log to file
 -- before exiting
-executeEvalM :: FilePath -> EvalM a -> IO a
-executeEvalM logfile eval = do
-  (result, w) <- runEvalM eval
+executeEvalM :: Env -> EvalM a -> IO a
+executeEvalM env eval = do
+  (result, w) <- runEvalM env eval
   case result of
     Left e -> do
       putStrLn $ "Error: " ++ e
-      putStrLn $ "The log has been written to " ++ logfile
-      writeFile logfile $ printLog w
+      putStrLn $ "The log has been written to " ++ (logfile env)
+      writeFile (logfile env) $ printLog w
       exitFailure
     Right a -> return a
 

@@ -25,7 +25,7 @@ import EvaluationMonad
 import RunJavac
 
 main :: IO ()
-main = void $ executeEvalM "logfile.log" $ do
+main = void $ executeEvalM defaultEnv $ do
   args <- liftIO $ getArgs 
 
   -- Unsafe, add sanity checks
