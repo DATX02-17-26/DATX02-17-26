@@ -3,6 +3,8 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
+import qualified NormalizationTests as Norm
+
 -- | HUnit unit tests
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
@@ -12,7 +14,7 @@ unitTests = testGroup "Unit tests"
 -- | QuickCheck property based tests
 propertyTests :: TestTree
 propertyTests = testGroup "Property tests"
-  [ testProperty "propReverse" $ \xs ys -> reverse (xs ++ ys) == reverse (ys :: [Int]) ++ reverse xs
+  [ Norm.allTests
   ]
 
 -- | The combination of property tests and unit tests

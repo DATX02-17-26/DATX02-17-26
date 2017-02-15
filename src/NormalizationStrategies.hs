@@ -24,11 +24,13 @@ module NormalizationStrategies
        , execute
        , name
        , stages
+       , makeRule
        , (><)
        , (<>)
        , include
        , ignore
        , ignoreStages
+       , allStages
        , onlyStages
        , executeNormalizer
        )
@@ -44,6 +46,10 @@ data NormalizationRule a = Norm { _execute :: a -> Maybe a
                                 , _name    :: String
                                 , _stages  :: NormalizationStages
                                 }
+
+-- | Construct a normalization rule
+makeRule :: (a -> Maybe a) -> String -> NormalizationStages -> NormalizationRule a
+makeRule = Norm
 
 -- | Make obligatory lenses
 $(makeLenses ''NormalizationRule)
@@ -108,6 +114,6 @@ thread = thread' False
 executeNormalizer :: Normalizer a -> a -> a
 executeNormalizer norm a = foldl (flip $ executeNormalizerStage norm) a (allStages norm)
 
--- | Obtain all stages presenting in a normalizer
+-- | Obtain all stages present in a normalizer
 allStages :: Normalizer a -> [Int]
 allStages = sort . nub . concat . map _stages
