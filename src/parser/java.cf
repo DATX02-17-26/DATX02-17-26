@@ -757,6 +757,30 @@ forUpdate
 	:	statementExpressionList
 	;
 
+-}
+
+ForStatementBasic. 		ForStatement ::= BasicForStatement ;
+ForStatementEnhanced. 	ForStatement ::= EnhancedForStatement ;
+
+ForBasicNSIf. 		ForStatementNoShortIf ::= BasicForStatementNoShortIf ;
+ForEnhancedNSIf. 	ForStatementNoShortIf ::= EnhancedForStatementNoShortIf ;
+
+BasicForStatement. 		BasicForStatement ::= "for" "(" MForInit ";" MExpr ";" MForUpdate ")" Statement ;
+BasicForStatementNSIf. 	BasicForStatement ::= "for" "(" MForInit ";" MExpr ";" MForUpdate ")" StatementNoShortIf ;
+
+JForInit. MForInit ::= ForInit ;
+NForInit. MForInit ::= ;
+
+ForInitExps.	ForInit ::=	StatementExpressionList ;
+ForInitVarDecl.	ForInit ::=	LocalVariableDecl ;
+
+JForUpdate. MForUpdate ::= ForUpdate ;
+NForUpdate. MForUpdate ::= ;
+
+ForUpdateExps.	ForUpdate ::=	StatementExpressionList ;
+
+{-
+
 statementExpressionList
 	:	statementExpression (',' statementExpression)*
 	;
