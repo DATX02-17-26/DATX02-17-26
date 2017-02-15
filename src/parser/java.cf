@@ -7,6 +7,7 @@ Pub.    Modif ::= "public" ;
 Priv.   Modif ::= "private" ;
 Prot.   Modif ::= "protected" ;
 Stat.   Modif ::= "static" ;
+Final.  Modif ::= "final" ;
 separator Modif " " ;
 
 --Unsp.   Visib ::=  ;
@@ -64,8 +65,10 @@ separator Arg "," ;
 --Statements
 StE.	  Stm ::= Exp ;
 StReturn. Stm ::= "return" Exp ;
-StIf.     Stm ::= "if" "(" Exp ")" Stm Rest ;
+StIf.     Stm ::= "if" "(" Exp ")" Stm ;
+StSwitch. Stm ::= "switch" "(" Exp ")" Stm ;
 StCase.   Stm ::= "case" Exp ":" ;
+StBreak.  Stm ::= "break" ;
 StFor.    Stm ::= ForLoop ;
 StWhile.  Stm ::= "while" "(" Exp ")" Stm ;
 StDoWhi.  Stm ::= "do" Stm "while" "(" Exp ")" ;
@@ -94,7 +97,7 @@ separator nonempty String "" ;
 --Expressions
 EFunc.		Exp15  ::= Exp16 "(" [Exp] ")" ;
 EIndex.     Exp15  ::= Exp16 "[" Exp "]";
---There might be a problem with constructs like a.b().get(i).hej?
+--There might be a problem with constructs like a.b().get(i).hej ?
 EStruVar.	Exp14  ::= Exp14 "." Exp15 ;
 EPosIncr.	Exp14  ::= Exp15 "++" ;
 EPosDecr.  	Exp14  ::= Exp15 "--" ;
