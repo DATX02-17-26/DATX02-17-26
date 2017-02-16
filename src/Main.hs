@@ -57,7 +57,7 @@ application studentSolution dirOfModelSolutions = do
   compilationStatus <- compileContext paths "compilationDirectory"  
   case compilationStatus of
     Succeeded -> return ()
-    _         -> liftIO $ putStrLn "Student solution does not compile!"
+    _         -> issue "Student solution does not compile!"
 
   -- Get the context from the arguments supplied
   context <- readRawContext paths
