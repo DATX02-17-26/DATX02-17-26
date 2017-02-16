@@ -111,7 +111,10 @@ dims
 	;
 -}
 
-Dim. Dim ::= [Annotation] "[" "]" ;
+NADim. NADim ::= "[" "]" ;
+separator NADim "" ;
+
+Dim. Dim ::= [Annotation] NADim ;
 separator nonempty Dim "" ;
 
 {-
@@ -209,10 +212,183 @@ TRef.  Type ::= ReferenceType ;
 
 
 
+--------------------------------------------------------------------------------
+-- Productions from §15 (Expressions)
+--------------------------------------------------------------------------------
 
----- Alex start:
+LTODO. Literal ::= ;
+TypeNameTODO. TypeName ::= ;
 
 
 
 
----- Joel + Brage start:
+PrimNoNewArr. Primary ::= PrimaryNoNewArray ;
+ArrCreatExpr. Primary ::= ArrayCreationExpr ;
+
+PNNALiteral. PrimaryNoNewArray ::= Literal ;
+PNNAClassLiteral. PrimaryNoNewArray ::= ClassLiteral ;
+PNNAThis. PrimaryNoNewArray ::= "this" ;
+PNNATNThis. PrimaryNoNewArray ::= TypeName "." "this" ;
+PNNAExpr. PrimaryNoNewArray ::= "(" Expr ")" ;
+PNNACICE. PrimaryNoNewArray ::= ClassInstanceCreationExpr ;
+PNNAFA.   PrimaryNoNewArray ::= FieldAccess ;
+PNNAAA.   PrimaryNoNewArray ::= ArrayAccess ;
+PNNAMI.   PrimaryNoNewArray ::= MethodInvoc ;
+PNNAMR.   PrimaryNoNewArray ::= MethodRef ;
+
+CLitTN. ClassLiteral ::= TypeName [NADim] "." "class" ;
+CLitNT. ClassLiteral ::= NumericType [NADim] "." "class" ;
+CLitBool. ClassLiteral ::= "boolean" [NADim] "." "class" ;
+CLitVoid. ClassLiteral ::= "void" "." "class" ;
+
+UnqualCICE. ClassInstanceCreationExpr ::= UnqualClassInstanceCreationExpr ;
+EUnqualCICE. ClassInstanceCreationExpr ::= ExprName "." UnqualClassInstanceCreationExpr ;
+PEUnqualCICE. ClassInstanceCreationExpr ::= Primary "." UnqualClassInstanceCreationExpr ;
+
+UCICE. UnqualClassInstanceCreationExpr ::= "new" MTypeArgs ClassOrInterfaceTypeToInstantiate "(" MArgList ")" MClassBody ;
+
+AnotIdent. AnotIdent ::= [Annotation] Identifier ;
+separator nonempty AnotIdent "." ;
+
+COITTI. ClassOrInterfaceTypeToInstantiate ::= [AnotIdent] MTypeArgsOrDiamond ;
+
+JTypeArgsOrDiamond. MTypeArgsOrDiamond ::= TypeArgsOrDiamond ;
+NTypeArgsOrDiamond. MTypeArgsOrDiamond ::= ;
+TAODTypeArgs. TypeArgsOrDiamond ::= TypeArgs ;
+TAODDiamond.  TypeArgsOrDiamond ::= "<" ">"  ;
+
+FAPrimary. FieldAccess ::= Primary "." Identifier ;
+FASuper.   FieldAccess ::= "super" "." Identifier ;
+FATNSuper. FieldAccess ::= TypeName "." "super" "." Identifier ;
+
+ArrAccEN.   ArrayAccess ::= ExprName "[" Expr "]" ;
+ArrAccPNNA. ArrayAccess ::= PrimaryNoNewArray "[" Expr "]" ;
+
+MIMethName. MethodInvoc ::= MethodName "(" MArgList ")" ;
+MITypeName. MethodInvoc ::= TypeName "." MTypeArgs Identifier "(" MArgList ")" ;
+MIExprName. MethodInvoc ::= ExprName "." MTypeArgs Identifier "(" MArgList ")" ;
+MIPrimary.  MethodInvoc ::= Primary  "." MTypeArgs Identifier "(" MArgList ")" ;
+MISuper.    MethodInvoc ::= "super"  "." MTypeArgs Identifier "(" MArgList ")" ;
+MITNSuper.  MethodInvoc ::= TypeName "."
+                                 "super"  "." MTypeArgs Identifier "(" MArgList ")" ;
+
+ArgExpr. ArgExpr ::= Expr ;
+separator ArgExpr "," ;
+MArgList. MArgList ::= [ArgExpr] ;
+ArgList.  ArgList  ::=  ArgExpr "," MArgList ;
+
+MRExprName.  MethodRef ::= ExprName      "::" MTypeArgs Identifier ;
+MRRefType.   MethodRef ::= ReferenceType "::" MTypeArgs Identifier ;
+MRPrimary.   MethodRef ::=               "::" MTypeArgs Identifier ;
+MRSuper.     MethodRef ::= "super"       "::" MTypeArgs Identifier ;
+MRTNSuper.   MethodRef ::= TypeName "." "super" "::" MTypeArgs Identifier ;
+MRClassType. MethodRef ::= "::" MTypeArgs "new" ;
+MRArrayType. MethodRef ::= ArrayType "::" "new" ;
+
+ACEPrim.  ArrayCreationExpr ::= "new" PrimitiveType [DimExpr] [DimE] ;
+ACECI.    ArrayCreationExpr ::= "new" CIType [DimExpr] [DimE] ;
+ACEPrimI. ArrayCreationExpr ::= "new" PrimitiveType [Dim] ArrayInitializer ;
+ACECII.   ArrayCreationExpr ::= "new" CIType [Dim] ArrayInitializer ;
+
+DimE . DimE ::= Dim ;
+separator DimE "" ;
+
+DimExpr. DimExpr ::= [Annotation] "[" Expr "]" ;
+separator nonempty DimExpr "" ;
+
+
+
+
+ELam.  Expr1 ::= LamExpr ;
+
+EAss.  Expr2 ::= LeftHandSide AssignOp Expr ;
+
+ECond. Expr3 ::= Expr4 "?" Expr ":" Expr3 ;
+
+EOr.   Expr4 ::= Expr4 "||" Expr5 ;
+
+EAnd.  Expr5 ::= Expr5 "&&" Expr6 ;
+
+EBOr.  Expr6 ::= Expr6 "|" Expr7 ;
+
+EBXor. Expr7 ::= Expr7 "^" Expr8 ;
+
+EBAnd. Expr7 ::= Expr7 "&" Expr8 ;
+
+EEq.   Expr8 ::= Expr8 EquOp Expr9 ;
+
+ECmp.  Expr9 ::= Expr9 CmpOp Expr10 ;
+EInstanceOf.  Expr9 ::= Expr9 "instanceof" ReferenceType ;
+
+EShift. Expr10 ::= Expr10 ShiOp Expr11 ;
+
+EAdd.  Expr11 ::= Expr11 "+" Expr12 ;
+ESub.  Expr11 ::= Expr11 "-" Expr12 ;
+
+EMul.  Expr12 ::= Expr12 MulOp Expr13 ;
+
+EPreInc. Expr13 ::= "++" Expr13 ;
+EPreDec. Expr13 ::= "--" Expr13 ;
+EPos.    Expr13 ::= "+" Expr13 ;
+ENeg.    Expr13 ::= "-" Expr13 ;
+
+
+-- PostfixExpression 
+EPrim.  Expr14 ::= Primary ;
+EExprN. Expr14 ::= ExprName ;
+--EPostInc. Expr14. 
+
+-- UnaryExpressionNotPlusMinus
+ECpl. ExprX ::= "~" Expr13 ;
+ENot. ExprX ::= "!" Expr13 ;
+
+
+LHSExprName. LeftHandSide ::= ExprName    ;
+LHSFieldAcc. LeftHandSide ::= FieldAccess ;
+LHSArrayAcc. LeftHandSide ::= ArrayAccess ;
+
+Assign.      AssignOp ::= "="    ;
+AssignMul.   AssignOp ::= "*="   ;
+AssignDiv.   AssignOp ::= "/="   ;
+AssignMod.   AssignOp ::= "%="   ;
+AssignAdd.   AssignOp ::= "+="   ;
+AssignSub.   AssignOp ::= "-="   ;
+AssignLsh.   AssignOp ::= "<<="  ;
+AssignRsh.   AssignOp ::= ">>="  ;
+AssignURsh.  AssignOp ::= ">>>=" ;
+AssignAnd.   AssignOp ::= "&="   ;
+AssignXor.   AssignOp ::= "^="   ;
+AssignOr.    AssignOp ::= "|="   ;
+
+Mul.  MulOp ::= "*" ;
+Div.  MulOp ::= "/" ;
+Mod.  MulOp ::= "%" ;
+
+Lsh.  ShiOp ::= "<<"  ;
+Rsh.  ShiOp ::= ">>"  ;
+URsh. ShiOp ::= ">>>" ;
+
+Eq.   EquOp ::= "==" ;
+NEq.  EquOp ::= "!=" ;
+
+Lt.   CmpOp ::= "<"  ;
+Gt.   CmpOp ::= ">"  ;
+Le.   CmpOp ::= "<=" ;
+Ge.   CmpOp ::= ">=" ;
+
+
+
+
+
+
+
+
+
+
+
+LAMEXPRTODO. LamExpr ::= ;
+ArrayInitializerTODO. ArrayInitializer ::= ;
+MethodNameTODO. MethodName ::= ;
+MClassBodyTODO. MClassBody ::= ;
+ExprNameTODO. ExprName ::= ;
+EXPRTODO. Expr ::= ;

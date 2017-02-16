@@ -1,0 +1,509 @@
+
+{-
+primary
+    :   (   primaryNoNewArray_lfno_primary
+        |   arrayCreationExpression
+        )
+        (   primaryNoNewArray_lf_primary
+        )*
+    ;
+
+primaryNoNewArray
+    :   literal
+    |   typeName ('[' ']')* '.' 'class'
+    |   'void' '.' 'class'
+    |   'this'
+    |   typeName '.' 'this'
+    |   '(' expression ')'
+    |   classInstanceCreationExpression
+    |   fieldAccess
+    |   arrayAccess
+    |   methodInvocation
+    |   methodReference
+    ;
+
+primaryNoNewArray_lf_arrayAccess
+    :
+    ;
+
+primaryNoNewArray_lfno_arrayAccess
+    :   literal
+    |   typeName ('[' ']')* '.' 'class'
+    |   'void' '.' 'class'
+    |   'this'
+    |   typeName '.' 'this'
+    |   '(' expression ')'
+    |   classInstanceCreationExpression
+    |   fieldAccess
+    |   methodInvocation
+    |   methodReference
+    ;
+
+primaryNoNewArray_lf_primary
+    :   classInstanceCreationExpression_lf_primary
+    |   fieldAccess_lf_primary
+    |   arrayAccess_lf_primary
+    |   methodInvocation_lf_primary
+    |   methodReference_lf_primary
+    ;
+
+primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary
+    :
+    ;
+
+primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary
+    :   classInstanceCreationExpression_lf_primary
+    |   fieldAccess_lf_primary
+    |   methodInvocation_lf_primary
+    |   methodReference_lf_primary
+    ;
+
+primaryNoNewArray_lfno_primary
+    :   literal
+    |   typeName ('[' ']')* '.' 'class'
+    |   unannPrimitiveType ('[' ']')* '.' 'class'
+    |   'void' '.' 'class'
+    |   'this'
+    |   typeName '.' 'this'
+    |   '(' expression ')'
+    |   classInstanceCreationExpression_lfno_primary
+    |   fieldAccess_lfno_primary
+    |   arrayAccess_lfno_primary
+    |   methodInvocation_lfno_primary
+    |   methodReference_lfno_primary
+    ;
+
+primaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary
+    :
+    ;
+
+primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary
+    :   literal
+    |   typeName ('[' ']')* '.' 'class'
+    |   unannPrimitiveType ('[' ']')* '.' 'class'
+    |   'void' '.' 'class'
+    |   'this'
+    |   typeName '.' 'this'
+    |   '(' expression ')'
+    |   classInstanceCreationExpression_lfno_primary
+    |   fieldAccess_lfno_primary
+    |   methodInvocation_lfno_primary
+    |   methodReference_lfno_primary
+    ;
+
+classInstanceCreationExpression
+    :   'new' typeArguments? annotation* Identifier ('.' annotation* Identifier)* typeArgumentsOrDiamond? '(' argumentList? ')' classBody?
+    |   expressionName '.' 'new' typeArguments? annotation* Identifier typeArgumentsOrDiamond? '(' argumentList? ')' classBody?
+    |   primary '.' 'new' typeArguments? annotation* Identifier typeArgumentsOrDiamond? '(' argumentList? ')' classBody?
+    ;
+
+classInstanceCreationExpression_lf_primary
+    :   '.' 'new' typeArguments? annotation* Identifier typeArgumentsOrDiamond? '(' argumentList? ')' classBody?
+    ;
+
+classInstanceCreationExpression_lfno_primary
+    :   'new' typeArguments? annotation* Identifier ('.' annotation* Identifier)* typeArgumentsOrDiamond? '(' argumentList? ')' classBody?
+    |   expressionName '.' 'new' typeArguments? annotation* Identifier typeArgumentsOrDiamond? '(' argumentList? ')' classBody?
+    ;
+
+{-
+typeArgumentsOrDiamond
+    :   typeArguments
+    |   '<' '>'
+    ;
+-}
+
+TAODTypeArgs. TypeArgsOrDiamond ::= TypeArgs ;
+TAODDiamond.  TypeArgsOrDiamond ::= "<" ">"  ;
+
+{-
+fieldAccess
+    :   primary '.' Identifier
+    |   'super' '.' Identifier
+    |   typeName '.' 'super' '.' Identifier
+    ;
+-}
+
+FAPrimary. FieldAccess ::= Primary "." Identifier ;
+FASuper.   FieldAccess ::= "super" "." Identifier ;
+FATNSuper. FieldAccess ::= TypeName "." "super" "." Identifier ;
+
+{-
+fieldAccess_lf_primary
+    :   '.' Identifier
+    ;
+-}
+
+FieldAccLFPrim. FieldAccLFPrim ::= "." Identifier ;
+
+{-
+fieldAccess_lfno_primary
+    :   'super' '.' Identifier
+    |   typeName '.' 'super' '.' Identifier
+    ;
+-}
+
+FieldAccLFNOPrimSuper. FieldAccLFNOPrim ::= "super" "." Identifier ;
+FieldAccLFNOPrimTN. FieldAccLFNOPrim ::= TypeName "." "super" "." Identifier ;
+
+{-
+arrayAccess
+    :   (   expressionName '[' expression ']'
+        |   primaryNoNewArray_lfno_arrayAccess '[' expression ']'
+        )
+        (   primaryNoNewArray_lf_arrayAccess '[' expression ']'
+        )*
+    ;
+-}
+
+ArrayAcc. ArrayAcc ::= ArrayAcc1 [ArrayAcc2E] ;
+ArrayAcc11. ArrayAcc1 ::= ExprName "[" Expr "]" ;
+ArrayAcc12. ArrayAcc1::= PrimNoNewArrLFNOArrAcc "[" Expr "]" ;
+ArrayAcc2E. ArrayAcc2E ::= PrimNoNewArrLFArrAcc "[" Expr "]" ;
+separator ArrayAcc2E "" ;
+
+{-
+arrayAccess_lf_primary
+    :   (   primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary '[' expression ']'
+        )
+        (   primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary '[' expression ']'
+        )*
+    ;
+-}
+
+ArrayAccLFPrim. ArrayAccLFPrim ::= ArrayAccLFPrim1 [ArrayAccLFPrim2E] ;
+ArrayAccLFPrim1. ArrayAccLFPrim1  ::= PrimNoNewArrLFPrimLFNOArrAccLFPrim "[" Expr "]" ;
+ArrayAccLFPrim2E. ArrayAccLFPrim2E ::= PrimNoNewArrLFPrimLFArrAccLFPrim "[" Expr "]" ;
+separator ArrayAccLFPrim2E "" ;
+
+{-
+arrayAccess_lfno_primary
+    :   (   expressionName '[' expression ']'
+        |   primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary '[' expression ']'
+        )
+        (   primaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary '[' expression ']'
+        )*
+    ;
+-}
+
+ArrayAccLFNOPrim.   ArrayAccLFNOPrim ::= ArrayAccLFNOPrim1 [ArrayAccLFNOPrim2E] ;
+ArrayAccLFNOPrim11. ArrayAccLFNOPrim1 ::= ExprName "[" Expr "]" ;
+ArrayAccLFNOPrim12. ArrayAccLFNOPrim1 ::= PrimNoNewArrLFNOPrimLFNOArrAccLFNOPrim "[" Expression "]" ;
+ArrayAccLFNOPrim2E. ArrayAccLFNOPrim2E ::= PrimNoNewArrLFNOPrimLFArrAccLFNOPrim "[" Expression "]" ;
+separator ArrayAccLFNOPrim2E "" ;
+
+{-
+methodInvocation
+    :   methodName '(' argumentList? ')'
+    |   typeName '.' typeArguments? Identifier '(' argumentList? ')'
+    |   expressionName '.' typeArguments? Identifier '(' argumentList? ')'
+    |   primary '.' typeArguments? Identifier '(' argumentList? ')'
+    |   'super' '.' typeArguments? Identifier '(' argumentList? ')'
+    |   typeName '.' 'super' '.' typeArguments? Identifier '(' argumentList? ')'
+    ;
+-}
+
+MIMethName. MethInvocLFNOPrim ::= MethodName "(" MArgumentList ")" ;
+MITypeName. MethInvocLFNOPrim ::= TypeName "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MIExprName. MethInvocLFNOPrim ::= ExprName "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MISuper.    MethInvocLFNOPrim ::= Primary "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MISuper.    MethInvocLFNOPrim ::= "super" "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MITNSuper.  MethInvocLFNOPrim ::= TypeName "." "super" "." MTypeArgs Identifier "(" MArgumentList ")" ;
+
+{-
+methodInvocation_lf_primary
+    :   '.' typeArguments? Identifier '(' argumentList? ')'
+    ;
+-}
+
+MILFPrim. MethInvocLFPrim ::= "." MTypeArgs Identifier "(" MArgumentList ")" ;
+
+{-
+methodInvocation_lfno_primary
+    :   methodName '(' argumentList? ')'
+    |   typeName '.' typeArguments? Identifier '(' argumentList? ')'
+    |   expressionName '.' typeArguments? Identifier '(' argumentList? ')'
+    |   'super' '.' typeArguments? Identifier '(' argumentList? ')'
+    |   typeName '.' 'super' '.' typeArguments? Identifier '(' argumentList? ')'
+    ;
+-}
+
+MILFNOPMethName. MethInvocLFNOPrim ::= MethodName "(" MArgumentList ")" ;
+MILFNOPTypeName. MethInvocLFNOPrim ::= TypeName "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MILFNOPExprName. MethInvocLFNOPrim ::= ExprName "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MILFNOPSuper. MethInvocLFNOPrim ::= "super" "." MTypeArgs Identifier "(" MArgumentList ")" ;
+MILFNOPTNSuper. MethInvocLFNOPrim ::= TypeName "." "super" "." MTypeArgs Identifier "(" MArgumentList ")" ;
+
+{-
+argumentList
+    :   expression (',' expression)*
+    ;
+-}
+
+_. ArgExpr ::= Expr ;
+separator ArgExpr "," ;
+MArgList. MArgumentList ::= [ArgExpr] ;
+ArgList. ArgumentList ::= ArgExpr "," MArgumentList ;
+
+{-
+methodReference
+    :   expressionName '::' typeArguments? Identifier
+    |   referenceType '::' typeArguments? Identifier
+    |   primary '::' typeArguments? Identifier
+    |   'super' '::' typeArguments? Identifier
+    |   typeName '.' 'super' '::' typeArguments? Identifier
+    |   classType '::' typeArguments? 'new'
+    |   arrayType '::' 'new'
+    ;
+-}
+
+MRExprName. MethodRef ::= ExpName "::" MTypeArgs Identifier ;
+MRRefType. MethodRef ::= ReferenceType "::" MTypeArgs Identifier ;
+MRPrimary. MethodRef ::= Primary "::" MTypeArgs Identifier ;
+MRSuper. MethodRef ::= "super" "::" MTypeArgs Identifier ;
+MRTNSuper. MethodRef ::= TypeName "." "super" "::" MTypeArgs Identifier ;
+MRClassType. MethodRef ::= ClassType "::" MTypeArgs "new" ;
+MRArrayType. MethodRef ::= ArrayType "::" "new" ;
+
+{-
+methodReference_lf_primary
+    :   '::' typeArguments? Identifier
+    ;
+-}
+
+MRLFPrim. MethodRefLFPrim ::= "::" MTypeArgs Identifier ;
+
+{-
+methodReference_lfno_primary
+    :   expressionName '::' typeArguments? Identifier
+    |   referenceType '::' typeArguments? Identifier
+    |   'super' '::' typeArguments? Identifier
+    |   typeName '.' 'super' '::' typeArguments? Identifier
+    |   classType '::' typeArguments? 'new'
+    |   arrayType '::' 'new'
+    ;
+-}
+
+MRLFNOPExprName. MethodRefLFNOPrimary ::= ExprName "::" MTypeArgs Identifier ;
+MRLFNOPRefType. MethodRefLFNOPrimary ::= ReferenceType "::" MTypeArgs Identifier ;
+MRLFNOPSuper. MethodRefLFNOPrimary ::= "super" "::" MTypeArgs Identifier ;
+MRLFNOPTNSuper. MethodRefLFNOPrimary ::= TypeName "." "super" "::" MTypeArgs Identifier ;
+MRLFNOPClassType. MethodRefLFNOPrimary ::= ClassType "::" MTypeArgs "new" ;
+MRLFNOPArrType. MethodRefLFNOPrimary ::= ArrayType "::" "new" ;
+
+{-
+arrayCreationExpression
+    :   'new' primitiveType dimExprs dims?
+    |   'new' classOrInterfaceType dimExprs dims?
+    |   'new' primitiveType dims arrayInitializer
+    |   'new' classOrInterfaceType dims arrayInitializer
+    ;
+-}
+
+_ . DimE ::= Dim ;
+separator DimE "" ;
+
+ENewPrim.  Expr ::= "new" PrimitiveType [DimExpr] [DimE] ;
+ENewCI.    Expr ::= "new" CIType [DimExpr] [DimE] ;
+ENewPrimI. Expr ::= "new" PrimitiveType [Dim] ArrayInitializer ;
+ENewCII.   Expr ::= "new" CIType [Dim] ArrayInitializer ;
+
+{-
+dimExprs
+    :   dimExpr dimExpr*
+    ;
+
+dimExpr
+    :   annotation* '[' expression ']'
+    ;
+-}
+
+DimExpr. DimExpr ::= [Annotation] "[" Expr "]" ;
+separator nonempty DimExpr "" ;
+
+ConstExpr. ConstExpr ::= Expr ;
+
+{-
+expression
+    :   lambdaExpression
+    |   assignmentExpression
+    ;
+-}
+
+{-
+lambdaExpression
+    :   lambdaParameters '->' lambdaBody
+    ;
+-}
+
+ELam. Expr ::= LamParams "->" LamBody ;
+
+{-
+lambdaParameters
+    :   Identifier
+    |   '(' formalParameterList? ')'
+    |   '(' inferredFormalParameterList ')'
+    ;
+-}
+
+LamParamId.       LamParams ::= Identifier ;
+-- LamParamFormal.   LamParams ::= "(" MFormalParamList ")" ; -- TODO!
+LamParamInferred. LamParams ::= "(" [IFPIdentifier] ")" ;
+
+{-
+inferredFormalParameterList
+    :   Identifier (',' Identifier)*
+    ;
+-}
+
+_. IFPIdentifier ::= Identifier ;
+separator nonempty PIdentifier "," ;
+
+LamBodyExpr.  LambdaBody ::= Expr ;
+LamBodyBlock. LambdaBody ::= Block ;
+
+{-
+assignmentExpression
+    :   conditionalExpression
+    |   assignment
+    ;
+-}
+
+EAssign.     Expr1        ::= Assignment ;
+Assignment.  Assignment   ::= LeftHandSide AssignmentOp Expr ;
+
+LHSExprName. LeftHandSide ::= ExprName    ;
+LHSFieldAcc. LeftHandSide ::= FieldAccess ;
+LHSArrayAcc. LeftHandSide ::= ArrayAccess ;
+
+Assign.      AssignmentOp ::= "="    ;
+AssignMul.   AssignmentOp ::= "*="   ;
+AssignDiv.   AssignmentOp ::= "/="   ;
+AssignMod.   AssignmentOp ::= "%="   ;
+AssignAdd.   AssignmentOp ::= "+="   ;
+AssignSub.   AssignmentOp ::= "-="   ;
+AssignLsh.   AssignmentOp ::= "<<="  ;
+AssignRsh.   AssignmentOp ::= ">>="  ;
+AssignURsh.  AssignmentOp ::= ">>>=" ;
+AssignAnd.   AssignmentOp ::= "&="   ;
+AssignXor.   AssignmentOp ::= "^="   ;
+AssignOr.    AssignmentOp ::= "|="   ;
+
+{-
+conditionalExpression
+    :   conditionalOrExpression
+    |   conditionalOrExpression '?' expression ':' conditionalExpression
+    ;
+-}
+
+ETernary. Expr2 ::= Expr3 "?" Expr ":" Expr2 ;
+
+EOr. Expr3 ::= Expr3 "||" Expr4 ;
+
+EAnd. Expr4 ::= Expr4 "&&" Expr5 ;
+
+EBOr. Expr5 ::= Expr5 "|" Expr6 ;
+
+EBXor. Expr6 ::= Expr6 "^" Expr7 ;
+
+EBAnd. Expr7 ::= Expr7 "&" Expr8 ;
+
+EEq.  Expr8 ::= Expr8 "==" Expr9 ;
+ENEq. Expr8 ::= Expr8 "!=" Expr9 ;
+
+
+ELt.  Expr9 ::= Expr9 "<"  Expr10 ;
+EGt.  Expr9 ::= Expr9 ">"  Expr10 ;
+ELe.  Expr9 ::= Expr9 "<=" Expr10 ;
+EGe.  Expr9 ::= Expr9 ">=" Expr10 ;
+EIof. Expr9 ::= Expr9 "instanceof" ReferenceType ;
+
+ELsh.   Expr10 ::= Expr10 "<<"  Expr11 ;
+ERsh.   Expr10 ::= Expr10 ">>"  Expr11 ;
+EURsh.  Expr10 ::= Expr10 ">>>" Expr11 ;
+
+EAdd. Expr11 ::= Expr11 "+" Expr12 ;
+ESub. Expr11 ::= Expr11 "-" Expr12 ;
+
+EMul. Expr12 ::= Expr12 "*" Expr13 ;
+EDiv. Expr12 ::= Expr12 "/" Expr13 ;
+EMod. Expr12 ::= Expr12 "%" Expr13 ;
+
+{-
+unaryExpression
+    :   preIncrementExpression
+    |   preDecrementExpression
+    |   '+' unaryExpression
+    |   '-' unaryExpression
+    |   unaryExpressionNotPlusMinus
+    ;
+
+preIncrementExpression
+    :   '++' unaryExpression
+    ;
+
+preDecrementExpression
+    :   '--' unaryExpression
+    ;
+-}
+
+EPreInc. Expr14 ::= "++" Expr14 ; --Curr ;
+EPreDec. Expr14 ::= "--" Expr14 ; --Curr ;
+
+EPositive. Expr ::= "+" ExprCurr ;
+ENegative. Expr ::= "-" ExprCurr ;
+
+{-
+unaryExpressionNotPlusMinus
+    :   postfixExpression
+    |   '~' unaryExpression
+    |   '!' unaryExpression
+    |   castExpression
+    ;
+-}
+
+EComp. Expr ::= "~" ExprCurr ;
+ENot.  Expr ::= "!" ExprCurr ;
+
+
+
+{-
+postfixExpression
+    :   (   primary
+        |   expressionName
+        )
+        (   postIncrementExpression_lf_postfixExpression
+        |   postDecrementExpression_lf_postfixExpression
+        )*
+    ;
+
+postIncrementExpression
+    :   postfixExpression '++'
+    ;
+
+postIncrementExpression_lf_postfixExpression
+    :   '++'
+    ;
+
+postDecrementExpression
+    :   postfixExpression '--'
+    ;
+
+postDecrementExpression_lf_postfixExpression
+    :   '--'
+    ;
+-}
+
+--PostDecExpr ::= 
+
+{-
+castExpression
+    :   '(' primitiveType ')' unaryExpression
+    |   '(' referenceType additionalBound* ')' unaryExpressionNotPlusMinus
+    |   '(' referenceType additionalBound* ')' lambdaExpression
+;
+-}
+
+ECastPrim. Expr ::= "(" PrimitiveType ")" ExprUnary ;
+ECastRef.  Expr ::= "(" ReferenceType [AdditionalBound] ")" ExprUnaryNPM ;
+ECastRefLam. Expr ::= "(" ReferenceType [AdditionalBound] ")" ExprLam ;
