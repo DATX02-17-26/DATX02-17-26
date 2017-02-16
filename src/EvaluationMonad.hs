@@ -106,7 +106,7 @@ catch action handler = EvalM $ catchE (unEvalM action) (unEvalM . handler)
 -- IO action throws an exception
 performIO :: IO a -> EvalM a
 performIO io = EvalM $ do
-  result <- lift $ lift $ lift $ Exc.catch (Right <$> io) (\e -> return $ Left $ show (e :: Exc.SomeException))
+  result <- liftIO $ Exc.catch (Right <$> io) (\e -> return $ Left $ show (e :: Exc.SomeException))
   case result of
     Left err -> throwE err
     Right a  -> return a
