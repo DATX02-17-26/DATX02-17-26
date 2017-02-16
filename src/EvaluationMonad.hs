@@ -68,7 +68,12 @@ instance Monoid Feedback where
 
 -- | Pretty print feedback for the instructor
 printFeedback :: Feedback -> String
-printFeedback f = init $ unlines $ ["Comments:"] ++ (number $ comments f) ++ ["", "Issues:"] ++ (number $ issues f)
+printFeedback f = init
+                $ unlines
+                $  ["Comments:"]
+                ++ (number $ comments f)
+                ++ ["", "Issues:"]
+                ++ (number $ issues f)
   where
     number xs = [show i ++ ". " ++ x | (x, i) <- zip xs [0..]]
 
