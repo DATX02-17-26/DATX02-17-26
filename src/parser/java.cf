@@ -427,10 +427,261 @@ superclass
 SCla.   SupCla ::= "extends" ClassType ;
 
 
+{-
+superinterfaces
+	:	'implements' interfaceTypeList
+;
+-}
+
+SIntr.  SupIntr ::= "implements" [InterfaceType] ;
+
+{-
+classBody
+	:	'{' classBodyDeclaration* '}'
+;
+-}
+CBod.    CBody ::= "{" CBodDec "}" ;
+
+{-
+classBodyDeclaration
+	:	classMemberDeclaration
+	|	instanceInitializer
+	|	staticInitializer
+	|	constructorDeclaration
+;
+-}
+
+CMem.     CBodDec ::= CMemDec ;
+CInst.    CBodDec ::= InstInit ;
+CStIn.    CBodDec ::= StatInit ;
+CCon.     CBodDec ::= ConDec ;
+
+{-
+classMemberDeclaration
+	:	fieldDeclaration
+	|	methodDeclaration
+	|	classDeclaration
+	|	interfaceDeclaration
+	|	';'
+;
+-}
+CFie.     CMemDec ::= FieDec ;
+CMet.     CMemDec ::= MetDec ;
+CDec.     CMemDec ::= ClassDec ;
+IDec.     CMemDec ::= IntrfcDec ;
+
+{-
+fieldDeclaration
+	:	fieldModifier* unannType variableDeclaratorList ';'
+;
+-}
+
+--unannType??????
+FDec.     FieDec ::= [FieMod] UnTyp [VarDec] ";" ;
+
+{-
+fieldModifier
+	:	annotation
+	|	'public'
+	|	'protected'
+	|	'private'
+	|	'static'
+	|	'final'
+	|	'transient'
+	|	'volatile'
+;
+-}
+
+FAnn.     FieMod ::= Annotation ;
+FPub.     FieMod ::= "public" ;
+FPro.     FieMod ::= "protected" ;
+FPri.     FieMod ::= "private" ;
+FSta.     FieMod ::= "static" ;
+FFin.     FieMod ::= "final" ;
+FTra.     FieMod ::= "transient" ;
+FVol.     FieMod ::= "volatile" ;
+separator FieMod " " ;
+
+{-
+variableDeclarator
+	:	variableDeclaratorId ('=' variableInitializer)?
+;
+-}
+VDec.     VarDec ::= VarId ;
+VIni.     VarDec ::= VarId "=" VarInit ;
+
+{-
+variableDeclaratorId
+	:	Identifier dims?
+;
+-}
+VId.     VarId ::= Id ;
+ArId.    VarId ::= Id Dim ;
 
 
+{-
+variableInitializer
+	:	expression
+	|	arrayInitializer
+;
+-}
+VIni.     VarInit ::= Exp ;
+ArIni.    VarInit ::= ArrInit ;
 
+{-
+unannType
+	:	unannPrimitiveType
+	|	unannReferenceType
+;
+-}
+UTPrim.    UnType ::= UnPrim ;
+UTRef.     UnType ::= UnRef ;
 
+{-
+unannPrimitiveType
+	:	numericType
+	|	'boolean'
+;
+-}
+UPri.      UnPrim ::= NumericType ;
+UBoo.      UnPrim ::= "boolean" ;
+
+{-
+unannReferenceType
+	:	unannClassOrInterfaceType
+	|	unannTypeVariable
+	|	unannArrayType
+;
+-}
+URCIT.     UnRef ::= UnCIT ;
+URTVar.    UnRef ::= UnTVar ;
+URArrT.    UnRef ::= UnArrT ;
+
+{-
+unannClassOrInterfaceType
+	:	(	unannClassType_lfno_unannClassOrInterfaceType
+		|	unannInterfaceType_lfno_unannClassOrInterfaceType
+		)
+		(	unannClassType_lf_unannClassOrInterfaceType
+		|	unannInterfaceType_lf_unannClassOrInterfaceType
+		)*
+;
+
+unannClassType_lfno_unannClassOrInterfaceType
+	:	Identifier typeArguments?
+;
+
+unannInterfaceType_lfno_unannClassOrInterfaceType
+	:	unannClassType_lfno_unannClassOrInterfaceType
+;
+
+unannClassType_lf_unannClassOrInterfaceType
+	:	'.' annotation* Identifier typeArguments?
+;
+
+unannInterfaceType_lf_unannClassOrInterfaceType
+	:	unannClassType_lf_unannClassOrInterfaceType
+;
+-}
+--MIGHT BE WRONG
+UCOrIT.  UnCIT ::= Id [TypArg] [UnCtIfCIT] ;
+
+UCIfCIT.  UnCtIfCIT ::= "." [Annotation] Id [TypArg] ;
+separator UnCtIfCIT "" ;
+
+{-
+unannClassType
+	:	Identifier typeArguments?
+	|	unannClassOrInterfaceType '.' annotation* Identifier typeArguments?
+;
+-}
+UCTyp.   UnCTyp ::= Id [TypArg] ;
+UCOrITy. UnCTyp ::= UnCIT "." [Annotation] Id [TypArg] ;
+
+{
+unannInterfaceType
+	:	unannClassType
+;
+-}
+UITyp.   UnITyp ::= UnCTyp ;
+
+{-
+unannTypeVariable
+	:	Identifier
+;
+-}
+UTVar.   UnTVar ::= Id ;
+
+{-
+
+unannArrayType
+	:	unannPrimitiveType dims
+	|	unannClassOrInterfaceType dims
+	|	unannTypeVariable dims
+;
+-}
+UArP.    UnArrT ::= UnPrim Dim ;
+UArCIT.  UnArrT ::= UnCIT Dim ;
+UArTVa.  UnArrT ::= UnTVar Dim ;
+
+{-
+methodDeclaration
+	:	methodModifier* methodHeader methodBody
+;
+-}
+MDec.   MetDec ::= [MetMod] MetHead MetBod ;
+
+{-
+methodModifier
+	:	annotation
+	|	'public'
+	|	'protected'
+	|	'private'
+	|	'abstract'
+	|	'static'
+	|	'final'
+	|	'synchronized'
+	|	'native'
+	|	'strictfp'
+;
+-}
+MAnn.   MetMod ::= Annotation ;
+MPub.   MetMod ::= "public" ;
+MPro.   MetMod ::= "protected" ;
+MPri.   MetMod ::= "private" ;
+MAbs.   MetMod ::= "abstract" ;
+MSta.   MetMod ::= "static" ;
+MFin.   MetMod ::= "final" ;
+MSyn.   MetMod ::= "synchronized" ;
+MNat.   MetMod ::= "native" ;
+MStr.   MetMod ::= "strictfp" ;
+
+{-
+methodHeader
+	:	result methodDeclarator throws_?
+	|	typeParameters annotation* result methodDeclarator throws_?
+;
+-}
+JMRes.   MetHead ::= Result MDclrtr Throws ;
+NMRes.   MetHead ::= Result MDclrtr ;
+JMTRes.  MetHead ::= [TypeParam] [Annotation] Result MDclrtr Throws ;
+NMTRes.  MetHead ::= [TypeParam] [Annotation] Result MDclrtr ;
+
+{-
+result
+	:	unannType
+	|	'void'
+;
+-}
+URes.    Result ::= UnTyp ;
+VRes.    Result ::= "void" ;
+
+{-
+methodDeclarator
+	:	Identifier '(' formalParameterList? ')' dims?
+;
+-}
+MDectr.  MDclrtr ::= Id "(" [FPar] ")" [Dim] ;
 
 
 ---- Joel + Brage start:
