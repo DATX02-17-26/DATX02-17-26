@@ -22,12 +22,12 @@ maintainer:   twingoow@gmail.com
 build-type:   Simple
 
 extra-source-files:
-    docs/*.md
-    .gitignore
-    .travis.yml
-    CHANGELOG.md
-    AUTHORS.md
-    README.md
+  docs/*.md
+  .gitignore
+  .travis.yml
+  CHANGELOG.md
+  AUTHORS.md
+  README.md
 
 tested-with:  GHC == 8.0.2
 
@@ -37,14 +37,19 @@ source-repository head
   location: git://github.com/Centril/DATX02-17-26.git
 
 executable DATX021726
-    main-is:          Main.hs
-    build-depends:
-        base >=4.8 && < 5
-    hs-source-dirs:   src
-    default-language: Haskell2010
+  main-is:          Main.hs
+  build-depends:
+      base >= 4.8 && < 5
+    , language-java == 0.2.8
+  hs-source-dirs:   src
+  default-language: Haskell2010
 
 Test-Suite tests 
   type:            exitcode-stdio-1.0
   hs-source-dirs:  Test 
   main-is:         TastyTests.hs
-  build-depends:   tasty, tasty-hunit, tasty-quickcheck, base
+  build-depends:
+      base >= 4.8 && < 5
+    , tasty, tasty-hunit, tasty-quickcheck
+    , language-java == 0.2.8
+  default-language: Haskell2010

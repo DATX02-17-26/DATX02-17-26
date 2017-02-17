@@ -1,0 +1,8 @@
+resolver: lts-8.0
+
+packages:
+- '.'
+- location:
+    git: https://github.com/Centril/language-java.git
+    commit: 9beacd08265d915c820979e026d7694018b3122d
+  extra-dep: true
