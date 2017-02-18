@@ -11,7 +11,7 @@ unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "1 == 1" $ 1 @?= (1 :: Int)
   , testCase "parser" $
-        JP.parser JP.exp "1 + 2 * 4" @?=
+        JP.parser JP.exp "1 + 2 * 3" @?=
         Right (BinOp (Lit (Int 1)) Add (BinOp (Lit (Int 2)) Mult (Lit (Int 3))))
   ]
 
