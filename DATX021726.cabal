@@ -38,6 +38,7 @@ source-repository head
 
 executable DATX021726
     main-is:          Main.hs
+    other-modules:    PropertyTesting
     build-depends:
         base >=4.8 && < 5,
         QuickCheck,
