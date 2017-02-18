@@ -17,6 +17,7 @@
  -}
 
 module Main where
+import PropertyTesting
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
