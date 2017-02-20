@@ -171,8 +171,8 @@ executeEvalM env eval = do
       return a
 
 -- | Run an `EvalM` computation with a temporary directory
-withTemporaryDirectory :: EvalM a -> FilePath -> EvalM a
-withTemporaryDirectory evalm dir = do
+withTemporaryDirectory :: FilePath -> EvalM a -> EvalM a
+withTemporaryDirectory dir evalm = do
   liftIO $ createDirectoryIfMissing True dir
   result <- catch evalm $ \e -> liftIO (removeDirectoryRecursive dir) >> throw e 
   liftIO $ removeDirectoryRecursive dir

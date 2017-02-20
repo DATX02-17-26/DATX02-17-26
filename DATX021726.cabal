@@ -41,7 +41,8 @@ executable JAA
     other-modules:    SolutionContext,
                       EvaluationMonad,
                       RunJavac,
-                      InputMonad
+                      InputMonad,
+                      PropertyBasedTesting
     build-depends:
           base >=4.8 && < 5
         , lens >= 4.15

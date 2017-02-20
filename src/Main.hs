@@ -26,7 +26,7 @@ import Data.Semigroup
 import SolutionContext
 import EvaluationMonad
 import RunJavac
-import InputMonad
+import PropertyBasedTesting
 
 -- | The command line arguments
 data CommandLineArguments = CMD { studentSolutionPath :: FilePath
@@ -55,10 +55,11 @@ application studentSolution dirOfModelSolutions = do
   paths <- getFilePathContext studentSolution dirOfModelSolutions
 
   -- Try to compile the student and model solutions
-  compilationStatus <- compileContext paths "compilationDirectory"  
-  case compilationStatus of
-    Succeeded -> return ()
-    _         -> issue "Student solution does not compile!"
+  withTemporaryDirectory "compilationDirectory" $ do
+    compilationStatus <- compileContext paths "compilationDirectory"  
+    case compilationStatus of
+      Succeeded -> void $ runPBT "compilationDirectory"
+      _         -> issue  "Student solution does not compile!"
 
   -- Get the context from the arguments supplied
   context <- readRawContext paths
