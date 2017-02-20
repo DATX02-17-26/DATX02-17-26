@@ -59,34 +59,44 @@ instance Wrapper a a where
 -- and it wraps `String`
 type InputMonoid m = (Wrapper m String, Monoid m)
 
+-- | Strings where `mappend` means `make a new line`
 newtype NewlineString = NLString { unNLString :: String } deriving (Eq, Ord)
 
+-- | Show `NewlineString`s just as normal `String`s
 instance Show NewlineString where
   show = show . unNLString
 
+-- | The special monoid instance
 instance Monoid NewlineString where
   mempty = NLString ""
 
+  -- make sure "" is unit for NLString
   (NLString "") `mappend` x = x
   x `mappend` (NLString "") = x
   (NLString x) `mappend` (NLString y) = NLString $ x ++ "\n" ++ y
 
+-- | `NewlineString` obviously wraps `String`
 instance Wrapper NewlineString String where
   wrap = NLString 
   unwrap = unNLString
 
+-- | Strings where `mappend` means adding a space
 newtype SpaceString = SPString { unSPString :: String} deriving (Eq, Ord)
 
+-- | Show `SpaceString`s just as normal `String`s
 instance Show SpaceString where
   show = show . unSPString
 
+-- | The special monoid instance
 instance Monoid SpaceString where
   mempty = SPString ""
 
+  -- Make sure "" is unit
   (SPString "") `mappend` x = x
   x `mappend` (SPString "") = x
   (SPString x) `mappend` (SPString y) = SPString $ x ++ " " ++ y
 
+-- | `SpaceString`s wrap `String`s
 instance Wrapper SpaceString String where
   wrap = SPString 
   unwrap = unSPString
