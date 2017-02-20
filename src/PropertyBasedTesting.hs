@@ -24,6 +24,11 @@ import System.Directory
 import InputMonad
 import EvaluationMonad
 
+{- TODO:
+ - * Add timeout, throw exception when model solutions time out
+ -   but issue feedback when a student solution times out
+ -}
+
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
 solutionOutput stdin file = liftIO $ readCreateProcess (shell $ "java " ++ file) stdin
