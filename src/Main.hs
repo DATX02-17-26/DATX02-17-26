@@ -17,7 +17,69 @@
  -}
 
 module Main where
+<<<<<<< HEAD
 import InputMonad
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
+=======
+import System.Environment
+import Control.Monad
+import System.Exit
+import Options.Applicative
+import Data.Semigroup
+
+import SolutionContext
+import EvaluationMonad
+import RunJavac
+
+-- | The command line arguments
+data CommandLineArguments = CMD { studentSolutionPath :: FilePath
+                                , modelSolutionsPath  :: FilePath
+                                , environment         :: Env
+                                } deriving Show
+
+-- | A parser for command line arguments
+arguments :: Parser CommandLineArguments
+arguments =  CMD
+         <$> argument str (metavar "STUDENT_SOLUTION")
+         <*> argument str (metavar "MODEL_SOLUTIONS_DIR")
+         <*> parseEnv
+
+-- | Full parser for arguments
+argumentParser :: ParserInfo CommandLineArguments
+argumentParser = info (arguments <**> helper)
+                 (  fullDesc
+                 <> header "JAA, a program for Java Automated Assessment"
+                 )
+
+-- | The actual entry point of the application
+application :: FilePath -> FilePath -> EvalM ()
+application studentSolution dirOfModelSolutions = do
+  -- Get the filepaths of the student and model solutions
+  paths <- getFilePathContext studentSolution dirOfModelSolutions
+
+  -- Try to compile the student and model solutions
+  compilationStatus <- compileContext paths "compilationDirectory"  
+  case compilationStatus of
+    Succeeded -> return ()
+    _         -> issue "Student solution does not compile!"
+
+  -- Get the context from the arguments supplied
+  context <- readRawContext paths
+
+  return ()
+
+main :: IO ()
+main = do
+  -- Parse command line arguments
+  args <- execParser argumentParser  
+
+  -- Get all the relevant parts of the arguments
+  let env                 = environment args
+      studentSolution     = studentSolutionPath args
+      dirOfModelSolutions = modelSolutionsPath  args
+
+  -- Run the actual application
+  executeEvalM env $ application studentSolution dirOfModelSolutions
+>>>>>>> dev
