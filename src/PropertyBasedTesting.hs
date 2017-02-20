@@ -20,6 +20,7 @@ module PropertyBasedTesting where
 import System.FilePath
 import System.Process
 import System.Directory
+import Control.Monad.Reader
 
 import InputMonad
 import EvaluationMonad
@@ -67,4 +68,17 @@ testSolutions dir input = do
 -- | Perform the relevant tests on all class files in the directory
 -- `dir`, returns `True` if the student solution passes all tests
 runPBT :: FilePath -> EvalM ()
-runPBT dir = return ()
+runPBT dir = do
+  numTests <- numberOfTests <$> ask
+  logMessage $ "Testing student solution " ++ show numTests ++ " times"
+  inner numTests
+  where
+    -- Ugly inner loop, this should be removed when possible
+    inner 0 = comment "Student solution passed tests"
+    inner n = do
+      let input = "hej hej dumt test\n"
+      passed <- testSolutions dir input
+      if passed then
+        inner (n - 1)
+      else
+        issue "Student solution does not pass tests"
