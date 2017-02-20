@@ -25,9 +25,14 @@ import InputMonad
 import EvaluationMonad
 
 {- TODO:
- - * Add timeout, throw exception when model solutions time out
- -   but issue feedback when a student solution times out
- -}
+   * Add timeout, throw exception when model solutions time out
+     but issue feedback when a student solution times out
+
+   * Figure out how to deal with different tasks, what `InputMonad`
+     spec to use?
+
+   * Add logging
+-}
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
@@ -61,5 +66,5 @@ testSolutions dir input = do
 
 -- | Perform the relevant tests on all class files in the directory
 -- `dir`, returns `True` if the student solution passes all tests
-runPBT :: FilePath -> EvalM Bool
-runPBT dir = return False
+runPBT :: FilePath -> EvalM ()
+runPBT dir = return ()

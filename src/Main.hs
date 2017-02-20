@@ -55,10 +55,11 @@ application studentSolution dirOfModelSolutions = do
   paths <- getFilePathContext studentSolution dirOfModelSolutions
 
   -- Try to compile the student and model solutions
-  withTemporaryDirectory "compilationDirectory" $ do
-    compilationStatus <- compileContext paths "compilationDirectory"  
+  let compDir = "compilationDirectory"
+  withTemporaryDirectory compDir $ do
+    compilationStatus <- compileContext paths compDir
     case compilationStatus of
-      Succeeded -> void $ runPBT "compilationDirectory"
+      Succeeded -> runPBT compDir
       _         -> issue  "Student solution does not compile!"
 
   -- Get the context from the arguments supplied
