@@ -31,13 +31,14 @@ import EvaluationMonad
 
    * Figure out how to deal with different tasks, what `InputMonad`
      spec to use?
-
-   * Add logging
 -}
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
-solutionOutput stdin file = liftIO $ readCreateProcess (shell $ "java " ++ file) stdin
+solutionOutput stdin file = do
+  let command = "java " ++ dropExtension file
+  logMessage $ "Running the command: " ++ command
+  liftIO $ readCreateProcess (shell command) stdin
 
 -- | Get the output of the student solution
 studentOutput :: FilePath -> String -> EvalM String
@@ -47,13 +48,13 @@ studentOutput dir input = do
   studentSolutionName <- case ss of
                           []    -> throw "Student solution missing"
                           (s:_) -> return s
-  solutionOutput input (dir </> "student" </> studentSolutionName)
+  inTemporaryDirectory (dir </> "student") $ solutionOutput input studentSolutionName
 
 -- | Get the output of every model solution
 modelSolutionsOutputs :: FilePath -> String -> EvalM [String]
 modelSolutionsOutputs dir input = do
   modelSolutions <- liftIO $ listDirectory (dir </> "model")
-  sequence $ solutionOutput input <$> modelSolutions
+  inTemporaryDirectory (dir </> "model") $ sequence $ solutionOutput input <$> modelSolutions
 
 -- | Test the student solution in `dir </> "student/"` against
 -- the solutions in `dir </> "model/"`
@@ -73,7 +74,7 @@ runPBT dir = do
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
   inner numTests
   where
-    -- Ugly inner loop, this should be removed when possible
+    -- Ugly inner loop, this should be done more elequently
     inner 0 = comment "Student solution passed tests"
     inner n = do
       let input = "hej hej dumt test\n"
@@ -81,4 +82,4 @@ runPBT dir = do
       if passed then
         inner (n - 1)
       else
-        issue "Student solution does not pass tests"
+        issue $ "Student solution does not pass tests, fails on:\n" ++ input

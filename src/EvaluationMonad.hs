@@ -23,6 +23,7 @@ module EvaluationMonad (
   catch,
   logMessage,
   withTemporaryDirectory,
+  inTemporaryDirectory,
   issue,
   comment,
   EvalM,
@@ -186,3 +187,17 @@ withTemporaryDirectory dir evalm = do
   result <- catch evalm $ \e -> liftIO (removeDirectoryRecursive dir) >> throw e 
   liftIO $ removeDirectoryRecursive dir
   return result
+
+-- | Run an `EvalM` computation _in_ a temporary directory
+inTemporaryDirectory :: FilePath -> EvalM a -> EvalM a
+inTemporaryDirectory dir evalm = do
+  was <- liftIO getCurrentDirectory
+
+  logMessage $ "Changing directory to " ++ dir
+  liftIO $ setCurrentDirectory dir
+  result <- catch evalm $ \e -> liftIO (setCurrentDirectory was) >> throw e 
+
+  logMessage $ "Changing directory to " ++ was
+  liftIO $ setCurrentDirectory was
+  return result
+
