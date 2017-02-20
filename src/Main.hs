@@ -17,12 +17,6 @@
  -}
 
 module Main where
-<<<<<<< HEAD
-import InputMonad
-
-main :: IO ()
-main = putStrLn "Hello, Haskell!"
-=======
 import System.Environment
 import Control.Monad
 import System.Exit
@@ -32,6 +26,7 @@ import Data.Semigroup
 import SolutionContext
 import EvaluationMonad
 import RunJavac
+import InputMonad
 
 -- | The command line arguments
 data CommandLineArguments = CMD { studentSolutionPath :: FilePath
@@ -82,4 +77,3 @@ main = do
 
   -- Run the actual application
   executeEvalM env $ application studentSolution dirOfModelSolutions
->>>>>>> dev
