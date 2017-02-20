@@ -17,8 +17,7 @@
  -}
 {-# LANGUAGE
     TypeApplications
-  , FlexibleContexts
-#-}
+  , FlexibleContexts #-}
 module GeneratorExamples where
 
 import Data.Char

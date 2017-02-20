@@ -17,12 +17,10 @@
  -}
 
 {-# LANGUAGE
-    TypeApplications
-  , MultiParamTypeClasses
+    MultiParamTypeClasses
   , FlexibleInstances
   , FlexibleContexts 
-  , ConstraintKinds 
-#-}
+  , ConstraintKinds #-}
 module InputMonad where
 
 import Test.QuickCheck
