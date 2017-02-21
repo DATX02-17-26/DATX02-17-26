@@ -20,14 +20,14 @@ module PropertyBasedTesting where
 import System.FilePath
 import System.Process
 import System.Directory
+import System.Timeout
 import Control.Monad.Reader
 
 import InputMonad
 import EvaluationMonad
 
 {- TODO:
-   * Add timeout, throw exception when model solutions time out
-     but issue feedback when a student solution times out
+   * Use `hint` to interpret the modules
 
    * Figure out how to deal with different tasks, what `InputMonad`
      spec to use?
@@ -38,17 +38,23 @@ solutionOutput :: String -> FilePath -> EvalM String
 solutionOutput stdin file = do
   let command = "java " ++ dropExtension file
   logMessage $ "Running the command: " ++ command
-  liftIO $ readCreateProcess (shell command) stdin
+
+  -- Timeout 1 second
+  m <- liftIO $ timeout 1000000 $ readCreateProcess (shell command) stdin
+  case m of
+    Nothing -> throw "Command timed out"
+    Just x  -> return x
 
 -- | Get the output of the student solution
-studentOutput :: FilePath -> String -> EvalM String
+studentOutput :: FilePath -> String -> EvalM (Maybe String)
 studentOutput dir input = do
   -- This is really inefficient and should be floated to the top level
   ss <- liftIO $ listDirectory $ dir </> "student"
   studentSolutionName <- case ss of
                           []    -> throw "Student solution missing"
                           (s:_) -> return s
-  inTemporaryDirectory (dir </> "student") $ solutionOutput input studentSolutionName
+  catch (Just <$> (inTemporaryDirectory (dir </> "student") $ solutionOutput input studentSolutionName))
+        (\_ -> issue "Student test timeout" >> return Nothing)
 
 -- | Get the output of every model solution
 modelSolutionsOutputs :: FilePath -> String -> EvalM [String]
@@ -64,7 +70,9 @@ testSolutions dir input = do
 
   studO <- studentOutput dir input
 
-  return $ or [studO == output | output <- modelOutputs]
+  case studO of
+    Just s  -> return $ or [s == output | output <- modelOutputs]
+    Nothing -> return False
 
 -- | Perform the relevant tests on all class files in the directory
 -- `dir`, returns `True` if the student solution passes all tests
