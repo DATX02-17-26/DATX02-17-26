@@ -6,3 +6,16 @@ packages:
     git: https://github.com/Centril/language-java.git
     commit: 9beacd08265d915c820979e026d7694018b3122d
   extra-dep: true
+
+extra-deps:
+- ideas-1.6
+- sized-0.2.1.0
+- type-natural-0.7.1.3
+# needed to fix sized:
+- lens-4.14
+# needed to fix type-natural:
+- constraints-0.8
+- equational-reasoning-0.4.1.1
+- ghc-typelits-presburger-0.1.1.0
+- monomorphic-0.0.3.3
+#- singleton-nats-0.4.0.2
