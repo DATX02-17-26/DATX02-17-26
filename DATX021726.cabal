@@ -43,6 +43,7 @@ executable JAA
                     RunJavac
   build-depends:
       base >=4.8 && < 5
+    , safe == 0.3.13
     , lens == 4.14
     , directory >= 1.2
     , ideas >= 1.6
