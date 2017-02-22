@@ -17,6 +17,7 @@
  -}
 
 module Main where
+
 import System.Environment
 import Control.Monad
 import System.Exit
@@ -26,6 +27,7 @@ import Data.Semigroup
 import SolutionContext
 import EvaluationMonad
 import RunJavac
+import NormalizationStrategies hiding ((<>))
 
 -- | The command line arguments
 data CommandLineArguments = CMD { studentSolutionPath :: FilePath
