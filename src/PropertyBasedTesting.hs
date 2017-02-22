@@ -90,4 +90,4 @@ runPBT dir = do
       if passed then
         inner (n - 1)
       else
-        issue $ "Student solution does not pass tests, fails on:\n" ++ input
+        issue $ "Student solution does not pass tests, fails on:\"\"\"\n" ++ input ++ "\"\"\""
