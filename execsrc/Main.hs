@@ -22,7 +22,9 @@ import System.Environment
 import Control.Monad
 import System.Exit
 import Options.Applicative
+import Options.Applicative.Types
 import Data.Semigroup
+import Data.List
 
 import SolutionContext
 import EvaluationMonad
@@ -31,7 +33,8 @@ import PropertyBasedTesting
 import NormalizationStrategies hiding ((<>))
 
 -- | The command line arguments
-data CommandLineArguments = CMD { studentSolutionPath :: FilePath
+data CommandLineArguments = CMD { generatorPair       :: (String, String)
+                                , studentSolutionPath :: FilePath
                                 , modelSolutionsPath  :: FilePath
                                 , environment         :: Env
                                 } deriving Show
@@ -39,9 +42,18 @@ data CommandLineArguments = CMD { studentSolutionPath :: FilePath
 -- | A parser for command line arguments
 arguments :: Parser CommandLineArguments
 arguments =  CMD
-         <$> argument str (metavar "STUDENT_SOLUTION")
-         <*> argument str (metavar "MODEL_SOLUTIONS_DIR")
+         <$> argument generator (metavar "TEST_GENERATOR" <> help "Should be on the form module:generator")
+         <*> argument str       (metavar "STUDENT_SOLUTION")
+         <*> argument str       (metavar "MODEL_SOLUTIONS_DIR")
          <*> parseEnv
+
+-- | A `ReadM` "parser" for "module:function" to specify what generator to use
+generator :: ReadM (String, String)
+generator = do
+  s <- readerAsk
+  case elemIndex ':' s of
+    Nothing -> readerError "Could not parse generator, should be on the form FILE:FUNCTION"
+    Just i  -> return $ splitAt i s
 
 -- | Full parser for arguments
 argumentParser :: ParserInfo CommandLineArguments
