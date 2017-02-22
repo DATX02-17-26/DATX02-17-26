@@ -17,6 +17,8 @@ cabal.sandbox.config
 *.eventlog
 .stack-work/
 cabal.project.local
+*.sw*
+dist/
 mods/
 stud.java
-*.sw*
+logfile.log
