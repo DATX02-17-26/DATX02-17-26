@@ -22,8 +22,11 @@ module CoreS.Convert where
 
 import Safe (headMay)
 import Prelude hiding (LT, GT, EQ)
+import Control.Monad (unless)
+import Data.Maybe (isNothing)
 
 import qualified Language.Java.Syntax as S
+
 import CoreS.AST
 
 --------------------------------------------------------------------------------
@@ -75,8 +78,6 @@ convName (S.Name is) = Name $ convId <$> is
 --------------------------------------------------------------------------------
 -- Conversion, Expression:
 --------------------------------------------------------------------------------
-
-u = undefined
 
 convLit :: S.Literal -> CConv Expr
 convLit = pure . ELit . \case
@@ -220,10 +221,17 @@ convVMTyp :: [S.Modifier] -> S.Type -> CConv VMType
 convVMTyp ms t = VMType <$> convVM ms <*> convTyp t
 
 convForInit :: S.ForInit -> CConv ForInit
-convForInit = u
+convForInit = \case
+  S.ForLocalVars ms t vds -> FIVars  <$> convTVVDecl ms t vds
+  S.ForInitExps  es       -> FIExprs <$> mapM convExp es
 
 convMay :: (x -> CConv y) -> Maybe x -> CConv (Maybe y)
 convMay cv = maybe (pure Nothing) $ fmap pure . cv
+
+getVDICnt :: S.VarDeclId -> Integer
+getVDICnt = \case
+  S.VarId _          -> 0
+  S.VarDeclArray vdi -> 1 + getVDICnt vdi
 
 getVDIId :: S.VarDeclId -> Ident
 getVDIId = \case
@@ -231,24 +239,16 @@ getVDIId = \case
   S.VarDeclArray vdi -> getVDIId vdi
 
 convVDeclId :: S.VarDeclId -> VarDeclId
-convVDeclId = u 
-{-
-= \case
-  S.VarId i          -> VarDId $ convId i
-  S.VarDeclArray vdi -> u
--}
+convVDeclId vdi = case getVDICnt vdi of
+  0 -> VarDId $ getVDIId vdi
+  n -> VarDArr (getVDIId vdi) (getVDICnt vdi)
 
 convVDecl :: S.VarDecl -> CConv VarDecl
-convVDecl (S.VarDecl vdi mvi) = do
-  vdi' <- pure $ convVDeclId vdi
-  mvi' <- convMay convVarInit mvi
-  pure $ VarDecl vdi' mvi'
+convVDecl (S.VarDecl vdi mvi) =
+  VarDecl <$> pure (convVDeclId vdi) <*> convMay convVarInit mvi
 
 convTVVDecl :: [S.Modifier] -> S.Type -> [S.VarDecl] -> CConv TypedVVDecl
-convTVVDecl mds t vds = do
-  t' <- convVMTyp mds t
-  vds' <- mapM convVDecl vds
-  pure u
+convTVVDecl mds t vds = TypedVVDecl <$> convVMTyp mds t <*> mapM convVDecl vds
 
 convBlock :: S.Block -> CConv Block
 convBlock (S.Block bs) = Block <$> mapM convBStmt bs
@@ -258,6 +258,15 @@ convBStmt = \case
   S.BlockStmt s         -> convStmt s
   S.LocalVars mds t vds -> SVars <$> convTVVDecl mds t vds
   x                     -> unimpl x
+
+convSwitchL :: S.SwitchLabel -> CConv SwitchLabel
+convSwitchL = \case
+  S.SwitchCase e -> SwitchCase <$> convExp e
+  S.Default      -> pure Default
+
+convSwitchB :: S.SwitchBlock -> CConv SwitchBlock
+convSwitchB (S.SwitchBlock sl bs) =
+  SwitchBlock <$> convSwitchL sl <*> (Block <$> mapM convBStmt bs)
 
 convStmt :: S.Stmt -> CConv Stmt
 convStmt = \case
@@ -277,9 +286,65 @@ convStmt = \case
                                        <*> convExp e
                                        <*> convStmt si
   S.ExpStmt e               -> SExpr   <$> convExp e
-  S.Switch e sbs            -> u
+  S.Switch e sbs            -> SSwitch <$> convExp e <*> mapM convSwitchB sbs
   S.Return   (Just e)       -> SReturn <$> convExp e
   S.Return   Nothing        -> pure SVReturn
   S.Break    Nothing        -> pure SBreak
   S.Continue Nothing        -> pure SContinue
   x                         -> unimpl x
+
+--------------------------------------------------------------------------------
+-- Conversion, Comp unit:
+--------------------------------------------------------------------------------
+
+convArg :: S.FormalParam -> CConv FormalParam
+convArg = \case
+  S.FormalParam ms t False vdi -> do
+    t'   <- convVMTyp ms t
+    pure $ FormalParam t' (convVDeclId vdi)
+  x -> unimpl x
+
+convMemDecl :: S.MemberDecl -> CConv MemberDecl
+convMemDecl = \case
+  S.MethodDecl mds tps mrt i args exceptt me mb -> do
+    unless (mds == [S.Public]) $ unimpl mds
+    unless (null tps) $ unimpl tps
+    unless (null exceptt) $ unimpl exceptt
+    unless (isNothing me) $ unimpl me
+    case mb of
+      S.MethodBody Nothing  -> unimpl mb
+      S.MethodBody (Just b) -> do
+        let i' = convId i
+        mrt'  <- convMay convTyp mrt
+        args' <- mapM convArg args
+        b'    <- convBlock b
+        pure $ MethodDecl mrt' i' args' b'
+  x -> unimpl x
+
+convDecl :: S.Decl -> CConv Decl
+convDecl = \case
+  S.MemberDecl md -> MemberDecl <$> convMemDecl md
+  x               -> unimpl x
+
+convCBody :: S.ClassBody -> CConv ClassBody
+convCBody (S.ClassBody ds) = ClassBody <$> mapM convDecl ds
+
+convCDecl :: S.ClassDecl -> CConv ClassDecl
+convCDecl = \case
+  S.ClassDecl ms i tps ext impls body -> do
+    unless (null ms)  $ unimpl ms
+    unless (null tps) $ unimpl tps
+    unless (isNothing ext) $ unimpl ext
+    unless (null impls) $ unimpl impls
+    ClassDecl (convId i) <$> convCBody body
+
+convTypeDecl :: S.TypeDecl -> CConv TypeDecl
+convTypeDecl = \case
+  S.ClassTypeDecl cd -> ClassTypeDecl <$> convCDecl cd
+  x                  -> unimpl x
+
+convUnit :: S.CompilationUnit -> CConv CompilationUnit
+convUnit (S.CompilationUnit mpd is tds) = do
+  unless (isNothing mpd) $ unimpl mpd
+  unless (null is) $ unimpl is
+  CompilationUnit <$> mapM convTypeDecl tds

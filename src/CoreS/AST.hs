@@ -194,8 +194,8 @@ data SwitchLabel
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data ForInit
-  = FIVars TypedVVDecl
-  | FIExps [Expr]
+  = FIVars  TypedVVDecl
+  | FIExprs [Expr]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 --------------------------------------------------------------------------------
