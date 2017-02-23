@@ -19,11 +19,12 @@
 module Main where
 
 import System.Environment
-import Control.Monad
 import System.Exit
+import Control.Monad
 import Options.Applicative
 import Data.Semigroup
 
+import CoreS.Parse
 import SolutionContext
 import EvaluationMonad
 import RunJavac
@@ -51,9 +52,9 @@ argumentParser = info (arguments <**> helper)
 
 -- | The actual entry point of the application
 application :: FilePath -> FilePath -> EvalM ()
-application studentSolution dirOfModelSolutions = do
+application ss dirOfModelSolutions = do
   -- Get the filepaths of the student and model solutions
-  paths <- getFilePathContext studentSolution dirOfModelSolutions
+  paths <- getFilePathContext ss dirOfModelSolutions
 
   -- Try to compile the student and model solutions
   compilationStatus <- compileContext paths "compilationDirectory"  
@@ -61,8 +62,16 @@ application studentSolution dirOfModelSolutions = do
     Succeeded -> return ()
     _         -> issue "Student solution does not compile!"
 
-  -- Get the context from the arguments supplied
-  context <- readRawContext paths
+  -- Get the contents from the arguments supplied
+  convASTs <- (fmap parseConvUnit) <$> readRawContents paths
+
+  -- Convert an `Either String AST` in to an `EvalM AST`
+  let convert = either (\parseError -> throw $ "Parse error: " ++ parseError) return
+
+  -- Get the student and model solutions
+  astContext <- Ctx <$>
+                convert (studentSolution convASTs) <*>
+                sequence [convert m | m <- modelSolutions convASTs]
 
   return ()
 

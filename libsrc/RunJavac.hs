@@ -69,5 +69,5 @@ compileContext :: SolutionContext FilePath -> FilePath -> EvalM CompilationStatu
 compileContext ctx dir = withTemporaryDirectory inner dir
   where
     inner = do
-      sequence $ compileThrow dir <$> ctx ^. modelSolutions
-      tryCompile dir (ctx ^. studentSolution)
+      sequence $ compileThrow dir <$> modelSolutions ctx
+      tryCompile dir $ studentSolution ctx
