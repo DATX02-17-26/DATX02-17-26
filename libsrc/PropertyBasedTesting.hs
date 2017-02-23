@@ -22,16 +22,10 @@ import System.Process
 import System.Directory
 import System.Timeout
 import Control.Monad.Reader
+import Test.QuickCheck
 
 import InputMonad
 import EvaluationMonad
-
-{- TODO:
-   * Use `hint` to interpret the modules
-
-   * Figure out how to deal with different tasks, what `InputMonad`
-     spec to use?
--}
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
@@ -76,8 +70,8 @@ testSolutions dir input = do
 
 -- | Perform the relevant tests on all class files in the directory
 -- `dir`, returns `True` if the student solution passes all tests
-runPBT :: FilePath -> EvalM ()
-runPBT dir = do
+runPBT :: FilePath -> Gen String -> EvalM ()
+runPBT dir generator = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
   inner numTests
@@ -85,7 +79,7 @@ runPBT dir = do
     -- Ugly inner loop, this should be done more elequently
     inner 0 = comment "Student solution passed tests"
     inner n = do
-      let input = "hej hej dumt test\n"
+      input  <- liftIO $ generate generator
       passed <- testSolutions dir input
       if passed then
         inner (n - 1)

@@ -19,18 +19,21 @@
 module Main where
 
 import System.Environment
-import Control.Monad
 import System.Exit
+import Control.Monad
 import Options.Applicative
 import Options.Applicative.Types
 import Data.Semigroup
 import Data.List
+import Test.QuickCheck
+import Language.Haskell.Interpreter
 
 import SolutionContext
 import EvaluationMonad
 import RunJavac
 import PropertyBasedTesting
 import NormalizationStrategies hiding ((<>))
+import InputMonad
 
 -- | The command line arguments
 data CommandLineArguments = CMD { generatorPair       :: (String, String)
@@ -53,7 +56,7 @@ generator = do
   s <- readerAsk
   case elemIndex ':' s of
     Nothing -> readerError "Could not parse generator, should be on the form FILE:FUNCTION"
-    Just i  -> return $ splitAt i s
+    Just i  -> return (tail <$> splitAt i s)
 
 -- | Full parser for arguments
 argumentParser :: ParserInfo CommandLineArguments
@@ -63,8 +66,8 @@ argumentParser = info (arguments <**> helper)
                  )
 
 -- | The actual entry point of the application
-application :: FilePath -> FilePath -> EvalM ()
-application studentSolution dirOfModelSolutions = do
+application :: Gen String -> FilePath -> FilePath -> EvalM ()
+application gen studentSolution dirOfModelSolutions = do
   -- Get the filepaths of the student and model solutions
   paths <- getFilePathContext studentSolution dirOfModelSolutions
 
@@ -73,7 +76,7 @@ application studentSolution dirOfModelSolutions = do
   withTemporaryDirectory compDir $ do
     compilationStatus <- compileContext paths compDir
     case compilationStatus of
-      Succeeded -> runPBT compDir
+      Succeeded -> runPBT compDir gen 
       _         -> issue  "Student solution does not compile!"
 
   -- Get the context from the arguments supplied
@@ -90,6 +93,12 @@ main = do
   let env                 = environment args
       studentSolution     = studentSolutionPath args
       dirOfModelSolutions = modelSolutionsPath  args
+      (mod, fun)          = generatorPair args
+
+  Right g <- runInterpreter $ do
+    loadModules [mod ++ ".hs"]
+    setTopLevelModules [mod]
+    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
 
   -- Run the actual application
-  executeEvalM env $ application studentSolution dirOfModelSolutions
+  executeEvalM env $ application g studentSolution dirOfModelSolutions
