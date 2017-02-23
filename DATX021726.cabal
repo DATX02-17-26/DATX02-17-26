@@ -49,7 +49,7 @@ library
       , CoreS.Parse
   build-depends:
         base >=4.8 && < 5
-      , lens >= 4.15
+      , lens >= 4.14
       , safe == 0.3.13
       , directory >= 1.2
       , ideas >= 1.6
