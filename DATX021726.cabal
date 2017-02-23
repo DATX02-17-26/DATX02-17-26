@@ -37,42 +37,46 @@ source-repository head
   location: git://github.com/Centril/DATX02-17-26.git
 
 library
-  exposed-modules:    NormalizationStrategies,
-                      SolutionContext,
-                      EvaluationMonad,
-                      RunJavac
+  exposed-modules:
+      NormalizationStrategies
+    , SolutionContext
+    , EvaluationMonad
+    , RunJavac
+    , CoreS.AST
+    , CoreS.Convert
+    , CoreS.Parse
   build-depends:
-        base >=4.8 && < 5
-      , safe == 0.3.13
-      , lens >= 4.14
-      , directory >= 1.2
-      , ideas >= 1.6
-      , transformers >= 0.5 
-      , mtl >= 2.2
-      , filepath >= 1.4
-      , process >= 1.4
-      , optparse-applicative >= 0.13
-      , language-java == 0.2.8
+      base >=4.8 && < 5
+    , safe == 0.3.13
+    , lens >= 4.14
+    , directory >= 1.2
+    , ideas >= 1.6
+    , transformers >= 0.5 
+    , mtl >= 2.2
+    , filepath >= 1.4
+    , process >= 1.4
+    , optparse-applicative >= 0.13
+    , language-java == 0.2.8
   hs-source-dirs:   libsrc
   default-language: Haskell2010
 
 executable JAA 
-    main-is:          Main.hs
-    build-depends:
-        base >=4.8 && < 5
-      , safe == 0.3.13
-      , lens >= 4.14
-      , directory >= 1.2
-      , ideas >= 1.6
-      , transformers >= 0.5 
-      , mtl >= 2.2
-      , filepath >= 1.4
-      , process >= 1.4
-      , optparse-applicative >= 0.13
-      , language-java == 0.2.8
-      , DATX021726
-    hs-source-dirs:   execsrc 
-    default-language: Haskell2010
+  main-is:          Main.hs
+  build-depends:
+      base >=4.8 && < 5
+    , safe == 0.3.13
+    , lens >= 4.14
+    , directory >= 1.2
+    , ideas >= 1.6
+    , transformers >= 0.5 
+    , mtl >= 2.2
+    , filepath >= 1.4
+    , process >= 1.4
+    , optparse-applicative >= 0.13
+    , language-java == 0.2.8
+    , DATX021726
+  hs-source-dirs:   execsrc 
+  default-language: Haskell2010
 
 Test-Suite tests 
   type:            exitcode-stdio-1.0
@@ -80,10 +84,11 @@ Test-Suite tests
   main-is:         TastyTests.hs
   other-modules:   NormalizationTests
   default-language: Haskell2010
-  build-depends:   tasty
-                 , tasty-hunit
-                 , tasty-quickcheck
-                 , base
-                 , language-java == 0.2.8
-                 , DATX021726
-                 , lens >= 4.14
+  build-depends:
+      tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , base
+    , language-java == 0.2.8
+    , DATX021726
+    , lens >= 4.14
