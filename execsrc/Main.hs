@@ -30,6 +30,8 @@ import EvaluationMonad
 import RunJavac
 import NormalizationStrategies hiding ((<>))
 
+import Normalizations
+
 -- | The command line arguments
 data CommandLineArguments = CMD { studentSolutionPath :: FilePath
                                 , modelSolutionsPath  :: FilePath
@@ -73,6 +75,9 @@ application ss dirOfModelSolutions = do
   astContext <- Ctx <$>
                 convert (studentSolution convASTs) <*>
                 sequence [convert m | m <- modelSolutions convASTs]
+
+  -- The normalized ASTs
+  let normalizedASTs = executeNormalizer normalizations <$> astContext
 
   return ()
 
