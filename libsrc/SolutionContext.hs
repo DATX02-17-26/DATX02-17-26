@@ -58,9 +58,9 @@ getFilePathContext studentPath modelDir = do
 
   return $ Ctx studentPath (combine modelDir <$> modelDirJavaFiles)
 
--- | Read the context in which we are working from the directory
-readRawContext :: SolutionContext FilePath -> EvalM (SolutionContext String)
-readRawContext ctx = do
+-- | Read the contents of the student and model solution files
+readRawContents :: SolutionContext FilePath -> EvalM (SolutionContext String)
+readRawContents ctx = do
   -- Do some logging
   logMessage $ "Reading student solution"
 

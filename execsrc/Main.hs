@@ -79,8 +79,8 @@ application gen studentSolution dirOfModelSolutions = do
       Succeeded -> runPBT compDir gen 
       _         -> issue  "Student solution does not compile!"
 
-  -- Get the context from the arguments supplied
-  context <- readRawContext paths
+  -- Get the file contents from the arguments supplied
+  contents <- readRawContents paths
 
   return ()
 
