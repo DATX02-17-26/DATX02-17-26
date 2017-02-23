@@ -1,91 +1,35 @@
+notifications:
+  slack:
+    secure: Ijx3WXSRr2TGWqNO6+zLJ1LWerDE0LQaVcMRZhDaQOJCiL98JrNBNwVcb1c+SOGg4/NPbidMiK9a0oxSn84l3SZC+MFIgz5418x/FcaxTiGBiRVUtxnGdYyvsPmMkj/Fs7/viwREcW1TxvOIImr7/bxkBO0cQLSs/HYlgHF68d4F6x5w00ExuTQ+TKOg6kwf9D2iAqZOU6Y9pusMmNg2izGvtxReDlgv4Gi8GV5uGre/gQnRtsgOPI/ftkO/OaMLHtJk1T/jEMgm23chOQNkRP0M4VeQ1qPv+qM7cfCLa4F1J8wysMSLFDrlz7izBeMuICf/XJ7fS2ezwn/9j+VY4vSsPMXcowXup5X2U2mMhCrFNJqfWASqp1tBzKemslWcP6/DVRrC0P9ARRnk0W1KdLOWJ3Rou/qJcRGTIxiTV+HxYxoR2XfEYrmYsFiNnEcFpQVWw6qH5m0edGcbQeoKHebexP0YXK8bXCdXqULahiOKagus91wnxBrsrtXw5mrQnVp7XWnf1SSSG6q+HwLbqX/Pikbx8bTCc8NBxKlJ8jF27SBY2vdMxFAoYDaUgYTGPiib+iEmTzeLTMr9WxcFIILKZp8nI25F6cLT3rOsxn6TdMhPkz0wf0b3ceidOi6XSOQbv/L0oNoBlI3V/LGgLJyD3iN5XbBG5DC0e8EQn/U=
+
 # Use new container infrastructure to enable caching
 sudo: false
 
 # Do not choose a language; we provide our own build tools.
 language: generic
 
-notifications:
-  slack:
-    secure: Ijx3WXSRr2TGWqNO6+zLJ1LWerDE0LQaVcMRZhDaQOJCiL98JrNBNwVcb1c+SOGg4/NPbidMiK9a0oxSn84l3SZC+MFIgz5418x/FcaxTiGBiRVUtxnGdYyvsPmMkj/Fs7/viwREcW1TxvOIImr7/bxkBO0cQLSs/HYlgHF68d4F6x5w00ExuTQ+TKOg6kwf9D2iAqZOU6Y9pusMmNg2izGvtxReDlgv4Gi8GV5uGre/gQnRtsgOPI/ftkO/OaMLHtJk1T/jEMgm23chOQNkRP0M4VeQ1qPv+qM7cfCLa4F1J8wysMSLFDrlz7izBeMuICf/XJ7fS2ezwn/9j+VY4vSsPMXcowXup5X2U2mMhCrFNJqfWASqp1tBzKemslWcP6/DVRrC0P9ARRnk0W1KdLOWJ3Rou/qJcRGTIxiTV+HxYxoR2XfEYrmYsFiNnEcFpQVWw6qH5m0edGcbQeoKHebexP0YXK8bXCdXqULahiOKagus91wnxBrsrtXw5mrQnVp7XWnf1SSSG6q+HwLbqX/Pikbx8bTCc8NBxKlJ8jF27SBY2vdMxFAoYDaUgYTGPiib+iEmTzeLTMr9WxcFIILKZp8nI25F6cLT3rOsxn6TdMhPkz0wf0b3ceidOi6XSOQbv/L0oNoBlI3V/LGgLJyD3iN5XbBG5DC0e8EQn/U=
-
 # Caching so the next build will be fast too.
-before_cache:
-  - rm -fv $HOME/.cabal/packages/hackage.haskell.org/build-reports.log
-  - rm -fv $HOME/.cabal/packages/hackage.haskell.org/00-index.tar
-
 cache:
-  apt: true
   directories:
-  - $HOME/.cabsnap
-  - $HOME/.cabal
+  - $HOME/.stack
 
-matrix:
-  include:
-    #- env: CABALVER=1.24 GHCVER=7.10.3
-    #  compiler: ": #GHC 7.10.3"
-    #  addons: {apt: {packages: [cabal-install-1.24,ghc-7.10.3,alex-3.1.7,happy-1.19.5], sources: [hvr-ghc]}}
-    - env: CABALVER=1.24 GHCVER=8.0.2
-      compiler: ": #GHC 8.0.2"
-      addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.2,alex-3.1.7,happy-1.19.5], sources: [hvr-ghc]}}
-    #- env: CABALVER=1.24 GHCVER=head
-    #  compiler: ": #GHC head"
-    #  addons: {apt: {packages: [cabal-install-1.24,ghc-head,alex-3.1.7,happy-1.19.5], sources: [hvr-ghc]}}
-
-  allow_failures:
-   - env: CABALVER=1.24 GHCVER=head
+# Ensure necessary system libraries are present
+addons:
+  apt:
+    packages:
+      - libgmp-dev
 
 before_install:
- - unset CC
- - export HAPPYVER=1.19.5
- - export ALEXVER=3.1.7
- - export PATH=~/.cabal/bin:/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:/opt/happy/$HAPPYVER/bin:/opt/alex/$ALEXVER/bin:$PATH
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
 install:
- - cabal --version
- - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
- - if [ -f $HOME/.cabal/packages/hackage.haskell.org/00-index.tar.gz ];
-   then
-     zcat $HOME/.cabal/packages/hackage.haskell.org/00-index.tar.gz >
-          $HOME/.cabal/packages/hackage.haskell.org/00-index.tar;
-   fi
- - travis_retry cabal update
- - "sed -i  's/^jobs:.*$/jobs: 2/' $HOME/.cabal/config"
- - cabal install --only-dependencies --enable-tests --enable-benchmarks --dry -v > installplan.txt
- - sed -i -e '1,/^Resolving /d' installplan.txt; cat installplan.txt
+# Build dependencies
+- stack --no-terminal --install-ghc test --only-dependencies
 
-# check whether current requested install-plan matches cached package-db snapshot
- - if diff -u installplan.txt $HOME/.cabsnap/installplan.txt;
-   then
-     echo "cabal build-cache HIT";
-     rm -rfv .ghc;
-     cp -a $HOME/.cabsnap/ghc $HOME/.ghc;
-     cp -a $HOME/.cabsnap/lib $HOME/.cabsnap/share $HOME/.cabsnap/bin $HOME/.cabal/;
-   else
-     echo "cabal build-cache MISS";
-     rm -rf $HOME/.cabsnap;
-     mkdir -p $HOME/.ghc $HOME/.cabal/lib $HOME/.cabal/share $HOME/.cabal/bin;
-     cabal install --only-dependencies --enable-tests --enable-benchmarks;
-   fi
-
-# snapshot package-db on cache miss
- - if [ ! -d $HOME/.cabsnap ];
-   then
-      echo "snapshotting package-db to build-cache";
-      mkdir $HOME/.cabsnap;
-      cp -a $HOME/.ghc $HOME/.cabsnap/ghc;
-      cp -a $HOME/.cabal/lib $HOME/.cabal/share $HOME/.cabal/bin installplan.txt $HOME/.cabsnap/;
-   fi
-
-# Here starts the actual work to be performed for the package under test;
-# any command which exits with a non-zero exit code causes the build to fail.
 script:
- - cabal configure --enable-tests --enable-benchmarks -v2  # -v2 provides useful information for debugging
- - cabal build   # this builds all libraries and executables (including tests)
- - cabal test
- - cabal sdist   # tests that a source-distribution can be generated
-
-# Check that the resulting source distribution can be built & installed.
-# If there are no other `.tar.gz` files in `dist`, this can be even simpler:
-# `cabal install --force-reinstalls dist/*-*.tar.gz`
- - SRC_TGZ=$(cabal info . | awk '{print $2;exit}').tar.gz &&
-   (cd dist && cabal install --force-reinstalls "$SRC_TGZ")
+# Build the package, its tests, and its docs and run the tests
+- stack --no-terminal test --haddock --no-haddock-deps
+- stack sdist # tests that a source-distribution can be generated
