@@ -63,10 +63,11 @@ application ss dirOfModelSolutions = do
     _         -> issue "Student solution does not compile!"
 
   -- Get the contents from the arguments supplied
-  convASTs <- (fmap parseConvUnit) <$> readRawContents paths
+  convASTs <- (fmap (fmap parseConvUnit)) . (zipContexts paths) <$> readRawContents paths
 
-  -- Convert an `Either String AST` in to an `EvalM AST`
-  let convert = either (\parseError -> throw $ "Parse error: " ++ parseError) return
+  -- Convert `(FilePath, Either String AST)` in to an `EvalM AST` by throwing the parse error
+  -- and alerting the user of what file threw the parse error on failure
+  let convert (f, e) = either (\parseError -> throw $ "Parse error in " ++ f ++ ": " ++ parseError) return e
 
   -- Get the student and model solutions
   astContext <- Ctx <$>

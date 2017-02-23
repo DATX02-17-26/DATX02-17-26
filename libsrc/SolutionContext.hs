@@ -75,3 +75,7 @@ readRawContents ctx = do
 -- | Check if a student solution matches any of the model solutions
 studentSolutionMatches :: (a -> a -> Bool) -> SolutionContext a -> Bool
 studentSolutionMatches eqCheck ctx = any (eqCheck $ studentSolution ctx) (modelSolutions ctx)
+
+-- | Zip together two SolutionContext's
+zipContexts :: SolutionContext a -> SolutionContext b -> SolutionContext (a, b)
+zipContexts (Ctx a as) (Ctx b bs) = Ctx (a, b) (zip as bs)
