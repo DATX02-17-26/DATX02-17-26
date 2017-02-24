@@ -45,6 +45,7 @@ library
     , CoreS.AST
     , CoreS.Convert
     , CoreS.Parse
+    , Util.List
   build-depends:
       base >=4.8 && < 5
     , safe == 0.3.13

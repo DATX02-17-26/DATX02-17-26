@@ -24,6 +24,7 @@ import Safe (headMay)
 import Prelude hiding (LT, GT, EQ)
 import Control.Monad (unless)
 import Data.Maybe (isNothing)
+import Data.List (sort)
 
 import Debug.Trace.LocationTH (__LOCATION__)
 
@@ -313,7 +314,7 @@ convArg = \case
 convMemDecl :: S.MemberDecl -> CConv MemberDecl
 convMemDecl = \case
   S.MethodDecl mds tps mrt i args exceptt me mb -> do
-    ensure $__LOCATION__ mds     $ mds == [S.Public]
+    ensure $__LOCATION__ mds     $ mds == [S.Public, S.Static]
     ensure $__LOCATION__ tps     $ null tps
     ensure $__LOCATION__ exceptt $ null exceptt
     ensure $__LOCATION__ me      $ isNothing me
