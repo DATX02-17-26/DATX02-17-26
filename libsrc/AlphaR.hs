@@ -1,5 +1,6 @@
 module AlphaR where 
 
+import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.State
@@ -128,3 +129,16 @@ renameFormalParam (FormalParam vmType varDeclId) = do
       return (FormalParam vmType (VarDArr name i))
 
 
+renameStatement :: Stmt -> State Env Stmt
+renameStatement stmt = do 
+  case stmt of
+    (SBlock block) -> do
+      newContext
+      block' <- renameStatements block
+      exitContext
+      return block'
+    _ -> return stmt 
+
+renameStatements :: Block -> State Env Stmt
+renameStatements (Block ss) =
+  SBlock . Block <$> mapM renameStatement ss 
