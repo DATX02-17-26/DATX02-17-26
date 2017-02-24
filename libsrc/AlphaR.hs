@@ -100,8 +100,8 @@ renameClass (ClassDecl ident body) = do
 --Renames a method to a new (Unique) Ident
 --DISCLAMER Does not support private/public well,
 -- 2 methods can have the same name
-renameMethod :: MemberDecl -> State Env MemberDecl
-renameMethod (MethodDecl mType ident formalParams block) = do 
+renameMethodName :: MemberDecl -> State Env MemberDecl
+renameMethodName (MethodDecl mType ident formalParams block) = do 
   mIdent <- lookupIdent ident
   case mIdent of
         Nothing -> do 
@@ -110,5 +110,21 @@ renameMethod (MethodDecl mType ident formalParams block) = do
           return (MethodDecl mType name formalParams block)
         (Just jIdent) -> 
           return (MethodDecl mType jIdent formalParams block) 
+
+renameMethod :: MemberDecl -> State Env MemberDecl
+renameMethod member@(MethodDecl mType _ formalParams block) = do
+  return member
+
+renameFormalParam :: FormalParam -> State Env FormalParam
+renameFormalParam (FormalParam vmType varDeclId) = do
+  case varDeclId of
+    (VarDId ident) -> do
+      name <- newVarName
+      addIdent ident name 
+      return (FormalParam vmType (VarDId name))
+    (VarDArr ident i) -> do
+      name <- newVarName
+      addIdent ident name 
+      return (FormalParam vmType (VarDArr name i))
 
 
