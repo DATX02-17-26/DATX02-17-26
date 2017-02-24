@@ -8,6 +8,8 @@ import Language.Java.Syntax as JA
 
 import qualified NormalizationTests as Norm
 
+import qualified Util.ListTests as UL
+
 -- | HUnit unit tests
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
@@ -21,6 +23,7 @@ unitTests = testGroup "Unit tests"
 propertyTests :: TestTree
 propertyTests = testGroup "Property tests"
   [ Norm.allTests
+  , UL.allTests
   ]
 
 -- | The combination of property tests and unit tests
