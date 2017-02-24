@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE LambdaCase, TupleSections #-}
+{-# LANGUAGE LambdaCase, TupleSections, TemplateHaskell #-}
 
 module CoreS.Convert where
 
@@ -24,6 +24,8 @@ import Safe (headMay)
 import Prelude hiding (LT, GT, EQ)
 import Control.Monad (unless)
 import Data.Maybe (isNothing)
+
+import Debug.Trace.LocationTH (__LOCATION__)
 
 import qualified Language.Java.Syntax as S
 
@@ -36,8 +38,11 @@ import CoreS.AST
 type ConvErr = String
 type CConv a = Either ConvErr a
 
-unimpl :: Show x => x -> CConv y
-unimpl x = Left $ show x ++ " is not supported yet!"
+unimpl :: Show x => String -> x -> CConv y
+unimpl prefix x = Left $ unwords [prefix, show x, "is not supported yet!"]
+
+ensure :: Show x => String -> x -> Bool -> CConv ()
+ensure loc x cond = unless cond $ unimpl loc x
 
 --------------------------------------------------------------------------------
 -- Conversion, Types:
@@ -62,7 +67,7 @@ convRTyp = \case
   S.ClassRefType ct |
     ct `elem` [strT, strTPrefix] -> pure StringT
   S.ArrayType    t               -> ArrayT <$> convTyp t
-  x                              -> unimpl x
+  x                              -> unimpl $__LOCATION__ x
 
 convTyp :: S.Type -> CConv Type
 convTyp = \case
@@ -132,7 +137,7 @@ convStep e op = convUna e $ EStep op
 
 convOne :: Show a => [a] -> CConv a
 convOne = \case [x] -> pure x
-                xs  -> unimpl xs
+                xs  -> unimpl $__LOCATION__ xs
 
 convExpN :: S.Name -> CConv Expr
 convExpN n@(S.Name ns) = EVar . LVName . convId <$> convOne ns
@@ -167,9 +172,10 @@ convApp = \case
   S.MethodCall n args -> do
     args' <- mapM convExp args
     case convName n of
-      m | m == printLn -> ESysOut <$> maybe (unimpl args') pure (headMay args')
+      m | m == printLn -> ESysOut <$> maybe (unimpl $__LOCATION__ args')
+                                            pure (headMay args')
         | otherwise    -> pure $ EMApp m args'
-  x -> unimpl x
+  x -> unimpl $__LOCATION__ x
 
 convArrIx :: S.ArrayIndex -> CConv Expr
 convArrIx (S.ArrayIndex a is) =
@@ -183,7 +189,7 @@ convAssign :: S.Lhs -> S.AssignOp -> S.Exp -> CConv Expr
 convAssign lv op e = case lv of
   S.NameLhs   n -> convNLhs  n
   S.ArrayLhs ai -> convArrIx ai
-  x             -> unimpl x
+  x             -> unimpl $__LOCATION__ x
 
 convExp :: S.Exp -> CConv Expr
 convExp = \case
@@ -205,7 +211,7 @@ convExp = \case
   S.BinOp     l o r         -> convBOp l r o
   S.Cond      c i e         -> ECond <$> convExp c <*> convExp i <*> convExp e
   S.Assign   lv o e         -> convAssign lv o e
-  x                         -> unimpl x
+  x                         -> unimpl $__LOCATION__ x
 
 --------------------------------------------------------------------------------
 -- Conversion, Statement:
@@ -215,7 +221,7 @@ convVM :: [S.Modifier] -> CConv VarMod
 convVM = \case
   []        -> pure VMNormal
   [S.Final] -> pure VMFinal
-  x         -> unimpl x
+  x         -> unimpl $__LOCATION__ x
 
 convVMTyp :: [S.Modifier] -> S.Type -> CConv VMType
 convVMTyp ms t = VMType <$> convVM ms <*> convTyp t
@@ -257,7 +263,7 @@ convBStmt :: S.BlockStmt -> CConv Stmt
 convBStmt = \case
   S.BlockStmt s         -> convStmt s
   S.LocalVars mds t vds -> SVars <$> convTVVDecl mds t vds
-  x                     -> unimpl x
+  x                     -> unimpl $__LOCATION__ x
 
 convSwitchL :: S.SwitchLabel -> CConv SwitchLabel
 convSwitchL = \case
@@ -291,7 +297,7 @@ convStmt = \case
   S.Return   Nothing        -> pure SVReturn
   S.Break    Nothing        -> pure SBreak
   S.Continue Nothing        -> pure SContinue
-  x                         -> unimpl x
+  x                         -> unimpl $__LOCATION__ x
 
 --------------------------------------------------------------------------------
 -- Conversion, Comp unit:
@@ -302,29 +308,29 @@ convArg = \case
   S.FormalParam ms t False vdi -> do
     t'   <- convVMTyp ms t
     pure $ FormalParam t' (convVDeclId vdi)
-  x -> unimpl x
+  x -> unimpl $__LOCATION__ x
 
 convMemDecl :: S.MemberDecl -> CConv MemberDecl
 convMemDecl = \case
   S.MethodDecl mds tps mrt i args exceptt me mb -> do
-    unless (mds == [S.Public]) $ unimpl mds
-    unless (null tps) $ unimpl tps
-    unless (null exceptt) $ unimpl exceptt
-    unless (isNothing me) $ unimpl me
+    ensure $__LOCATION__ mds     $ mds == [S.Public]
+    ensure $__LOCATION__ tps     $ null tps
+    ensure $__LOCATION__ exceptt $ null exceptt
+    ensure $__LOCATION__ me      $ isNothing me
     case mb of
-      S.MethodBody Nothing  -> unimpl mb
+      S.MethodBody Nothing  -> unimpl $__LOCATION__ mb
       S.MethodBody (Just b) -> do
         let i' = convId i
         mrt'  <- convMay convTyp mrt
         args' <- mapM convArg args
         b'    <- convBlock b
         pure $ MethodDecl mrt' i' args' b'
-  x -> unimpl x
+  x -> unimpl $__LOCATION__ x
 
 convDecl :: S.Decl -> CConv Decl
 convDecl = \case
   S.MemberDecl md -> MemberDecl <$> convMemDecl md
-  x               -> unimpl x
+  x               -> unimpl $__LOCATION__ x
 
 convCBody :: S.ClassBody -> CConv ClassBody
 convCBody (S.ClassBody ds) = ClassBody <$> mapM convDecl ds
@@ -332,19 +338,19 @@ convCBody (S.ClassBody ds) = ClassBody <$> mapM convDecl ds
 convCDecl :: S.ClassDecl -> CConv ClassDecl
 convCDecl = \case
   S.ClassDecl ms i tps ext impls body -> do
-    unless (null ms)  $ unimpl ms
-    unless (null tps) $ unimpl tps
-    unless (isNothing ext) $ unimpl ext
-    unless (null impls) $ unimpl impls
+    ensure $__LOCATION__ ms    $ null ms
+    ensure $__LOCATION__ tps   $ null tps
+    ensure $__LOCATION__ ext   $ isNothing ext
+    ensure $__LOCATION__ impls $ null impls
     ClassDecl (convId i) <$> convCBody body
 
 convTypeDecl :: S.TypeDecl -> CConv TypeDecl
 convTypeDecl = \case
   S.ClassTypeDecl cd -> ClassTypeDecl <$> convCDecl cd
-  x                  -> unimpl x
+  x                  -> unimpl $__LOCATION__ x
 
 convUnit :: S.CompilationUnit -> CConv CompilationUnit
 convUnit (S.CompilationUnit mpd is tds) = do
-  unless (isNothing mpd) $ unimpl mpd
-  unless (null is) $ unimpl is
+  ensure $__LOCATION__ mpd $ isNothing mpd
+  ensure $__LOCATION__ is  $ null is
   CompilationUnit <$> mapM convTypeDecl tds
