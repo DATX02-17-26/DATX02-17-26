@@ -24,11 +24,13 @@ import Safe (headMay)
 import Prelude hiding (LT, GT, EQ)
 import Control.Monad (unless)
 import Data.Maybe (isNothing)
-import Data.List (sort)
+import Data.List (nub)
 
 import Debug.Trace.LocationTH (__LOCATION__)
 
 import qualified Language.Java.Syntax as S
+
+import Util.List (isPermEq)
 
 import CoreS.AST
 
@@ -314,7 +316,8 @@ convArg = \case
 convMemDecl :: S.MemberDecl -> CConv MemberDecl
 convMemDecl = \case
   S.MethodDecl mds tps mrt i args exceptt me mb -> do
-    ensure $__LOCATION__ mds     $ mds == [S.Public, S.Static]
+    ensure $__LOCATION__ mds     $ isPermEq mds [S.Public, S.Static] &&
+                                   nub mds == mds
     ensure $__LOCATION__ tps     $ null tps
     ensure $__LOCATION__ exceptt $ null exceptt
     ensure $__LOCATION__ me      $ isNothing me
@@ -339,7 +342,7 @@ convCBody (S.ClassBody ds) = ClassBody <$> mapM convDecl ds
 convCDecl :: S.ClassDecl -> CConv ClassDecl
 convCDecl = \case
   S.ClassDecl ms i tps ext impls body -> do
-    ensure $__LOCATION__ ms    $ null ms
+    ensure $__LOCATION__ ms    $ ms == [S.Public]
     ensure $__LOCATION__ tps   $ null tps
     ensure $__LOCATION__ ext   $ isNothing ext
     ensure $__LOCATION__ impls $ null impls
