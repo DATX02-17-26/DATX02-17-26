@@ -5,6 +5,7 @@ import qualified Data.Map as Map
 import Control.Monad.State
 import CoreS.AST
 
+--A Context
 type Cxt = [Map Ident Ident]
 
 --Environment
@@ -25,13 +26,13 @@ newEnv = Env {
   names = [Map.empty]
 }
 
---create a new block
-newBlock :: State Env ()
-newBlock = modify (\s -> s{names = Map.empty : names s})
+--create a new Context
+newContext :: State Env ()
+newContext = modify (\s -> s{names = Map.empty : names s})
 
---exit a block
-exitBlock :: State Env ()
-exitBlock = modify (\s -> s{names = tail(names s)})
+--exit a Context
+exitContext :: State Env ()
+exitContext = modify (\s -> s{names = tail(names s)})
 
 --create new label
 newClassName :: State Env Ident
@@ -54,8 +55,8 @@ newVarName :: State Env Ident
 newVarName = do
    modify (\s -> s{vName = (vName s) + 1}) 
    st <- get 
-   --ident <- (vName st)
-   return (Ident $ show 1)
+   ident <- return (vName st)
+   return (Ident $ "Var" ++ show ident)
 
 --add a Ident to Env
 addIdent :: Ident -> Ident -> State Env ()
@@ -83,13 +84,31 @@ name = "AplhaR"
 stages :: [Int]
 stages = [0]
 
---renameClass :: ClassDecl-> State Env ClassDecl
+--Renames a class to a new (Unique) Ident
+--DISCLAMER Does not support private/public well,
+-- 2 classes can have the same name
+renameClass :: ClassDecl-> State Env ClassDecl
+renameClass (ClassDecl ident body) = do
+  mIdent <- lookupIdent ident
+  case mIdent of
+    Nothing -> do 
+      name <- newClassName
+      addIdent ident name
+      return (ClassDecl name body)
+    (Just jIdent) -> return (ClassDecl jIdent body)
 
---renameMethod :: MemberDecl -> State Env
-
-
-
-
-
+--Renames a method to a new (Unique) Ident
+--DISCLAMER Does not support private/public well,
+-- 2 methods can have the same name
+renameMethod :: MemberDecl -> State Env MemberDecl
+renameMethod (MethodDecl mType ident formalParams block) = do 
+  mIdent <- lookupIdent ident
+  case mIdent of
+        Nothing -> do 
+          name <- newMethodName
+          addIdent ident name
+          return (MethodDecl mType name formalParams block)
+        (Just jIdent) -> 
+          return (MethodDecl mType jIdent formalParams block) 
 
 
