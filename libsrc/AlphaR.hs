@@ -36,35 +36,39 @@ exitContext :: State Env ()
 exitContext = modify (\s -> s{names = tail(names s)})
 
 --create new label
-newClassName :: State Env Ident
-newClassName = do
+newClassName :: Ident -> State Env Ident
+newClassName old = do
    modify (\s -> s{cName = (cName s) + 1}) 
    st <- get 
-   --ident <- (cName st)
-   return (Ident $ show 1)
+   name  <- return (cName st)
+   let new = (Ident $ "Var" ++ show name)
+   addIdent new old
 
 --create new method name
-newMethodName :: State Env Ident
-newMethodName = do
+newMethodName :: Ident -> State Env Ident
+newMethodName old = do
    modify (\s -> s{mName = (mName s) + 1}) 
    st <- get 
-   --ident <- (cName st)
-   return (Ident $ show 1)
+   name  <- return (mName st)
+   let new = (Ident $ "Var" ++ show name)
+   addIdent new old
 
 --create new variable name
-newVarName :: State Env Ident
-newVarName = do
+newVarName :: Ident -> State Env Ident
+newVarName old = do
    modify (\s -> s{vName = (vName s) + 1}) 
-   st <- get 
-   ident <- return (vName st)
-   return (Ident $ "Var" ++ show ident)
+   st    <- get 
+   name  <- return (vName st)
+   let new =  (Ident $ "Var" ++ show name)
+   addIdent new old
 
 --add a Ident to Env
-addIdent :: Ident -> Ident -> State Env ()
+addIdent :: Ident -> Ident -> State Env Ident
 addIdent new old = do
   st <- get
   let (n:ns) = (names st)
   modify(\s -> s{names = (Map.insert new old n):ns})
+  return new
 
 --lookup address for var
 lookupIdent :: Ident -> State Env (Maybe Ident)
@@ -90,26 +94,16 @@ stages = [0]
 -- 2 classes can have the same name
 renameClass :: ClassDecl-> State Env ClassDecl
 renameClass (ClassDecl ident body) = do
-  mIdent <- lookupIdent ident
-  case mIdent of
-    Nothing -> do 
-      name <- newClassName
-      addIdent ident name
+      name <- newClassName ident
       return (ClassDecl name body)
-    (Just jIdent) -> undefined
 
 --Renames a method to a new (Unique) Ident
 --DISCLAMER Does not support private/public well,
 -- 2 methods can have the same name
 renameMethodName :: MemberDecl -> State Env MemberDecl
 renameMethodName (MethodDecl mType ident formalParams block) = do 
-  mIdent <- lookupIdent ident
-  case mIdent of
-        Nothing -> do 
-          name <- newMethodName
-          addIdent ident name
+          name <- newMethodName ident
           return (MethodDecl mType name formalParams block)
-        (Just jIdent) -> undefined
 
 renameMethod :: MemberDecl -> State Env MemberDecl
 renameMethod member@(MethodDecl mType _ formalParams block) = do
@@ -119,35 +113,56 @@ renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
   case varDeclId of
     (VarDId ident) -> do
-      name <- newVarName
-      addIdent ident name 
+      name <- newVarName ident
       return (FormalParam vmType (VarDId name))
     (VarDArr ident i) -> do
-      name <- newVarName
-      addIdent ident name 
+      name <- newVarName ident
       return (FormalParam vmType (VarDArr name i))
 
 
 renameStatement :: Stmt -> State Env Stmt
-renameStatement stmt = do 
-  case stmt of
+renameStatement statement = do 
+  case statement of
     (SBlock block) -> do
       newContext
       block' <- renameStatements block
       exitContext
       return block'
-    (SExpr expr)        -> undefined
+    (SExpr expr)        -> SExpr <$> renameExpression expr
     (SVars typedVVDecl) -> undefined
-    (SReturn expr)      -> undefined
-    (SVReturn)          -> undefined
-    (SIf expr stmt)     -> undefined
-    (SIfElse expr stmt1 stmt2) -> undefined
-    (SWhile expr stmt)       -> undefined
-    (SDo expr stmt)          -> undefined
-    (SForB mForInit mExpr mExprs stmt) -> undefined
-    (SForE vMType ident expr stmt) -> undefined
-    (SContinue) -> undefined
-    (SBreak)    -> undefined
+    (SReturn expr)      -> SReturn <$> renameExpression expr
+    (SVReturn)          -> return statement
+    (SIf expr stmt)     -> 
+      SIf 
+      <$> renameExpression expr 
+      <*> renameStatement stmt
+    (SIfElse expr stmt1 stmt2) -> 
+      SIfElse      
+      <$> renameExpression expr 
+      <*> renameStatement stmt1
+      <*> renameStatement stmt2
+    (SWhile expr stmt)       -> 
+      SWhile
+      <$> renameExpression expr 
+      <*> renameStatement stmt
+    (SDo expr stmt)          -> 
+      SDo
+      <$> renameExpression expr 
+      <*> renameStatement stmt
+    (SForB mForInit mExpr mExprs stmt) -> do
+      mE <- maybe (return Nothing) ((fmap Just) . renameForInit) mForInit
+      mE <- maybe (return Nothing) ((fmap Just) . renameExpression) mExpr
+      mEs <- maybe (return Nothing) ((fmap Just) 
+              . (mapM renameExpression)) mExprs
+      s <- renameStatement stmt
+      return (SForB mForInit mE mEs s)
+    (SForE vMType ident expr stmt) ->
+      SForE vMType 
+      <$> newVarName ident 
+      <*> renameExpression expr
+      <*> renameStatement stmt
+    (SContinue) -> return statement
+    (SBreak)    -> return statement
     (SSwitch expr [switchBlock]) -> undefined
     _ -> undefined
 
@@ -157,3 +172,6 @@ renameStatements (Block ss) =
 
 renameExpression :: Expr -> State Env Expr
 renameExpression expr = undefined
+
+renameForInit :: ForInit -> State Env ForInit
+renameForInit forInit = undefined
