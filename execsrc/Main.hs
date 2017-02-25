@@ -78,6 +78,12 @@ application ss dirOfModelSolutions = do
 
   -- The normalized ASTs
   let normalizedASTs = executeNormalizer normalizations <$> astContext
+  
+  -- Generate information for the teacher
+  if studentSolutionMatches (==) normalizedASTs then
+    comment "Student solution matches a model solution"
+  else
+    comment "Student solution does not match a model solution"
 
   return ()
 
