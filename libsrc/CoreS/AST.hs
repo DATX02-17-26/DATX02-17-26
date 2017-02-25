@@ -123,25 +123,25 @@ data ArrayInit = ArrayInit [VarInit]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data Expr
- = ELit Literal
- | EVar LValue
- | ECast Type Expr
- | ECond Expr Expr Expr
- | EAssign LValue Expr
- | EOAssign LValue NumOp Expr
- | ENum NumOp Expr Expr
- | ECmp CmpOp Expr Expr
- | ELog LogOp Expr Expr
- | ENot Expr
- | EStep StepOp Expr
- | EBCompl  Expr
- | EPlus    Expr
- | EMinus   Expr
- | EMApp Name [Expr]
- | EArrNew  Type [Expr] Integer
- | EArrNewI Type Integer ArrayInit
- | ESysOut  Expr
- deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  = ELit Literal
+  | EVar LValue
+  | ECast Type Expr
+  | ECond Expr Expr Expr
+  | EAssign LValue Expr
+  | EOAssign LValue NumOp Expr
+  | ENum NumOp Expr Expr
+  | ECmp CmpOp Expr Expr
+  | ELog LogOp Expr Expr
+  | ENot Expr
+  | EStep StepOp Expr
+  | EBCompl  Expr
+  | EPlus    Expr
+  | EMinus   Expr
+  | EMApp Name [Expr]
+  | EArrNew  Type [Expr] Integer
+  | EArrNewI Type Integer ArrayInit
+  | ESysOut  Expr
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 --------------------------------------------------------------------------------
 -- Statements:
