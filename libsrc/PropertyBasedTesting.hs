@@ -61,12 +61,8 @@ modelSolutionsOutputs dir input = do
 testSolutions :: FilePath -> String -> EvalM Bool
 testSolutions dir input = do
   modelOutputs <- modelSolutionsOutputs dir input
-
   studO <- studentOutput dir input
-
-  case studO of
-    Just s  -> return $ or [s == output | output <- modelOutputs]
-    Nothing -> return False
+  return $ maybe False (\s -> or [s == output | output <- modelOutputs]) stud0
 
 -- | Perform the relevant tests on all class files in the directory
 -- `dir`, returns `True` if the student solution passes all tests
