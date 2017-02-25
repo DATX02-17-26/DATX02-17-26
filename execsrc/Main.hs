@@ -108,8 +108,8 @@ application gen ss dirOfModelSolutions = do
       do 
         issue "Student solution does not match a model solution"
         case compilationStatus of
-              Succeeded -> runPBT compDir gen
-              _         -> return ()
+          Succeeded -> runPBT compDir gen
+          _         -> return ()
 
     return ()
 
