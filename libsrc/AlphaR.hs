@@ -96,7 +96,7 @@ renameClass (ClassDecl ident body) = do
       name <- newClassName
       addIdent ident name
       return (ClassDecl name body)
-    (Just jIdent) -> return (ClassDecl jIdent body)
+    (Just jIdent) -> undefined
 
 --Renames a method to a new (Unique) Ident
 --DISCLAMER Does not support private/public well,
@@ -109,8 +109,7 @@ renameMethodName (MethodDecl mType ident formalParams block) = do
           name <- newMethodName
           addIdent ident name
           return (MethodDecl mType name formalParams block)
-        (Just jIdent) -> 
-          return (MethodDecl mType jIdent formalParams block) 
+        (Just jIdent) -> undefined
 
 renameMethod :: MemberDecl -> State Env MemberDecl
 renameMethod member@(MethodDecl mType _ formalParams block) = do
@@ -137,8 +136,24 @@ renameStatement stmt = do
       block' <- renameStatements block
       exitContext
       return block'
-    _ -> return stmt 
+    (SExpr expr)        -> undefined
+    (SVars typedVVDecl) -> undefined
+    (SReturn expr)      -> undefined
+    (SVReturn)          -> undefined
+    (SIf expr stmt)     -> undefined
+    (SIfElse expr stmt1 stmt2) -> undefined
+    (SWhile expr stmt)       -> undefined
+    (SDo expr stmt)          -> undefined
+    (SForB mForInit mExpr mExprs stmt) -> undefined
+    (SForE vMType ident expr stmt) -> undefined
+    (SContinue) -> undefined
+    (SBreak)    -> undefined
+    (SSwitch expr [switchBlock]) -> undefined
+    _ -> undefined
 
 renameStatements :: Block -> State Env Stmt
 renameStatements (Block ss) =
   SBlock . Block <$> mapM renameStatement ss 
+
+renameExpression :: Expr -> State Env Expr
+renameExpression expr = undefined
