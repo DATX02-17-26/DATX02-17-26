@@ -73,8 +73,8 @@ application ss dirOfModelSolutions = do
 
   -- Get the student and model solutions
   astContext <- Ctx <$>
-                convert (studentSolution convASTs) <*>
-                sequence [convert m | m <- modelSolutions convASTs]
+                (logMessage "Parsing student solution" >> convert (studentSolution convASTs)) <*>
+                sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
 
   -- The normalized ASTs
   let normalizedASTs = executeNormalizer normalizations <$> astContext
@@ -83,7 +83,7 @@ application ss dirOfModelSolutions = do
   if studentSolutionMatches (==) normalizedASTs then
     comment "Student solution matches a model solution"
   else
-    comment "Student solution does not match a model solution"
+    issue "Student solution does not match a model solution"
 
   return ()
 
