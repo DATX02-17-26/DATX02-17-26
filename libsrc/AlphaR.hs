@@ -175,3 +175,7 @@ renameExpression expr = undefined
 
 renameForInit :: ForInit -> State Env ForInit
 renameForInit forInit = undefined
+
+renameSwitch :: SwitchBlock -> State Env SwitchBlock
+renameSwitch (SwitchBlock label (Block block)) = undefined
+
