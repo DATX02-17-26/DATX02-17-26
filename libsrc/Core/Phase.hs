@@ -34,7 +34,7 @@ newtype PhaseId = PhaseId String
 -- | Class of types that model a phase index in the first position.
 class PhaseIndex pi where
   -- | Yields the PhaseId for a given term phase-indexed by pi.
-  phaseId  :: f pi -> PhaseId
+  phaseId :: f pi -> PhaseId
 
 -- | Class of types that model a phase index in the second position.
 class PhaseIndex2 pi where

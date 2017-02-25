@@ -16,13 +16,23 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
 {-# LANGUAGE LambdaCase, TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Revisable class of types.
 module Core.History (
+  -- * Data types
+    RevisorE
+  , Revisor
+  , SRevisor
+  , SRevisorE
+  , revisorME
+  , revisorEME
+  , toRev
+  , toRevE
   -- * Classes and types
-    Revisable
+  , Revisable
   , Label
   , Orig
   -- * Class functions
@@ -48,6 +58,59 @@ module Core.History (
 import Control.Arrow (first, second, (***))
 import Control.Monad ((>=>))
 
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
+
+--------------------------------------------------------------------------------
+-- Data:
+--------------------------------------------------------------------------------
+
+-- | RevisorE: Helper for history, l is label, d is data.
+-- The original type is the same as the current.
+data RevisorE (l :: *) (d :: *)
+  = RevE l d -- ^ A revision.
+  | NoHE     -- ^ No history exists.
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+-- | Revisor: Helper for history, l is label, d is data, o is original data.
+data Revisor  (l :: *) (d :: *) (o :: *)
+  = Rev l d  -- ^ A revision.
+  | Beg l o  -- ^ History exists, and this is the original.
+  | NoH      -- ^ No history exists.
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+-- | SRevisor: specialized Revisor for string labels.
+type SRevisor  = Revisor String
+
+-- | SRevisorE: specialized RevisorE for string labels.
+type SRevisorE = RevisorE String
+
+-- | Helper for turning a Revisor to the form needed by Revisable.
+revisorME :: Revisor l d o -> Maybe (l, Either d o)
+revisorME = \case
+  NoH     -> Nothing
+  Rev l d -> pure (l, Left d)
+  Beg l o -> pure (l, pure o)
+
+-- | Helper for turning a RevisorE to the form needed by Revisable.
+revisorEME :: RevisorE l d -> Maybe (l, Either d d)
+revisorEME = \case
+  NoHE     -> Nothing
+  RevE l d -> pure (l, Left d)
+
+-- | Transforms a Revisor l d d to RevisorE l d.
+toRevE :: Revisor l d d -> RevisorE l d
+toRevE = \case
+  NoH     -> NoHE
+  Rev l d -> RevE l d
+  Beg l d -> RevE l d
+
+-- | Transforms a RevisorE l d to Revisor l d d.
+toRev :: RevisorE l d -> Revisor l d d
+toRev = \case
+  NoHE     -> NoH
+  RevE l d -> Rev l d
+
 --------------------------------------------------------------------------------
 -- Class:
 --------------------------------------------------------------------------------
@@ -63,6 +126,14 @@ class Revisable (t :: *) where
   -- Applying this to a term twice must have no additional effect.
   -- Formally: forgetTop . forgetTop == forgetTop
   forgetTop  :: t -> t
+
+  -- | Forgets history in all places where there is a history,
+  -- with the exception that it never crosses types.
+  -- For example: forgetT on a statement will only forget for all statements,
+  -- but not for expressions.
+  -- Applying this to a term twice must have no additional effect.
+  -- Formally: forgetT . forgetT == forgetT
+  forgetT    :: t -> t
 
   -- | Forgets history in all places where there is a history.
   -- Applying this to a term twice must have no additional effect.
@@ -146,17 +217,13 @@ rev2 a = let (ls1, e1) = revToStartL a
 -- Temporary example:
 --------------------------------------------------------------------------------
 
-data RExpr
-  = Revi String Expr
-  | NC
-  deriving (Eq, Ord, Show, Read)
-
+type RExpr = SRevisorE Expr
 data Expr
   = EVar RExpr String
   | EInt RExpr Integer
   | EAdd RExpr Expr Expr
   | EMul RExpr Expr Expr
-  deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 modRev :: (RExpr -> RExpr) -> Expr -> Expr
 modRev f = \case
@@ -166,21 +233,20 @@ modRev f = \case
   EMul rv l r -> EMul (f rv) l r
 
 rev :: RExpr -> Maybe (String, Either Expr Expr)
-rev = \case
-  NC -> Nothing
-  Revi l h -> Just (l, Left h)
+rev = revisorEME
 
 instance Revisable Expr where
   type Label Expr = String
   type Orig  Expr = Expr
   reviseOrig = revise
-  revise l h = modRev $ const $ Revi l h
-  forgetTop  = modRev $ const NC
+  revise l h = modRev $ const $ RevE l h
+  forgetTop  = modRev $ const NoHE
+  forgetT    = forgetTop
   forget     = \case
-    EVar _ s   -> EVar NC s
-    EInt _ i   -> EInt NC i
-    EAdd _ l r -> EAdd NC (forget l) (forget r)
-    EMul _ l r -> EMul NC (forget l) (forget r)
+    EVar _ s   -> EVar NoHE s
+    EInt _ i   -> EInt NoHE i
+    EAdd _ l r -> EAdd NoHE (forget l) (forget r)
+    EMul _ l r -> EMul NoHE (forget l) (forget r)
   revertL    = \case
     EVar rv _   -> rev rv
     EInt rv _   -> rev rv
