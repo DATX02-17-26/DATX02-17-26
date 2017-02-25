@@ -23,6 +23,7 @@ module EvaluationMonad (
   catch,
   logMessage,
   withTemporaryDirectory,
+  inTemporaryDirectory,
   issue,
   comment,
   EvalM,
@@ -40,7 +41,7 @@ import qualified Control.Exception as Exc
 import System.Exit
 import System.Directory
 import Options.Applicative
-import Data.Semigroup
+import Data.Semigroup hiding (option)
 
 -- | A monad for evaluating student solutions
 newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (ReaderT Env (WriterT Feedback (WriterT Log IO))) a }
@@ -78,15 +79,17 @@ printFeedback f = init
     number xs = [show i ++ ". " ++ x | (x, i) <- zip xs [0..]]
 
 -- | The environment of the program
-data Env = Env { verbose :: Bool
-               , logfile :: FilePath
+data Env = Env { verbose       :: Bool
+               , logfile       :: FilePath
+               , numberOfTests :: Int
                }
   deriving Show
 
 -- | The default environment
 defaultEnv :: Env
-defaultEnv = Env { verbose = False
-                 , logfile = "logfile.log"
+defaultEnv = Env { verbose       = False
+                 , logfile       = "logfile.log"
+                 , numberOfTests = 100
                  }
 
 -- | A parser for environments
@@ -102,7 +105,14 @@ parseEnv =  Env
               <> short   'l'
               <> value   "logfile.log"
               <> metavar "LOGFILE"
-              <> help    "Change the default logfile produced on program crash"
+              <> help    "Logfile produced on program crash"
+              )
+        <*> option auto
+              (  long    "numTests"
+              <> short   'n'
+              <> value   100
+              <> metavar "NUM_TESTS"
+              <> help    "Number of tests during property based testing"
               )
 
 -- | `printLog log` converts the log to a format suitable
@@ -171,9 +181,23 @@ executeEvalM env eval = do
       return a
 
 -- | Run an `EvalM` computation with a temporary directory
-withTemporaryDirectory :: EvalM a -> FilePath -> EvalM a
-withTemporaryDirectory evalm dir = do
+withTemporaryDirectory :: FilePath -> EvalM a -> EvalM a
+withTemporaryDirectory dir evalm = do
   liftIO $ createDirectoryIfMissing True dir
   result <- catch evalm $ \e -> liftIO (removeDirectoryRecursive dir) >> throw e 
   liftIO $ removeDirectoryRecursive dir
   return result
+
+-- | Run an `EvalM` computation _in_ a temporary directory
+inTemporaryDirectory :: FilePath -> EvalM a -> EvalM a
+inTemporaryDirectory dir evalm = do
+  was <- liftIO getCurrentDirectory
+
+  logMessage $ "Changing directory to " ++ dir
+  liftIO $ setCurrentDirectory dir
+  result <- catch evalm $ \e -> liftIO (setCurrentDirectory was) >> throw e 
+
+  logMessage $ "Changing directory to " ++ was
+  liftIO $ setCurrentDirectory was
+  return result
+
