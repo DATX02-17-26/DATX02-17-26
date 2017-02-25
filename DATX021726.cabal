@@ -64,6 +64,7 @@ library
 
 executable JAA 
   main-is:          Main.hs
+  other-modules:    Normalizations
   build-depends:
       base >=4.8 && < 5
     , safe == 0.3.13

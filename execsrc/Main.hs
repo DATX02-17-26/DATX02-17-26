@@ -19,15 +19,18 @@
 module Main where
 
 import System.Environment
-import Control.Monad
 import System.Exit
+import Control.Monad
 import Options.Applicative
 import Data.Semigroup
 
+import CoreS.Parse
 import SolutionContext
 import EvaluationMonad
 import RunJavac
 import NormalizationStrategies hiding ((<>))
+
+import Normalizations
 
 -- | The command line arguments
 data CommandLineArguments = CMD { studentSolutionPath :: FilePath
@@ -51,9 +54,9 @@ argumentParser = info (arguments <**> helper)
 
 -- | The actual entry point of the application
 application :: FilePath -> FilePath -> EvalM ()
-application studentSolution dirOfModelSolutions = do
+application ss dirOfModelSolutions = do
   -- Get the filepaths of the student and model solutions
-  paths <- getFilePathContext studentSolution dirOfModelSolutions
+  paths <- getFilePathContext ss dirOfModelSolutions
 
   -- Try to compile the student and model solutions
   compilationStatus <- compileContext paths "compilationDirectory"  
@@ -61,8 +64,26 @@ application studentSolution dirOfModelSolutions = do
     Succeeded -> return ()
     _         -> issue "Student solution does not compile!"
 
-  -- Get the context from the arguments supplied
-  context <- readRawContext paths
+  -- Get the contents from the arguments supplied
+  convASTs <- (fmap (fmap parseConvUnit)) . (zipContexts paths) <$> readRawContents paths
+
+  -- Convert `(FilePath, Either String AST)` in to an `EvalM AST` by throwing the parse error
+  -- and alerting the user of what file threw the parse error on failure
+  let convert (f, e) = either (\parseError -> throw $ "Parse error in " ++ f ++ ": " ++ parseError) return e
+
+  -- Get the student and model solutions
+  astContext <- Ctx <$>
+                (logMessage "Parsing student solution" >> convert (studentSolution convASTs)) <*>
+                sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
+
+  -- The normalized ASTs
+  let normalizedASTs = executeNormalizer normalizations <$> astContext
+  
+  -- Generate information for the teacher
+  if studentSolutionMatches (==) normalizedASTs then
+    comment "Student solution matches a model solution"
+  else
+    issue "Student solution does not match a model solution"
 
   return ()
 
