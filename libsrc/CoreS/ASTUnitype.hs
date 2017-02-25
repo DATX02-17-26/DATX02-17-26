@@ -23,7 +23,7 @@ module CoreS.ASTUnitype where
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 
-import CoreS.AST
+import qualified CoreS.AST as CAST
 
 data AST =
     Int Integer
@@ -34,32 +34,32 @@ data AST =
   | Char Char
   | String String
   | Null
-  | LVName Ident
+  | LVName CAST.Ident
   | LVArray AST [AST]
   | InitExpr AST 
   | InitArr  [AST]
   | ELit AST
   | EVar AST 
-  | ECast Type AST 
+  | ECast CAST.Type AST 
   | ECond AST AST AST
   | EAssign AST AST
-  | EOAssign AST NumOp AST 
-  | ENum NumOp AST AST 
-  | ECmp CmpOp AST AST 
-  | ELog LogOp AST AST 
+  | EOAssign AST CAST.NumOp AST 
+  | ENum CAST.NumOp AST AST 
+  | ECmp CAST.CmpOp AST AST 
+  | ELog CAST.LogOp AST AST 
   | ENot AST 
-  | EStep StepOp AST 
+  | EStep CAST.StepOp AST 
   | EBCompl AST 
   | EPlus   AST 
   | EMinus  AST 
-  | EMApp Name [AST]
-  | EArrNew  Type [AST] Integer
-  | EArrNewI Type Integer [AST] 
+  | EMApp CAST.Name [AST]
+  | EArrNew  CAST.Type [AST] Integer
+  | EArrNewI CAST.Type Integer [AST] 
   | ESysOut  AST 
   | SEmpty
   | SBlock [AST]
   | SExpr AST 
-  | SVars TypedVVDecl
+  | SVars CAST.TypedVVDecl
   | SReturn AST 
   | SVReturn
   | SIf AST AST 
@@ -67,21 +67,21 @@ data AST =
   | SWhile AST AST
   | SDo AST AST
   | SForB (Maybe AST) (Maybe AST) (Maybe [AST]) AST
-  | SForE VMType Ident AST AST
+  | SForE CAST.VMType CAST.Ident AST AST
   | SContinue
   | SBreak
   | SSwitch AST [AST]
-  | SwitchBlock SwitchLabel AST 
+  | SwitchBlock CAST.SwitchLabel AST 
   | SwitchCase AST
   | Default
-  | FIVars  TypedVVDecl
+  | FIVars  CAST.TypedVVDecl
   | FIExprs [AST]
-  | MethodDecl (Maybe Type) Ident [AST] [AST] 
-  | FormalParam VMType VarDeclId
+  | MethodDecl (Maybe CAST.Type) CAST.Ident [AST] [AST] 
+  | FormalParam CAST.VMType CAST.VarDeclId
   | MethodBody [AST]
   | CompilationUnit [AST]
   | ClassTypeDecl AST
-  | ClassDecl Ident AST
+  | ClassDecl CAST.Ident AST
   | ClassBody [AST]
   | MemberDecl AST
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
