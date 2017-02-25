@@ -16,19 +16,15 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module CoreS.Parse where
-
-import Data.Bifunctor (first)
-import Control.Monad ((>=>))
+module Normalizations where
 
 import CoreS.AST
-import CoreS.Convert
+import NormalizationStrategies hiding ((<>))
 
-import qualified Language.Java.Parser as P
-import qualified Language.Java.Syntax as S
+-- All normalizations in scope 
+normalizations :: Normalizer CompilationUnit
+normalizations = [ identityTransformation ]
 
-parseUnit :: String -> CConv S.CompilationUnit
-parseUnit = first show . P.parser P.compilationUnit
-
-parseConvUnit :: String -> CConv CompilationUnit
-parseConvUnit = parseUnit >=> convUnit
+-- Do nothing
+identityTransformation :: NormalizationRule CompilationUnit 
+identityTransformation = makeRule (const Nothing) "Identity" [0]

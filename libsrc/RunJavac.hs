@@ -21,7 +21,6 @@ import System.Process
 import System.Exit
 import System.Directory
 import System.FilePath
-import Control.Lens
 
 import SolutionContext
 import EvaluationMonad
@@ -73,7 +72,7 @@ compileContext ctx dir = do
   liftIO $ createDirectory (dir </> "student/")
 
   -- Try to compile all the model solutions
-  sequence $ compileThrow (dir </> "model/") <$> ctx ^. modelSolutions
+  sequence $ compileThrow (dir </> "model/") <$> modelSolutions ctx
 
   -- Try to compile the student solution
-  tryCompile (dir </> "student/") (ctx ^. studentSolution)
+  tryCompile (dir </> "student/") (studentSolution ctx)
