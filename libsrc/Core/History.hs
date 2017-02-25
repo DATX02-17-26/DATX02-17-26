@@ -19,6 +19,7 @@
 {-# LANGUAGE LambdaCase, TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 
+-- | Revisable class of types.
 module Core.History (
   -- * Classes and types
     Revisable
