@@ -45,6 +45,7 @@ library
     , CoreS.AST
     , CoreS.Convert
     , CoreS.Parse
+    , Util.List
   build-depends:
       base >=4.8 && < 5
     , safe == 0.3.13
@@ -57,11 +58,13 @@ library
     , process >= 1.4
     , optparse-applicative >= 0.13
     , language-java == 0.2.8
+    , loch-th == 0.2.1
   hs-source-dirs:   libsrc
   default-language: Haskell2010
 
 executable JAA 
   main-is:          Main.hs
+  other-modules:    Normalizations
   build-depends:
       base >=4.8 && < 5
     , safe == 0.3.13
