@@ -39,4 +39,5 @@ class PhaseIndex pi where
 -- | Class of types that model a phase index in the second position.
 class PhaseIndex2 pi where
   -- | See phaseId.
-  phaseId2 :: f a pi -> PhaseId
+  phaseId21 :: f pi a -> PhaseId
+  phaseId22 :: f a pi -> PhaseId
