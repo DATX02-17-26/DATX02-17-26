@@ -174,24 +174,61 @@ renameBlock (Block ss) =
 renameExpression :: Expr -> State Env Expr
 renameExpression expression = 
   case expression of 
-    ELit literal -> undefined
-    EVar lValue -> undefined
-    ECast t expr -> undefined
-    ECond expr1 expr2 expr3 -> undefined
-    EAssign lValue expr -> undefined
-    EOAssign lValue numOp expr -> undefined
-    ENum numOp expr1 expr2 -> undefined
-    ECmp cmpOp expr1 expr2 -> undefined
-    ELog logOp expr1 expr2 -> undefined
-    ENot expr -> undefined
-    EStep stepOp expr -> undefined
-    EBCompl  expr -> undefined
-    EPlus    expr -> undefined
-    EMinus   expr -> undefined
-    EMApp name exprs -> undefined
-    EArrNew  t exprs i -> undefined
-    EArrNewI t i arrayInit -> undefined
-    ESysOut  expr -> undefined
+    (ELit literal) -> return (ELit literal)
+    (EVar lValue) -> EVar <$> renameLValue lValue
+    (ECast t expr) -> ECast t <$> renameExpression expr
+    (ECond expr1 expr2 expr3) -> 
+      ECond 
+      <$> renameExpression expr1
+      <*> renameExpression expr2
+      <*> renameExpression expr3
+    (EAssign lValue expr) -> 
+      EAssign
+      <$> renameLValue lValue
+      <*> renameExpression expr
+    (EOAssign lValue numOp expr) -> do
+      v <-  renameLValue lValue
+      e <- renameExpression expr
+      return (EOAssign v numOp e)
+    (ENum numOp expr1 expr2) -> 
+      ENum numOp 
+      <$> renameExpression expr1
+      <*> renameExpression expr2 
+    (ECmp cmpOp expr1 expr2) -> 
+      ECmp cmpOp
+      <$> renameExpression expr1
+      <*> renameExpression expr2
+    (ELog logOp expr1 expr2) -> 
+      ELog logOp
+      <$> renameExpression expr1
+      <*> renameExpression expr2
+    (ENot expr) -> ENot <$> renameExpression expr
+    (EStep stepOp expr) -> EStep stepOp <$> renameExpression expr
+    (EBCompl  expr) ->
+      EBCompl <$> renameExpression expr
+    (EPlus    expr) ->
+      EPlus <$> renameExpression expr
+    (EMinus   expr)->
+      EMinus <$> renameExpression expr
+    (EMApp name exprs) ->
+      EMApp name <$> mapM renameExpression exprs
+    (EArrNew  t exprs i) ->
+      mapM renameExpression exprs >>= \es -> return (EArrNew t es i)
+    (EArrNewI t i (ArrayInit arrayInit)) -> 
+      mapM renameVarInit arrayInit >>= \ai -> 
+        return (EArrNewI t i (ArrayInit ai))
+    (ESysOut  expr) -> ESysOut <$> renameExpression expr
+    _ -> undefined
+
+renameLValue :: LValue -> State Env LValue
+renameLValue lValue = 
+  case lValue of
+    (LVName ident) -> LVName <$> newVarName ident
+    (LVArray expr exprs) -> 
+      LVArray 
+      <$> renameExpression expr
+      <*> mapM renameExpression exprs
+      
 
 renameForInit :: ForInit -> State Env ForInit
 renameForInit forInit = 
