@@ -26,7 +26,8 @@ newEnv = Env {
   vName = 0,
   names = [Map.empty]
 }
-
+rename :: CompilationUnit -> Maybe CompilationUnit
+rename (CompilationUnit typeDecls) = undefined
 --create a new Context
 newContext :: State Env ()
 newContext = modify (\s -> s{names = Map.empty : names s})
@@ -89,10 +90,15 @@ name = "AplhaR"
 stages :: [Int]
 stages = [0]
 
---Renames all FormalParams, and MethodBodies
+--Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
 renameClass :: TypeDecl -> State Env TypeDecl
-renameClass (ClassTypeDecl (ClassDecl ident (ClassBody decls))) = undefined
+renameClass (ClassTypeDecl (ClassDecl ident (ClassBody decls))) = do
+  newContext
+  decls' <- mapM renameMethod decls
+  exitContext
+  return (ClassTypeDecl (ClassDecl ident (ClassBody decls'))) 
+
 
 --Renames a class to a new (Unique) Ident
 renameClassName :: ClassDecl-> State Env ClassDecl
@@ -101,19 +107,20 @@ renameClassName (ClassDecl ident body) = do
       return (ClassDecl name body)
 
 --Renames a method to a new (Unique) Ident
-renameMethodName :: MemberDecl -> State Env MemberDecl
-renameMethodName (MethodDecl mType ident formalParams block) = do 
+renameMethodName :: Decl -> State Env Decl
+renameMethodName (MemberDecl
+                 (MethodDecl mType ident formalParams block)) = do 
           name <- newMethodName ident
-          return (MethodDecl mType name formalParams block)
+          return (MemberDecl $ MethodDecl mType name formalParams block)
 
 --Renames FormalParams and MethodBody (Block) in a method context
-renameMethod :: MemberDecl -> State Env MemberDecl
-renameMethod (MethodDecl mType ident formalParams block) = do
+renameMethod :: Decl -> State Env Decl
+renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   newContext
   fp <- mapM renameFormalParam formalParams
   b <- renameBlock block
   exitContext
-  return (MethodDecl mType ident fp b)
+  return (MemberDecl (MethodDecl mType ident fp b))
 
 renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
@@ -174,7 +181,6 @@ renameStatement statement = do
       e <- renameExpression expr
       sb <- mapM renameSwitch switchBlocks
       return (SSwitch e sb)
-    _ -> undefined
 
 renameBlock :: Block -> State Env Block
 renameBlock (Block ss) =
@@ -227,7 +233,6 @@ renameExpression expression =
       mapM renameVarInit arrayInit >>= \ai -> 
         return (EArrNewI t i (ArrayInit ai))
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
-    _ -> undefined
 
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = 
