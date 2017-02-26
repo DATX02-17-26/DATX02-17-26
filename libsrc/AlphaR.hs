@@ -102,7 +102,10 @@ renameMethodName (MethodDecl mType ident formalParams block) = do
           return (MethodDecl mType name formalParams block)
 
 renameMethod :: MemberDecl -> State Env MemberDecl
-renameMethod (MethodDecl mType _ formalParams block) = undefined
+renameMethod (MethodDecl mType ident formalParams block) = 
+  MethodDecl mType ident 
+  <$> mapM renameFormalParam formalParams
+  <*> renameBlock block
 
 renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
@@ -120,7 +123,7 @@ renameStatement statement = do
   case statement of
     (SBlock block) -> do
       newContext
-      block' <- renameStatements block
+      block' <- SBlock <$> renameBlock block
       exitContext
       return block'
     (SExpr expr)        -> SExpr <$> renameExpression expr
@@ -164,12 +167,31 @@ renameStatement statement = do
       return (SSwitch e sb)
     _ -> undefined
 
-renameStatements :: Block -> State Env Stmt
-renameStatements (Block ss) =
-  SBlock . Block <$> mapM renameStatement ss 
+renameBlock :: Block -> State Env Block
+renameBlock (Block ss) =
+  Block <$> mapM renameStatement ss 
 
 renameExpression :: Expr -> State Env Expr
-renameExpression expr = undefined
+renameExpression expression = 
+  case expression of 
+    ELit literal -> undefined
+    EVar lValue -> undefined
+    ECast t expr -> undefined
+    ECond expr1 expr2 expr3 -> undefined
+    EAssign lValue expr -> undefined
+    EOAssign lValue numOp expr -> undefined
+    ENum numOp expr1 expr2 -> undefined
+    ECmp cmpOp expr1 expr2 -> undefined
+    ELog logOp expr1 expr2 -> undefined
+    ENot expr -> undefined
+    EStep stepOp expr -> undefined
+    EBCompl  expr -> undefined
+    EPlus    expr -> undefined
+    EMinus   expr -> undefined
+    EMApp name exprs -> undefined
+    EArrNew  t exprs i -> undefined
+    EArrNewI t i arrayInit -> undefined
+    ESysOut  expr -> undefined
 
 renameForInit :: ForInit -> State Env ForInit
 renameForInit forInit = 
