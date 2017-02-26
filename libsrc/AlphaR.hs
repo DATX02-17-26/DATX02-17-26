@@ -89,6 +89,11 @@ name = "AplhaR"
 stages :: [Int]
 stages = [0]
 
+--Renames all FormalParams, and MethodBodies
+--Does not rename ClassName, MethodName
+renameClass :: TypeDecl -> State Env TypeDecl
+renameClass (ClassTypeDecl (ClassDecl ident (ClassBody decls))) = undefined
+
 --Renames a class to a new (Unique) Ident
 renameClassName :: ClassDecl-> State Env ClassDecl
 renameClassName (ClassDecl ident body) = do
@@ -101,11 +106,14 @@ renameMethodName (MethodDecl mType ident formalParams block) = do
           name <- newMethodName ident
           return (MethodDecl mType name formalParams block)
 
+--Renames FormalParams and MethodBody (Block) in a method context
 renameMethod :: MemberDecl -> State Env MemberDecl
-renameMethod (MethodDecl mType ident formalParams block) = 
-  MethodDecl mType ident 
-  <$> mapM renameFormalParam formalParams
-  <*> renameBlock block
+renameMethod (MethodDecl mType ident formalParams block) = do
+  newContext
+  fp <- mapM renameFormalParam formalParams
+  b <- renameBlock block
+  exitContext
+  return (MethodDecl mType ident fp b)
 
 renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
@@ -121,6 +129,7 @@ renameFormalParam (FormalParam vmType varDeclId) = do
 renameStatement :: Stmt -> State Env Stmt
 renameStatement statement = do 
   case statement of
+    SEmpty -> return SEmpty
     (SBlock block) -> do
       newContext
       block' <- SBlock <$> renameBlock block
