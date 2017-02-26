@@ -16,24 +16,49 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE LambdaCase #-}
+
 module Strategies where
 
 import Ideas.Common.Library
+import Ideas.Common.Strategy as S
+import Control.Monad.State
+import Data.Generics.Uniplate.DataOnly (transformBi)
 
-import CoreS.AST
+import CoreS.ASTUnitype
+import CoreS.ASTUnitypeUtils
 
-compilationUnitAppendDecl :: TypeDecl -> Rule CompilationUnit
-compilationUnitAppendDecl td = makeRule "compilationUnit.append" (f td)
+-- | append an AST to the end of a block
+appendStratBlock :: AST -> State Int (Strategy AST)
+appendStratBlock x = do
+  (b, i) <- appendBlockHole
+  s <- makeStrategyAt i x
+  return $ b .*. s
+
+appendBlockHole :: State Int (Strategy AST, Int)
+appendBlockHole = do
+  i <- get
+  put (i+1)
+  return (toStrategy $ makeRule "appendBlockHole" (append i), i)
   where
-    f :: TypeDecl -> CompilationUnit -> Maybe CompilationUnit
-    f td (CompilationUnit tds) = Just $ CompilationUnit $ tds ++ [td]
+    append i (Block xs) = Just (Block (xs ++ [Hole i]))
+    append _ _          = Nothing
 
-blockAppendStmt :: Stmt -> Rule Block
-blockAppendStmt s = makeRule "block.append" (f s)
-  where
-    f :: Stmt -> Block -> Maybe Block
-    f stmt (Block stmts) = Just $ Block $ stmts ++ [stmt]
+-- | add a list of ASTs to a block,
+-- order is not important if there is a dependency
+sequenceDependencyBlock :: [AST] -> State Int (Strategy AST)
+sequenceDependencyBlock []       = return $ succeed
+sequenceDependencyBlock [x]      = appendStratBlock x
+sequenceDependencyBlock (x:y:ys)
+  | y `dependsOn` x = (.*.) <$> (appendStratBlock x) <*> (sequenceDependencyBlock (y:ys))
+  | otherwise       = (.|.) <$> ((.*.) <$> appendStratBlock x <*> sequenceDependencyBlock (y:ys))
+                            <*> ((.*.) <$> appendStratBlock y <*> sequenceDependencyBlock (x:ys))
 
-makeCompilationUnit :: CompilationUnit -> Strategy CompilationUnit
-makeCompilationUnit (CompilationUnit tds) =
-  sequenceS [ | td <- tds]
+makeStrategyAt :: Int -> AST -> State Int (Strategy AST)
+makeStrategyAt i ast = do
+  s <- makeStrategy ast
+  return $ check (\case {Hole x -> x == i; _ -> False}) .*. s
+
+makeStrategy :: AST -> State Int (Strategy AST)
+makeStrategy (Block xs) = sequenceDependencyBlock xs
+makeStrategy ast = return $ toStrategy $ makeRule "makeStrategy" (\_ -> Just ast) -- This is only a test

@@ -57,7 +57,7 @@ data AST =
   | EArrNewI CAST.Type Integer [AST] 
   | ESysOut  AST 
   | SEmpty
-  | SBlock [AST]
+  | Block [AST]
   | SExpr AST 
   | SVars CAST.TypedVVDecl
   | SReturn AST 
@@ -74,20 +74,20 @@ data AST =
   | SwitchBlock CAST.SwitchLabel [AST]
   | SwitchCase AST
   | Default
-  | FIVars  CAST.TypedVVDecl
+  | FIVars CAST.TypedVVDecl
   | FIExprs [AST]
-  | MethodDecl (Maybe CAST.Type) CAST.Ident [AST] [AST] 
+  | MethodDecl (Maybe CAST.Type) CAST.Ident [AST] AST
   | FormalParam CAST.VMType CAST.VarDeclId
-  | MethodBody [AST]
-  | CompilationUnit [AST]
+  | CompilationUnit AST
   | ClassTypeDecl AST
   | ClassDecl CAST.Ident AST
   | ClassBody [AST]
   | MemberDecl AST
+  | Hole Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 convertCompilationUnit :: CAST.CompilationUnit -> AST
-convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (map convertTypeDecl tds)
+convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (Block (map convertTypeDecl tds))
 
 convertTypeDecl :: CAST.TypeDecl -> AST
 convertTypeDecl (CAST.ClassTypeDecl cls) = ClassTypeDecl (convertClassDecl cls) 
@@ -102,14 +102,15 @@ convertDecl :: CAST.Decl -> AST
 convertDecl (CAST.MemberDecl m) = MemberDecl (convertMemberDecl m)
 
 convertMemberDecl :: CAST.MemberDecl -> AST
-convertMemberDecl (CAST.MethodDecl m i fmparms (CAST.Block bs)) = MethodDecl m i (map convertFormalParam fmparms) (map convertStmt bs)
+convertMemberDecl (CAST.MethodDecl m i fmparms (CAST.Block bs)) =
+  MethodDecl m i (map convertFormalParam fmparms) (Block (map convertStmt bs))
 
 convertFormalParam :: CAST.FormalParam -> AST
 convertFormalParam (CAST.FormalParam a b) = FormalParam a b
 
 convertStmt :: CAST.Stmt -> AST
 convertStmt CAST.SEmpty = SEmpty
-convertStmt (CAST.SBlock (CAST.Block bs)) = SBlock (map convertStmt bs)
+convertStmt (CAST.SBlock (CAST.Block bs)) = Block (map convertStmt bs)
 convertStmt (CAST.SExpr expr) = SExpr (convertExpr expr)
 convertStmt (CAST.SVars t) = SVars t
 convertStmt (CAST.SReturn expr) = SReturn (convertExpr expr)
