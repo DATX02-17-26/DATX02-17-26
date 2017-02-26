@@ -81,7 +81,7 @@ data AST =
   | CompilationUnit AST
   | ClassTypeDecl AST
   | ClassDecl CAST.Ident AST
-  | ClassBody [AST]
+  | ClassBody AST
   | MemberDecl AST
   | Hole Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
@@ -96,7 +96,7 @@ convertClassDecl :: CAST.ClassDecl -> AST
 convertClassDecl (CAST.ClassDecl i body) = ClassDecl i (convertClassBody body)
 
 convertClassBody :: CAST.ClassBody -> AST
-convertClassBody (CAST.ClassBody decls) = ClassBody (map convertDecl decls)
+convertClassBody (CAST.ClassBody decls) = ClassBody (Block (map convertDecl decls))
 
 convertDecl :: CAST.Decl -> AST
 convertDecl (CAST.MemberDecl m) = MemberDecl (convertMemberDecl m)

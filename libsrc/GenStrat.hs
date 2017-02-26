@@ -23,6 +23,7 @@ module Strategies where
 import Ideas.Common.Library
 import Ideas.Common.Strategy as S
 import Control.Monad.State
+import Control.Monad as M
 import Data.Generics.Uniplate.DataOnly (transformBi)
 
 import CoreS.ASTUnitype
@@ -45,20 +46,35 @@ refine ast i = toStrategy $ makeRule ruleId f
       f p = Just $ transformBi refine' p
 
       refine' e
-         | holeId e == Just i = expr 
-         | otherwise             = e
+         | holeId e == Just i = ast 
+         | otherwise          = e
 
       ruleId = "refine" ++ show i
 
+-- | A naïve method for making a dependency-aware ordering,
+-- does not create all strategies we want, we need to go to
+-- a DAG approach for that
+makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
+makeDependencyStrategy [] = return $ succeed 
+makeDependencyStrategy [(x, loc)] = genStrat loc x
+makeDependencyStrategy ((x, xl):(y, yl):zs)
+  | y `dependsOn` x = (.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs)
+  | otherwise       = (.|.) <$> ((.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs))
+                            <*> ((.*.) <$> genStrat xl y <*> makeDependencyStrategy ((x, yl):zs))
+
 genStrat :: Generator
-genStrat loc (Block [])  = return $ refine (Block []) loc
-genStrat loc (Block [x]) = do
-  hid <- nextId
-  xstrat <- genStrat hid x
-  return $ refine (Block [Hole hid]) loc .*. xstrat
-genStrat loc (Block (x:y:zs)) | y `dependsOn` x = do
-  hid1 <- nextId
-  hid2 <- nextId
-  restOfBlock <- genStrat hid1 (Block (y:zs))
-  xstrat      <- genStrat hid2 x
-  return $ refine (Hole hid1) loc .*. restOfBlock
+genStrat loc (Block xs) = do
+  ids <- M.sequence [nextId | _ <- xs]
+  strategy <- makeDependencyStrategy (zip xs ids)
+  return $ refine (Block (map Hole ids)) loc .*. strategy
+
+genStrat loc (MethodDecl t i params body) = do
+  bodyLoc      <- nextId
+  bodyStrategy <- genStrat bodyLoc body
+  return $ refine (MethodDecl t i params (Hole bodyLoc)) loc .*. bodyStrategy
+
+-- Catch all clause for things we have yet to implement
+genStrat loc x = return $ refine x loc
+
+makeStrategy :: AST -> Strategy AST
+makeStrategy ast = fst $ runState (genStrat 0 ast) 1
