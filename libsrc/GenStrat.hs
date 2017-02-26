@@ -62,19 +62,38 @@ makeDependencyStrategy ((x, xl):(y, yl):zs)
   | otherwise       = (.|.) <$> ((.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs))
                             <*> ((.*.) <$> genStrat xl y <*> makeDependencyStrategy ((x, yl):zs))
 
+-- | Can we make this more DRY?
+--
+-- (generics?)
 genStrat :: Generator
 genStrat loc (Block xs) = do
   ids <- M.sequence [nextId | _ <- xs]
   strategy <- makeDependencyStrategy (zip xs ids)
   return $ refine (Block (map Hole ids)) loc .*. strategy
 
-genStrat loc (MethodDecl t i params body) = do
-  bodyLoc      <- nextId
-  bodyStrategy <- genStrat bodyLoc body
-  return $ refine (MethodDecl t i params (Hole bodyLoc)) loc .*. bodyStrategy
+genStrat loc (MethodDecl t i params body) = (MethodDecl t i params $$ body) loc
+
+genStrat loc (ClassDecl i body) = (ClassDecl i $$ body) loc 
+
+genStrat loc (ClassBody body)   = (ClassBody $$ body) loc
+
+genStrat loc (CompilationUnit body) = (CompilationUnit $$ body) loc
+
+genStrat loc (MemberDecl body) = (MemberDecl $$ body) loc
 
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
+
+locGen :: AST -> State Int (Int, Strategy AST)
+locGen ast = do
+  loc <- nextId
+  strat <- genStrat loc ast
+  return $ (loc, strat)
+
+($$) :: (AST -> AST) -> AST -> Int -> State Int (Strategy AST)
+($$) cons body loc = do
+  (bodyLoc, bodyStrat) <- locGen body
+  return $ refine (cons (Hole bodyLoc)) loc .*. bodyStrat
 
 makeStrategy :: AST -> Strategy AST
 makeStrategy ast = fst $ runState (genStrat 0 ast) 1
