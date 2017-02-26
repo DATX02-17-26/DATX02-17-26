@@ -16,9 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE LambdaCase #-}
-
-module Strategies where
+module GenStrat where
 
 import Ideas.Common.Library
 import Ideas.Common.Strategy as S
@@ -66,21 +64,16 @@ makeDependencyStrategy ((x, xl):(y, yl):zs)
 --
 -- (generics?)
 genStrat :: Generator
-genStrat loc (Block xs) = do
+genStrat loc (Block xs)                   = do
   ids <- M.sequence [nextId | _ <- xs]
   strategy <- makeDependencyStrategy (zip xs ids)
   return $ refine (Block (map Hole ids)) loc .*. strategy
-
 genStrat loc (MethodDecl t i params body) = (MethodDecl t i params $$ body) loc
-
-genStrat loc (ClassDecl i body) = (ClassDecl i $$ body) loc 
-
-genStrat loc (ClassBody body)   = (ClassBody $$ body) loc
-
-genStrat loc (CompilationUnit body) = (CompilationUnit $$ body) loc
-
-genStrat loc (MemberDecl body) = (MemberDecl $$ body) loc
-
+genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc 
+genStrat loc (ClassBody body)             = (ClassBody $$ body) loc
+genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
+genStrat loc (CompilationUnit body)       = (CompilationUnit $$ body) loc
+genStrat loc (MemberDecl body)            = (MemberDecl $$ body) loc
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
 
@@ -97,3 +90,11 @@ locGen ast = do
 
 makeStrategy :: AST -> Strategy AST
 makeStrategy ast = fst $ runState (genStrat 0 ast) 1
+
+makeASTs :: Strategy AST -> [AST]
+makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0) 
+
+-- | `matches a b` checks if `a` matches the strategy generated
+-- by `b`
+matches :: AST -> AST -> Bool
+matches a b = a `elem` makeASTs (makeStrategy b)

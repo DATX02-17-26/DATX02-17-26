@@ -28,4 +28,5 @@ dependsOn :: AST -> AST -> Bool
 dependsOn SEmpty _ = False
 dependsOn _ SEmpty = False
 dependsOn (MethodDecl _ _ _ _) (MethodDecl _ _ _ _) = False
+dependsOn (MemberDecl _) (MemberDecl _) = False
 dependsOn y x = True

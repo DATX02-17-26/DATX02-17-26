@@ -29,6 +29,8 @@ import Test.QuickCheck
 import Language.Haskell.Interpreter
 
 import CoreS.Parse
+import qualified CoreS.ASTUnitype as AST
+import GenStrat
 import SolutionContext
 import EvaluationMonad
 import RunJavac
@@ -99,10 +101,10 @@ application gen ss dirOfModelSolutions = do
                   sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
 
     -- The normalized ASTs
-    let normalizedASTs = executeNormalizer normalizations <$> astContext
-    
+    let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
+
     -- Generate information for the teacher
-    if studentSolutionMatches (==) normalizedASTs then
+    if studentSolutionMatches matches normalizedASTs then
       comment "Student solution matches a model solution"
     else
       do 
