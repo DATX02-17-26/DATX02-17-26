@@ -16,8 +16,8 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving, DataKinds,
-  ConstraintKinds, TypeFamilies, UndecidableInstances, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving, DataKinds
+  , ConstraintKinds, TypeFamilies, UndecidableInstances, TemplateHaskell #-}
 
 module Core.Plain where
 
@@ -28,6 +28,7 @@ import GHC.Types (Constraint)
 
 import Control.Lens (makeLenses, makePrisms)
 
+import Class.Approx
 import Core.PlainTH
 
 --------------------------------------------------------------------------------
@@ -114,11 +115,11 @@ data LValue p
 -- | VarInit: initializer of variables.
 data VarInit p
   = InitExpr {
-      _viHist :: XVIHist p      -- ^ History of a VarInit.
-    , _viExpr :: Expr p         -- ^ Initializer expression.
+      _viHist    :: XVIHist p   -- ^ History of a VarInit.
+    , _viExpr    :: Expr p      -- ^ Initializer expression.
     }
   | InitArr {
-      _viHist :: XVIHist p      -- ^ History of a VarInit.
+      _viHist    :: XVIHist p   -- ^ History of a VarInit.
     , _viArrInit :: ArrayInit p -- ^ Initializing an array.
     }
 
@@ -128,172 +129,6 @@ data ArrayInit p = ArrayInit
      _aiHist :: XAIHist p   -- ^ History of a ArrayInit.
   ,  _aiVIs  :: [VarInit p] -- ^ List of initializers for each element in array.
   }
-
---------------------------------------------------------------------------------
--- Type families, History:
---------------------------------------------------------------------------------
-
--- | XIdHist: history type-constructor for Ident p. Indexed by phase p.
-type family XIdHist p ;
-
--- | XNmHist: history type-constructor for Name p. Indexed by phase p.
-type family XNmHist p ;
-
--- | XLVHist: history type-constructor for LValue p. Indexed by phase p.
-type family XLVHist   p ;
-
--- | XVIHist: history type-constructor for VarInit p. Indexed by phase p.
-type family XVIHist   p ;
-
--- | XAIHist: history type-constructor for ArrayInit p. Indexed by phase p.
-type family XAIHist   p ;
-
--- | XExprHist: history type-constructor for Expr p. Indexed by phase p.
-type family XExprHist p ;
-
--- | XSHist: history type-constructor for Stmt p. Indexed by phase p.
-type family XSHist    p ;
-
--- | XBHist: history type-constructor for Block p. Indexed by phase p.
-type family XBHist    p ;
-
--- | XTvdHist: history type-constructor for TypedVVDecl p. Indexed by phase p.
-type family XTvdHist  p ;
-
--- | XFiHist: history type-constructor for ForInit p. Indexed by phase p.
-type family XFiHist   p ;
-
--- | XSbHist: history type-constructor for SwitchBlock p. Indexed by phase p.
-type family XSbHist   p ;
-
--- | XVMHist: history type-constructor for VMType p. Indexed by phase p.
-type family XVMHist   p ;
-
--- | XMdHist: history type-constructor for MemberDecl p. Indexed by phase p.
-type family XMdHist   p ;
-
--- | XFpHist: history type-constructor for FormalParam p. Indexed by phase p.
-type family XFpHist   p ;
-
--- | XCUHist: history type-constructor for CompilationUnit p. Indexed by phase p.
-type family XCUHist   p ;
-
--- | XTdHist: history type-constructor for TypeDecl p. Indexed by phase p.
-type family XTdHist   p ;
-
--- | XCdHist: history type-constructor for ClassDecl p. Indexed by phase p.
-type family XCdHist   p ;
-
--- | XCbHist: history type-constructor for ClassBody p. Indexed by phase p.
-type family XCbHist   p ;
-
--- | XDeclHist: history type-constructor for Decl p. Indexed by phase p.
-type family XDeclHist p ;
-
---------------------------------------------------------------------------------
--- Expressions, Type families, Extra fields & Constructors:
---------------------------------------------------------------------------------
-
--- | XELitT: type-constructor for literals in an Expr p. Indexed by phase p.
-type family XELitT    p ;
-
--- | XDefType: type level function for explicit type definitions in an AST.
--- Indexed by phase p.
-type family XDefType  p ;
-
-type family XExpr     p ; type family XELit     p ; type family XEVar     p ;
-type family XECast    p ; type family XECond    p ; type family XEAssign  p ;
-type family XEOAssign p ; type family XENum     p ; type family XECmp     p ;
-type family XELog     p ; type family XENot     p ; type family XEStep    p ;
-type family XEBCompl  p ; type family XEPlus    p ; type family XEMinus   p ;
-type family XEMApp    p ; type family XEArrNew  p ; type family XESysOut  p ;
-
---------------------------------------------------------------------------------
--- Statements, Type families, Extra fields & Constructors:
---------------------------------------------------------------------------------
-
-type family XStmt     p ; type family XSEmpty    p ; type family XSBlock  p ;
-type family XSExpr    p ; type family XSVars     p ; type family XSReturn p ;
-type family XSVReturn p ; type family XSIf       p ; type family XSIfElse p ;
-type family XSWhile   p ; type family XSDo       p ; type family XSForB   p ;
-type family XSForE    p ; type family XSContinue p ; type family XSBreak  p ;
-type family XSSwitch  p ;
-type family XBlock    p ; type family XMethDecl  p ; type family XFormPar p ;
-
---------------------------------------------------------------------------------
--- Expressions, Constraint constructor:
---------------------------------------------------------------------------------
-
--- | ForallX: A constraint-constructor for all type families used by any nodes.
--- ForallX :: (* -> Constraint) -> * -> Constraint
-type ForallX (fi :: * -> Constraint) p
-  = (
-    fi p
-  -- General:
-  , fi (XDefType   p)
-  , fi (XELitT     p)
-  , fi (XMethDecl  p)
-  , fi (XFormPar   p)
-  -- History:
-  , fi (XIdHist    p)
-  , fi (XNmHist    p)
-  , fi (XLVHist    p)
-  , fi (XVIHist    p)
-  , fi (XAIHist    p)
-  , fi (XExprHist  p)
-  , fi (XVMHist    p)
-  , fi (XBHist     p)
-  , fi (XSHist     p)
-  , fi (XTvdHist   p)
-  , fi (XFiHist    p)
-  , fi (XSbHist    p)
-  , fi (XMdHist    p)
-  , fi (XFpHist    p)
-  , fi (XCUHist    p)
-  , fi (XTdHist    p)
-  , fi (XCdHist    p)
-  , fi (XCbHist    p)
-  , fi (XDeclHist  p)
-  -- Expressions, constructors & fields:
-  , fi (XExpr      p)
-  , fi (XELit      p)
-  , fi (XEVar      p)
-  , fi (XECast     p)
-  , fi (XECond     p)
-  , fi (XEAssign   p)
-  , fi (XEOAssign  p)
-  , fi (XENum      p)
-  , fi (XECmp      p)
-  , fi (XELog      p)
-  , fi (XENot      p)
-  , fi (XEStep     p)
-  , fi (XEBCompl   p)
-  , fi (XEPlus     p)
-  , fi (XEMinus    p)
-  , fi (XEMApp     p)
-  , fi (XEArrNew   p)
-  , fi (XESysOut   p)
-  -- Blocks, constructors & fields:
-  , fi (XBlock     p)
-  -- Statements, constructors & fields:
-  , fi (XSEmpty    p)
-  , fi (XStmt      p)
-  , fi (XSEmpty    p)
-  , fi (XSBlock    p)
-  , fi (XSExpr     p)
-  , fi (XSVars     p)
-  , fi (XSReturn   p)
-  , fi (XSVReturn  p)
-  , fi (XSIf       p)
-  , fi (XSIfElse   p)
-  , fi (XSWhile    p)
-  , fi (XSDo       p)
-  , fi (XSForB     p)
-  , fi (XSForE     p)
-  , fi (XSContinue p)
-  , fi (XSBreak    p)
-  , fi (XSSwitch   p)
-  )
 
 --------------------------------------------------------------------------------
 -- Expressions:
@@ -422,17 +257,20 @@ data Expr p
 -- | VarDeclId: identifier of variable declarations.
 data VarDeclId p
   = VarDId {
-      _vdiIdent :: Ident p -- ^ Identifier of the variable.
+      _vdiHist  :: XVDIHist p -- ^ History of VarDeclId.
+    , _vdiIdent :: Ident p    -- ^ Identifier of the variable.
     }
   | VarDArr {
-      _vdiIdent :: Ident p -- ^ Identifier of the variable.
-    , _vdiDimen :: Integer -- ^ Dimensionality of the variable.
+      _vdiHist  :: XVDIHist p -- ^ History of VarDeclId.
+    , _vdiIdent :: Ident p    -- ^ Identifier of the variable.
+    , _vdiDimen :: Integer    -- ^ Dimensionality of the variable.
     }
 
 -- | VarDecl: variable declaration (id + initializer).
 data VarDecl p = VarDecl
   {
-    _vdVDI   :: VarDeclId p       -- ^ Identifier part of variable.
+    _vdHist  :: XVDHist p         -- ^ History of VarDecl.
+  , _vdVDI   :: VarDeclId p       -- ^ Identifier part of variable.
   , _vdVInit :: Maybe (VarInit p) -- ^ Potential variable initializer.
   }
 
@@ -476,9 +314,12 @@ data SwitchBlock p = SwitchBlock
 -- | SwitchLabel (case).
 data SwitchLabel p
   = SwitchCase {
-      _slExpr :: Expr p -- ^ Case expression.
+      _slHist :: XSlHist p -- ^ History of SwitchLabel.
+    , _slExpr :: Expr p    -- ^ Case expression.
     }
-  | Default             -- ^ Default case.
+  | Default {              -- ^ Default case.
+      _slHist :: XSlHist p -- ^ History of SwitchLabel.
+    }
 
 -- | Block of statements.
 data Block p = Block
@@ -635,41 +476,237 @@ data CompilationUnit p = CompilationUnit
   }
 
 --------------------------------------------------------------------------------
--- Eq instances:
+-- Type families, History:
 --------------------------------------------------------------------------------
 
--- | LooseEq: Loose equality.
-class LooseEq (a :: *) where
-  -- | (~~) defines "loose equality", i.e: less strict than (==).
-  (~~) :: a -> a -> Bool
+-- | XIdHist: history type-constructor for Ident p. Indexed by phase p.
+type family XIdHist   p ;
 
-  -- | (/~) is the negation of (~~).
-  (/~) :: a -> a -> Bool
-  a /~ b = not $ a ~~ b
+-- | XNmHist: history type-constructor for Name p. Indexed by phase p.
+type family XNmHist   p ;
 
-instance LooseEq a => LooseEq [a] where
+-- | XLVHist: history type-constructor for LValue p. Indexed by phase p.
+type family XLVHist   p ;
+
+-- | XVIHist: history type-constructor for VarInit p. Indexed by phase p.
+type family XVIHist   p ;
+
+-- | XVDIHist: history type-constructor for VarDeclId p. Indexed by phase p.
+type family XVDIHist  p ;
+
+-- | XVDHist: history type-constructor for VarDecl p. Indexed by phase p.
+type family XVDHist  p ;
+
+-- | XAIHist: history type-constructor for ArrayInit p. Indexed by phase p.
+type family XAIHist   p ;
+
+-- | XExprHist: history type-constructor for Expr p. Indexed by phase p.
+type family XExprHist p ;
+
+-- | XSHist: history type-constructor for Stmt p. Indexed by phase p.
+type family XSHist    p ;
+
+-- | XBHist: history type-constructor for Block p. Indexed by phase p.
+type family XBHist    p ;
+
+-- | XTvdHist: history type-constructor for TypedVVDecl p. Indexed by phase p.
+type family XTvdHist  p ;
+
+-- | XFiHist: history type-constructor for ForInit p. Indexed by phase p.
+type family XFiHist   p ;
+
+-- | XSbHist: history type-constructor for SwitchBlock p. Indexed by phase p.
+type family XSbHist   p ;
+
+-- | XSlHist: history type-constructor for SwitchLabel p. Indexed by phase p.
+type family XSlHist   p ;
+
+-- | XVMHist: history type-constructor for VMType p. Indexed by phase p.
+type family XVMHist   p ;
+
+-- | XMdHist: history type-constructor for MemberDecl p. Indexed by phase p.
+type family XMdHist   p ;
+
+-- | XFpHist: history type-constructor for FormalParam p. Indexed by phase p.
+type family XFpHist   p ;
+
+-- | XCUHist: history type-constructor for CompilationUnit p. Indexed by phase p.
+type family XCUHist   p ;
+
+-- | XTdHist: history type-constructor for TypeDecl p. Indexed by phase p.
+type family XTdHist   p ;
+
+-- | XCdHist: history type-constructor for ClassDecl p. Indexed by phase p.
+type family XCdHist   p ;
+
+-- | XCbHist: history type-constructor for ClassBody p. Indexed by phase p.
+type family XCbHist   p ;
+
+-- | XDeclHist: history type-constructor for Decl p. Indexed by phase p.
+type family XDeclHist p ;
+
+--------------------------------------------------------------------------------
+-- Type families, Expressions, Extra fields & Constructors:
+--------------------------------------------------------------------------------
+
+-- | XELitT: type-constructor for literals in an Expr p. Indexed by phase p.
+type family XELitT    p ;
+
+-- | XDefType: type level function for explicit type definitions in an AST.
+-- Indexed by phase p.
+type family XDefType  p ;
+
+type family XExpr     p ; type family XELit     p ; type family XEVar     p ;
+type family XECast    p ; type family XECond    p ; type family XEAssign  p ;
+type family XEOAssign p ; type family XENum     p ; type family XECmp     p ;
+type family XELog     p ; type family XENot     p ; type family XEStep    p ;
+type family XEBCompl  p ; type family XEPlus    p ; type family XEMinus   p ;
+type family XEMApp    p ; type family XEArrNew  p ; type family XESysOut  p ;
+
+--------------------------------------------------------------------------------
+-- Type families, Statements, Extra fields & Constructors:
+--------------------------------------------------------------------------------
+
+type family XStmt     p ; type family XSEmpty    p ; type family XSBlock  p ;
+type family XSExpr    p ; type family XSVars     p ; type family XSReturn p ;
+type family XSVReturn p ; type family XSIf       p ; type family XSIfElse p ;
+type family XSWhile   p ; type family XSDo       p ; type family XSForB   p ;
+type family XSForE    p ; type family XSContinue p ; type family XSBreak  p ;
+type family XSSwitch  p ;
+type family XBlock    p ; type family XMethDecl  p ; type family XFormPar p ;
+
+--------------------------------------------------------------------------------
+-- Constraint constructor for type families:
+--------------------------------------------------------------------------------
+
+-- | ForallXHist: A constraint-constructor for type families regarding history.
+-- ForallXHist :: (* -> Constraint) -> * -> Constraint
+type ForallXHist (fi :: * -> Constraint) p
+  = (
+  -- History:
+    fi (XIdHist    p)
+  , fi (XNmHist    p)
+  , fi (XLVHist    p)
+  , fi (XVIHist    p)
+  , fi (XVDIHist   p)
+  , fi (XVDHist    p)
+  , fi (XAIHist    p)
+  , fi (XExprHist  p)
+  , fi (XVMHist    p)
+  , fi (XBHist     p)
+  , fi (XSHist     p)
+  , fi (XSlHist    p)
+  , fi (XTvdHist   p)
+  , fi (XFiHist    p)
+  , fi (XSbHist    p)
+  , fi (XMdHist    p)
+  , fi (XFpHist    p)
+  , fi (XCUHist    p)
+  , fi (XTdHist    p)
+  , fi (XCdHist    p)
+  , fi (XCbHist    p)
+  , fi (XDeclHist  p)
+  )
+
+-- | ForallXExpr: A constraint-constructor for type families for Expr type.
+-- ForallXExpr :: (* -> Constraint) -> * -> Constraint
+type ForallXExpr (fi :: * -> Constraint) p
+  = (
+  -- Expressions, constructors & fields:
+    fi (XExpr      p)
+  , fi (XELit      p)
+  , fi (XEVar      p)
+  , fi (XECast     p)
+  , fi (XECond     p)
+  , fi (XEAssign   p)
+  , fi (XEOAssign  p)
+  , fi (XENum      p)
+  , fi (XECmp      p)
+  , fi (XELog      p)
+  , fi (XENot      p)
+  , fi (XEStep     p)
+  , fi (XEBCompl   p)
+  , fi (XEPlus     p)
+  , fi (XEMinus    p)
+  , fi (XEMApp     p)
+  , fi (XEArrNew   p)
+  , fi (XESysOut   p)
+  )
+
+-- | ForallXStmt: A constraint-constructor for type families for Stmt type.
+-- ForallXStmt :: (* -> Constraint) -> * -> Constraint
+type ForallXStmt (fi :: * -> Constraint) p
+  = (
+  -- Expressions, constructors & fields:
+    fi (XSEmpty    p)
+  , fi (XStmt      p)
+  , fi (XSEmpty    p)
+  , fi (XSBlock    p)
+  , fi (XSExpr     p)
+  , fi (XSVars     p)
+  , fi (XSReturn   p)
+  , fi (XSVReturn  p)
+  , fi (XSIf       p)
+  , fi (XSIfElse   p)
+  , fi (XSWhile    p)
+  , fi (XSDo       p)
+  , fi (XSForB     p)
+  , fi (XSForE     p)
+  , fi (XSContinue p)
+  , fi (XSBreak    p)
+  , fi (XSSwitch   p)
+  )
+
+-- | ForallXGen: A constraint-constructor for type families for general stuff.
+-- ForallXGen :: (* -> Constraint) -> * -> Constraint
+type ForallXGen (fi :: * -> Constraint) p
+  = (
+  -- General:
+    fi (XDefType   p)
+  , fi (XELitT     p)
+  , fi (XMethDecl  p)
+  , fi (XFormPar   p)
+  )
+
+-- | ForallX: A constraint-constructor for all type families used by any nodes.
+-- ForallX :: (* -> Constraint) -> * -> Constraint
+type ForallX (fi :: * -> Constraint) p
+  = (
+    fi p
+  , ForallXGen  fi p
+  , ForallXHist fi p
+  , ForallXExpr fi p
+  , ForallXStmt fi p
+  , fi (XBlock     p)
+  )
+
+--------------------------------------------------------------------------------
+-- Approx instances:
+--------------------------------------------------------------------------------
+
+instance Approx a => Approx [a] where
   a ~~ b = all (uncurry (~~)) $ zip a b
 
-instance LooseEq a => LooseEq (Maybe a) where
+instance Approx a => Approx (Maybe a) where
   Just a  ~~ Just b  = True
   Nothing ~~ Nothing = True
   _       ~~ _       = False
 
-instance LooseEq (Ident  p) where (~~) = (==) `on` _idId
-instance LooseEq (Name   p) where (~~) = (~~) `on` _nmIds
-instance LooseEq NumOp      where (~~) = (==)
-instance LooseEq CmpOp      where (~~) = (==)
-instance LooseEq LogOp      where (~~) = (==)
-instance LooseEq StepOp     where (~~) = (==)
-instance LooseEq Integer    where (~~) = (==)
-instance LooseEq VarMod     where (~~) = (==)
+instance Approx (Ident  p) where (~~) = (==) `on` _idId
+instance Approx (Name   p) where (~~) = (~~) `on` _nmIds
+instance Approx NumOp      where (~~) = (==)
+instance Approx CmpOp      where (~~) = (==)
+instance Approx LogOp      where (~~) = (==)
+instance Approx StepOp     where (~~) = (==)
+instance Approx Integer    where (~~) = (==)
+instance Approx VarMod     where (~~) = (==)
 
-instance ForallX LooseEq p => LooseEq (LValue p) where
+instance ForallX Approx p => Approx (LValue p) where
   LVName  _ la    ~~ LVName  _ ra    = la ~~ ra
   LVArray _ la lb ~~ LVArray _ ra rb = la ~~ ra && lb ~~ rb
   _               ~~ _               = False
 
-instance ForallX LooseEq p => LooseEq (Expr p) where
+instance ForallX Approx p => Approx (Expr p) where
   EExpr _ la          ~~ EExpr _ ra          = la ~~ ra
   ELit  _ la lb       ~~ ELit _ ra rb        = la ~~ ra && lb ~~ rb
   EVar  _ la lb       ~~ EVar _ ra rb        = la ~~ ra && lb ~~ rb
@@ -699,45 +736,45 @@ instance ForallX LooseEq p => LooseEq (Expr p) where
   ESysOut _ la lb        ~~ ESysOut _ ra rb  = la ~~ ra && lb ~~ rb
   _                   ~~ _                   = False
 
-instance ForallX LooseEq p => LooseEq (VarInit p) where
+instance ForallX Approx p => Approx (VarInit p) where
   InitExpr _ la ~~ InitExpr _ ra = la ~~ ra
   InitArr  _ la ~~ InitArr  _ ra = la ~~ ra
   _             ~~ _             = False
 
-instance ForallX LooseEq p => LooseEq (ArrayInit p) where
+instance ForallX Approx p => Approx (ArrayInit p) where
   (~~) = (~~) `on` _aiVIs
 
-instance ForallX LooseEq p => LooseEq (VarDeclId p) where
-  VarDId  la    ~~ VarDId  ra    = la ~~ ra
-  VarDArr la lb ~~ VarDArr ra rb = la ~~ ra && lb ~~ rb
-  _             ~~ _             = False
+instance ForallX Approx p => Approx (VarDeclId p) where
+  VarDId  _ la    ~~ VarDId  _ ra    = la ~~ ra
+  VarDArr _ la lb ~~ VarDArr _ ra rb = la ~~ ra && lb ~~ rb
+  _               ~~ _               = False
 
-instance ForallX LooseEq p => LooseEq (VarDecl p) where
-  VarDecl la lb ~~ VarDecl ra rb = la ~~ ra && rb ~~ rb
+instance ForallX Approx p => Approx (VarDecl p) where
+  VarDecl _ la lb ~~ VarDecl _ ra rb = la ~~ ra && rb ~~ rb
 
-instance ForallX LooseEq p => LooseEq (VMType p) where
+instance ForallX Approx p => Approx (VMType p) where
   VMType _ la lb ~~ VMType _ ra rb  = la ~~ ra && rb ~~ rb
 
-instance ForallX LooseEq p => LooseEq (TypedVVDecl p) where
+instance ForallX Approx p => Approx (TypedVVDecl p) where
   TypedVVDecl _ la lb ~~ TypedVVDecl _ ra rb  = la ~~ ra && rb ~~ rb
 
-instance ForallX LooseEq p => LooseEq (ForInit p) where
+instance ForallX Approx p => Approx (ForInit p) where
   FIVars  _ la ~~ FIVars  _ ra = la ~~ ra
   FIExprs _ la ~~ FIExprs _ ra = la ~~ ra
   _            ~~ _            = False
 
-instance ForallX LooseEq p => LooseEq (SwitchBlock p) where
+instance ForallX Approx p => Approx (SwitchBlock p) where
   SwitchBlock _ la lb ~~ SwitchBlock _ ra rb = la ~~ ra && lb ~~ rb
 
-instance ForallX LooseEq p => LooseEq (SwitchLabel p) where
-  SwitchCase la ~~ SwitchCase ra = la ~~ ra
-  Default       ~~ Default       = True
-  _             ~~ _             = False
+instance ForallX Approx p => Approx (SwitchLabel p) where
+  SwitchCase _ la ~~ SwitchCase _ ra = la ~~ ra
+  Default    _    ~~ Default    _    = True
+  _               ~~ _               = False
 
-instance ForallX LooseEq p => LooseEq (Block p) where
+instance ForallX Approx p => Approx (Block p) where
   Block _ la lb ~~ Block _ ra rb = la ~~ ra && lb ~~ rb
 
-instance ForallX LooseEq p => LooseEq (Stmt p) where
+instance ForallX Approx p => Approx (Stmt p) where
   SStmt    _ la          ~~ SStmt    _ ra     = la ~~ ra
   SEmpty   _ la          ~~ SEmpty   _ ra     = la ~~ ra
   SBlock   _ la lb       ~~ SBlock   _ ra rb  = la ~~ ra && lb ~~ rb
@@ -759,27 +796,27 @@ instance ForallX LooseEq p => LooseEq (Stmt p) where
   SSwitch   _ la lb lc  ~~ SSwitch _ ra rb rc = la ~~ ra && lb ~~ rb && lc ~~ rc
   _                     ~~ _                  = False
 
-instance ForallX LooseEq p => LooseEq (FormalParam p) where
+instance ForallX Approx p => Approx (FormalParam p) where
   FormalParam _ la lb lc ~~ FormalParam _ ra rb rc =
     la ~~ ra && lb ~~ rb && lc ~~ rc
 
-instance ForallX LooseEq p => LooseEq (MemberDecl p) where
+instance ForallX Approx p => Approx (MemberDecl p) where
   MethodDecl _ la lb lc ld le ~~ MethodDecl _ ra rb rc rd re =
     la ~~ ra && lb ~~ rb && lc ~~ rc && ld ~~ rd && le ~~ re
 
-instance ForallX LooseEq p => LooseEq (Decl p) where
+instance ForallX Approx p => Approx (Decl p) where
   MemberDecl _ la ~~ MemberDecl _ ra = la ~~ ra
 
-instance ForallX LooseEq p => LooseEq (ClassBody p) where
+instance ForallX Approx p => Approx (ClassBody p) where
   ClassBody _ la ~~ ClassBody _ ra = la ~~ ra
 
-instance ForallX LooseEq p => LooseEq (ClassDecl p) where
+instance ForallX Approx p => Approx (ClassDecl p) where
   ClassDecl _ la lb ~~ ClassDecl _ ra rb = la ~~ ra && lb ~~ rb
 
-instance ForallX LooseEq p => LooseEq (TypeDecl p) where
+instance ForallX Approx p => Approx (TypeDecl p) where
   ClassTypeDecl _ la ~~ ClassTypeDecl _ ra = la ~~ ra
 
-instance ForallX LooseEq p => LooseEq (CompilationUnit p) where
+instance ForallX Approx p => Approx (CompilationUnit p) where
   CompilationUnit _ la ~~ CompilationUnit _ ra = la ~~ ra
 
 --------------------------------------------------------------------------------
