@@ -128,10 +128,6 @@ type instance XDefType   Start = Type
 -- Type instances, History:
 --------------------------------------------------------------------------------
 
--- | stLab: label for language-java => start conversion.
-stLab :: String
-stLab = "language-java.to.start"
-
 type SynTVVDecl = ([S.Modifier], S.Type, [S.VarDecl])
 type SynVMType  = ([S.Modifier], S.Type)
 
@@ -197,7 +193,7 @@ instance Revisable SLValue where
   type Label SLValue = String
   type Orig  SLValue = S.Lhs
   forgetT    = fgTop lvHist
-  forget     = forgetTop . fgSet lvId . fgSet lvExpr .fgFSet lvExprs
+  forget     = forgetTop . fgSet lvId . fgSet lvExpr . fgFSet lvExprs
   revise     = rev lvHist
   reviseOrig = revb lvHist
   revertL    = revisorME . _lvHist
@@ -309,7 +305,7 @@ instance Revisable SStmt where
   forgetTop  = fgTop sHist
   forgetT    = forgetTop . fgSet sSi . fgSet sSe
   forget     = forgetT . fgSet sBlock . fgSet sExpr . fgFSet sForInit .
-                         fgFSet sForECond . fgSet sForVar . fgSet sSwiBlock .
+                         fgFSet sForECond . fgSet sForVar . fgFSet sSwiBlock .
                          (sForEPost %~ (fmap . fmap) forget) .
                          fgSet sVDecl . fgSet sForVMTy
   revise     = rev sHist

@@ -412,10 +412,10 @@ data Stmt p
     , _sXSBreak    :: XSBreak p -- ^ Extra field of SBreak.
     }
   | SSwitch {
-      _sHist       :: XSHist p      -- ^ History of the statement.
-    , _sXSSwitch   :: XSSwitch p    -- ^ Extra field of SSwitch.
-    , _sExpr       :: Expr p        -- ^ Expr to switch on.
-    , _sSwiBlock   :: SwitchBlock p -- ^ Switch blocks to pick from.
+      _sHist       :: XSHist p        -- ^ History of the statement.
+    , _sXSSwitch   :: XSSwitch p      -- ^ Extra field of SSwitch.
+    , _sExpr       :: Expr p          -- ^ Expr to switch on.
+    , _sSwiBlock   :: [SwitchBlock p] -- ^ Switch blocks to pick from.
     }
 
 --------------------------------------------------------------------------------
@@ -829,5 +829,5 @@ $(let clazz = [''Eq, ''Ord, ''Show, ''Read, ''Typeable, ''Data, ''Generic]
               , ''ForInit, ''SwitchLabel, ''SwitchBlock, ''Stmt, ''MemberDecl
               , ''FormalParam, ''CompilationUnit, ''TypeDecl, ''ClassDecl
               , ''ClassBody, ''Decl]
-  in  stdDerives ''ForallX clazz types >> deriveLens types
+  in  (++) <$> stdDerives ''ForallX clazz types <*> deriveLens types
   )

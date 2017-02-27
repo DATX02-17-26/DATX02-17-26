@@ -41,10 +41,10 @@ stdDerive constr clazz typ = do
 -- + given set of classes,
 -- + given the types,
 -- all the classes for all the types.
-stdDerives :: Name -> [Name] -> [Name] -> Q ()
+stdDerives :: Name -> [Name] -> [Name] -> DecsQ
 stdDerives constr clazzes types =
-  sequence_ $ stdDerive <$> [constr] <*> clazzes <*> types
+  sequence $ stdDerive <$> [constr] <*> clazzes <*> types
 
 -- | deriveLens: derive lens & prisms for a "set" of types.
-deriveLens :: Traversable t => t Name -> Q [Dec]
+deriveLens :: Traversable t => t Name -> DecsQ
 deriveLens = fmap concat . mapM (\n -> (++) <$> makeLenses n <*> makePrisms n)
