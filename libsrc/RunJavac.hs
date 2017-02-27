@@ -20,7 +20,7 @@ module RunJavac where
 import System.Process
 import System.Exit
 import System.Directory
-import Control.Lens
+import System.FilePath
 
 import SolutionContext
 import EvaluationMonad
@@ -66,8 +66,13 @@ compileThrow dir path = do
 -- Will throw an exception if any of the model solutions fail to compile and returns
 -- the compilation status of the student solution
 compileContext :: SolutionContext FilePath -> FilePath -> EvalM CompilationStatus
-compileContext ctx dir = withTemporaryDirectory inner dir
-  where
-    inner = do
-      sequence $ compileThrow dir <$> modelSolutions ctx
-      tryCompile dir $ studentSolution ctx
+compileContext ctx dir = do
+  -- Create directories for the model and studnet solutions
+  liftIO $ createDirectory (dir </> "model/")
+  liftIO $ createDirectory (dir </> "student/")
+
+  -- Try to compile all the model solutions
+  sequence $ compileThrow (dir </> "model/") <$> modelSolutions ctx
+
+  -- Try to compile the student solution
+  tryCompile (dir </> "student/") (studentSolution ctx)
