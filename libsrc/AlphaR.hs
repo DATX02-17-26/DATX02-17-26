@@ -26,8 +26,8 @@ newEnv = Env {
   vName = 0,
   names = [Map.empty]
 }
-rename :: CompilationUnit -> Maybe CompilationUnit
-rename (CompilationUnit typeDecls) = undefined
+
+
 --create a new Context
 newContext :: State Env ()
 newContext = modify (\s -> s{names = Map.empty : names s})
@@ -90,6 +90,17 @@ name = "AplhaR"
 stages :: [Int]
 stages = [0]
 
+--Renames all class names, method names, formalparams and method bodies
+rename :: CompilationUnit -> CompilationUnit
+rename (CompilationUnit typeDecls) = undefined
+   {- do
+   newEnv
+   td <- mapM renameClassName typeDecls
+   td' <- mapM renameAllMethodNames td
+   td'' <- mapM renameClass td'
+   return (CompilationUnit td'')
+   -}
+
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
 renameClass :: TypeDecl -> State Env TypeDecl
@@ -101,16 +112,22 @@ renameClass (ClassTypeDecl (ClassDecl ident (ClassBody decls))) = do
 
 
 --Renames a class to a new (Unique) Ident
-renameClassName :: ClassDecl-> State Env ClassDecl
-renameClassName (ClassDecl ident body) = do
-      name <- newClassName ident
-      return (ClassDecl name body)
+renameClassName :: TypeDecl-> State Env TypeDecl
+renameClassName (ClassTypeDecl (ClassDecl ident body)) =
+      newClassName ident >>= \name ->
+      return (ClassTypeDecl (ClassDecl name body))
+
+--Renamses all method names in a Class to a new Ident
+renameAllMethodNames :: TypeDecl -> State Env TypeDecl
+renameAllMethodNames (ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
+   mapM renameMethodName decls >>= \ds -> 
+   return (ClassTypeDecl (ClassDecl ident (ClassBody ds)))
 
 --Renames a method to a new (Unique) Ident
 renameMethodName :: Decl -> State Env Decl
 renameMethodName (MemberDecl
-                 (MethodDecl mType ident formalParams block)) = do 
-          name <- newMethodName ident
+                 (MethodDecl mType ident formalParams block)) = 
+          newMethodName ident >>= \name ->
           return (MemberDecl $ MethodDecl mType name formalParams block)
 
 --Renames FormalParams and MethodBody (Block) in a method context
@@ -125,11 +142,11 @@ renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
 renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
   case varDeclId of
-    (VarDId ident) -> do
-      name <- newVarName ident
+    (VarDId ident) ->
+      newVarName ident >>= \name ->
       return (FormalParam vmType (VarDId name))
-    (VarDArr ident i) -> do
-      name <- newVarName ident
+    (VarDArr ident i) ->
+      newVarName ident >>= \name ->
       return (FormalParam vmType (VarDArr name i))
 
 
@@ -177,10 +194,13 @@ renameStatement statement = do
       <*> renameStatement stmt
     (SContinue) -> return statement
     (SBreak)    -> return statement
-    (SSwitch expr switchBlocks) -> do 
-      e <- renameExpression expr
-      sb <- mapM renameSwitch switchBlocks
-      return (SSwitch e sb)
+    (SSwitch expr switchBlocks) -> 
+      SSwitch 
+      <$> renameExpression expr 
+      <*> mapM renameSwitch switchBlocks
+      --e <- renameExpression expr
+     -- sb <- mapM renameSwitch switchBlocks
+      --return (SSwitch e sb)
 
 renameBlock :: Block -> State Env Block
 renameBlock (Block ss) =
@@ -201,9 +221,9 @@ renameExpression expression =
       EAssign
       <$> renameLValue lValue
       <*> renameExpression expr
-    (EOAssign lValue numOp expr) -> do
-      v <-  renameLValue lValue
-      e <- renameExpression expr
+    (EOAssign lValue numOp expr) ->
+      renameLValue lValue >>= \v -> 
+      renameExpression expr >>= \e ->
       return (EOAssign v numOp e)
     (ENum numOp expr1 expr2) -> 
       ENum numOp 
@@ -280,11 +300,11 @@ renameVarDleclId varDeclId =
 renameSwitch :: SwitchBlock -> State Env SwitchBlock
 renameSwitch (SwitchBlock label (Block block)) = 
   case label of
-  (SwitchCase expr) -> do
-    e <- renameExpression expr
-    b <-  mapM renameStatement block
+  (SwitchCase expr) ->
+    renameExpression expr >>= \e -> 
+    mapM renameStatement block >>= \b ->   
     return (SwitchBlock (SwitchCase e) (Block b)) 
-  Default -> do 
-    b <- mapM renameStatement block
+  Default ->
+    mapM renameStatement block >>= \b ->
     return (SwitchBlock Default (Block b))
 
