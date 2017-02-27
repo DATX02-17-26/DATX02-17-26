@@ -21,10 +21,10 @@
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Revisable class of types.
-module Core.History (
+module Core.Common.History (
   -- * Data types
-    RevisorE
-  , Revisor
+    RevisorE (..)
+  , Revisor  (..)
   , SRevisor
   , SRevisorE
   , revisorME
@@ -37,6 +37,7 @@ module Core.History (
   , Orig
   -- * Class functions
   , forgetTop
+  , forgetT
   , forget
   , revise
   , reviseOrig
@@ -125,7 +126,9 @@ class Revisable (t :: *) where
   -- | Forget history in a term on the top level only.
   -- Applying this to a term twice must have no additional effect.
   -- Formally: forgetTop . forgetTop == forgetTop
+  -- Default implementation = forget, assumes no depth in data type.
   forgetTop  :: t -> t
+  forgetTop = forgetT
 
   -- | Forgets history in all places where there is a history,
   -- with the exception that it never crosses types.
@@ -133,7 +136,9 @@ class Revisable (t :: *) where
   -- but not for expressions.
   -- Applying this to a term twice must have no additional effect.
   -- Formally: forgetT . forgetT == forgetT
+  -- Default implementation = forget, assumes no depth in data type.
   forgetT    :: t -> t
+  forgetT = forget
 
   -- | Forgets history in all places where there is a history.
   -- Applying this to a term twice must have no additional effect.

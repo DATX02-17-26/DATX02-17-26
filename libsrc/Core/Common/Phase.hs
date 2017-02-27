@@ -16,12 +16,17 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+
 -- | Class of phase indexes.
-module Core.Phase (
+module Core.Common.Phase (
     PhaseIndex, PhaseIndex2
-  , phaseId, phaseId2
+  , phaseId, phaseId21, phaseId22
   , PhaseId (..)
   ) where
+
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
 
 --------------------------------------------------------------------------------
 -- Phase Indexing:
@@ -29,15 +34,17 @@ module Core.Phase (
 
 -- | The PhaseId of a phase-index.
 newtype PhaseId = PhaseId String
-  deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
--- | Class of types that model a phase index in the first position.
+-- | Class of types that model a phase index of types with one type parameter.
 class PhaseIndex pi where
   -- | Yields the PhaseId for a given term phase-indexed by pi.
   phaseId :: f pi -> PhaseId
 
--- | Class of types that model a phase index in the second position.
+-- | Class of types that model a phase index of types with two type parameters.
 class PhaseIndex2 pi where
-  -- | See phaseId.
+  -- | Yields the PhaseId for a given term phase-indexed by pi in first pos.
   phaseId21 :: f pi a -> PhaseId
+
+  -- | Yields the PhaseId for a given term phase-indexed by pi in second pos.
   phaseId22 :: f a pi -> PhaseId

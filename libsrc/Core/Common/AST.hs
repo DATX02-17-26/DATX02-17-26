@@ -19,7 +19,7 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving, DataKinds
   , ConstraintKinds, TypeFamilies, UndecidableInstances, TemplateHaskell #-}
 
-module Core.Plain where
+module Core.Common.AST where
 
 import Data.Function (on)
 import Data.Data (Data, Typeable)
@@ -29,7 +29,7 @@ import GHC.Types (Constraint)
 import Control.Lens (makeLenses, makePrisms)
 
 import Class.Approx
-import Core.PlainTH
+import Core.Common.TH
 
 --------------------------------------------------------------------------------
 -- Names and identifiers:
@@ -459,8 +459,8 @@ data ClassBody p = ClassBody
 -- | ClassDecl: class declaration.
 data ClassDecl p = ClassDecl
   { _cdHist :: XCdHist p   -- ^ History of the ClassDecl.
-  , _clId   :: Ident p     -- ^ Identifier of the class.
-  , _clBody :: ClassBody p -- ^ Body of the class.
+  , _cdId   :: Ident p     -- ^ Identifier of the class.
+  , _cdBody :: ClassBody p -- ^ Body of the class.
   }
 
 -- | TypeDecl: type declarations in the CU.
@@ -829,6 +829,5 @@ $(let clazz = [''Eq, ''Ord, ''Show, ''Read, ''Typeable, ''Data, ''Generic]
               , ''ForInit, ''SwitchLabel, ''SwitchBlock, ''Stmt, ''MemberDecl
               , ''FormalParam, ''CompilationUnit, ''TypeDecl, ''ClassDecl
               , ''ClassBody, ''Decl]
-  in do sequence_ $ stdDerive <$> [''ForallX] <*> clazz <*> types
-        concat <$> mapM (\n -> (++) <$> makeLenses n <*> makePrisms n) types
+  in  stdDerives ''ForallX clazz types >> deriveLens types
   )
