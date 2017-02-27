@@ -180,13 +180,15 @@ renameStatement statement = do
       SDo
       <$> renameExpression expr 
       <*> renameStatement stmt
-    (SForB mForInit mExpr mExprs stmt) -> do
-      mE <- maybe (return Nothing) ((fmap Just) . renameForInit) mForInit
-      mE <- maybe (return Nothing) ((fmap Just) . renameExpression) mExpr
-      mEs <- maybe (return Nothing) ((fmap Just) 
-              . (mapM renameExpression)) mExprs
-      s <- renameStatement stmt
-      return (SForB mForInit mE mEs s)
+    (SForB mForInit mExpr mExprs stmt) ->
+      SForB 
+      <$> maybe (return Nothing) ((fmap Just) 
+        . renameForInit) mForInit
+      <*> maybe (return Nothing) ((fmap Just) 
+        . renameExpression) mExpr
+      <*> maybe (return Nothing) ((fmap Just) 
+        . (mapM renameExpression)) mExprs
+      <*> renameStatement stmt
     (SForE vMType ident expr stmt) ->
       SForE vMType 
       <$> newVarName ident 
@@ -198,9 +200,7 @@ renameStatement statement = do
       SSwitch 
       <$> renameExpression expr 
       <*> mapM renameSwitch switchBlocks
-      --e <- renameExpression expr
-     -- sb <- mapM renameSwitch switchBlocks
-      --return (SSwitch e sb)
+
 
 renameBlock :: Block -> State Env Block
 renameBlock (Block ss) =
@@ -294,8 +294,8 @@ renameVarDleclId varDeclId =
   case varDeclId of 
     (VarDId  ident) -> VarDId <$> newVarName ident
     (VarDArr ident i) -> 
-      newVarName ident 
-      >>= \new -> return (VarDArr new i)
+      newVarName ident >>= \new -> 
+      return (VarDArr new i)
 
 renameSwitch :: SwitchBlock -> State Env SwitchBlock
 renameSwitch (SwitchBlock label (Block block)) = 
@@ -305,6 +305,5 @@ renameSwitch (SwitchBlock label (Block block)) =
     mapM renameStatement block >>= \b ->   
     return (SwitchBlock (SwitchCase e) (Block b)) 
   Default ->
-    mapM renameStatement block >>= \b ->
-    return (SwitchBlock Default (Block b))
+    SwitchBlock Default . Block <$> mapM renameStatement block
 
