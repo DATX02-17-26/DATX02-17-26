@@ -31,7 +31,7 @@ import Core.Common.History
 import Core.Common.AST
 import Core.Start.Phase as X
 
-import Control.Lens ((.~), (%~), ASetter)
+import Control.Lens ((%~))
 
 --------------------------------------------------------------------------------
 -- Types:
@@ -153,24 +153,6 @@ type instance XCbHist   Start = SRevisor SClassBody       S.ClassBody
 type instance XDeclHist Start = SRevisor SDecl            S.Decl
 type instance XTdHist   Start = SRevisor STypeDecl        S.TypeDecl
 type instance XCUHist   Start = SRevisor SCompilationUnit S.CompilationUnit
-
-(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-(f .: g) x y = f (g x y)
-
-fgTop :: ASetter s t a (Revisor l d o) -> s -> t
-fgTop = (.~ NoH)
-
-fgSet :: Revisable b => ASetter s t b b -> s -> t
-fgSet = (%~ forget)
-
-fgFSet :: (Revisable b, Functor f) => ASetter s t (f b) (f b) -> s -> t
-fgFSet f = f %~ fmap forget
-
-rev :: ASetter s t a (Revisor l d o) -> l -> d -> s -> t
-rev f = (f .~) .: Rev
-
-revb :: ASetter s t a (Revisor l d o) -> l -> o -> s -> t
-revb f = (f .~) .: Beg
 
 instance Revisable SIdent where
   type Label SIdent = String

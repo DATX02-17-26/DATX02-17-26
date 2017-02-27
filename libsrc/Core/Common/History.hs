@@ -31,6 +31,11 @@ module Core.Common.History (
   , revisorEME
   , toRev
   , toRevE
+  , fgTop
+  , fgSet
+  , fgFSet
+  , rev
+  , revb
   -- * Classes and types
   , Revisable
   , Label
@@ -61,6 +66,8 @@ import Control.Monad ((>=>))
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
+
+import Control.Lens ((.~), (%~), ASetter)
 
 --------------------------------------------------------------------------------
 -- Data:
@@ -111,6 +118,29 @@ toRev :: RevisorE l d -> Revisor l d d
 toRev = \case
   NoHE     -> NoH
   RevE l d -> Rev l d
+
+(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(f .: g) x y = f (g x y)
+
+-- | fgTop: implementation for forgetTop given a lens.
+fgTop :: ASetter s t a (Revisor l d o) -> s -> t
+fgTop = (.~ NoH)
+
+-- | fgSet: implementation for forget given a lens.
+fgSet :: Revisable b => ASetter s t b b -> s -> t
+fgSet = (%~ forget)
+
+-- | fgFSet: implementation for forget given a lens in a functor.
+fgFSet :: (Revisable b, Functor f) => ASetter s t (f b) (f b) -> s -> t
+fgFSet f = f %~ fmap forget
+
+-- | rev: implementation for revise given a lens.
+rev :: ASetter s t a (Revisor l d o) -> l -> d -> s -> t
+rev f = (f .~) .: Rev
+
+-- | revb: implementation for reviseOrig given a lens.
+revb :: ASetter s t a (Revisor l d o) -> l -> o -> s -> t
+revb f = (f .~) .: Beg
 
 --------------------------------------------------------------------------------
 -- Class:
