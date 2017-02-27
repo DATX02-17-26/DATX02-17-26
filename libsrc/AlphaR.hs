@@ -42,7 +42,7 @@ newClassName old = do
    modify (\s -> s{cName = (cName s) + 1}) 
    st <- get 
    name  <- return (cName st)
-   let new = (Ident $ "Var" ++ show name)
+   let new = (Ident $ "Class" ++ show name)
    addIdent new old
 
 --create new method name
@@ -51,7 +51,7 @@ newMethodName old = do
    modify (\s -> s{mName = (mName s) + 1}) 
    st <- get 
    name  <- return (mName st)
-   let new = (Ident $ "Var" ++ show name)
+   let new = (Ident $ "Method" ++ show name)
    addIdent new old
 
 --create new variable name
