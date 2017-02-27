@@ -51,7 +51,7 @@ data PrimType
 
 -- | All possible types that value / expression can be of.
 data Type
-  = PrimType {
+  = PrimT {
       _tPrim :: PrimType -- ^ A primitive type.
     }
   | StringT              -- ^ A String type.
@@ -361,6 +361,8 @@ instance Revisable SCompilationUnit where
 -- Type families: extra stuff.
 --------------------------------------------------------------------------------
 
+type instance XLVName    Start = ()
+type instance XLVArr     Start = ()
 type instance XExpr      Start = Void
 type instance XELit      Start = ()
 type instance XEVar      Start = ()

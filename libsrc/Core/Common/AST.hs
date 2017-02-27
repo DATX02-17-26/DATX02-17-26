@@ -100,10 +100,12 @@ data StepOp
 data LValue p
   = LVName {
       _lvHist :: XLVHist p -- ^ History of an LValue.
+    , _lvXLVN :: XLVName p -- ^ Extra fields of LVName for phase p.
     , _lvId   :: Ident p   -- ^ Simple variable identifier.
     }
   | LVArray {
       _lvHist :: XLVHist p -- ^ History of an LValue.
+    , _lvXLVA :: XLVArr p  -- ^ Extra fields of LVArray for phase p.
     , _lvExpr  :: Expr p   -- ^ An expression yielding an array.
     , _lvExprs :: [Expr p] -- ^ Indexing expressions, must be castable to int.
     }
@@ -556,6 +558,8 @@ type family XELitT    p ;
 -- Indexed by phase p.
 type family XDefType  p ;
 
+type family XLVName   p ; type family XLVArr    p ;
+
 type family XExpr     p ; type family XELit     p ; type family XEVar     p ;
 type family XECast    p ; type family XECond    p ; type family XEAssign  p ;
 type family XEOAssign p ; type family XENum     p ; type family XECmp     p ;
@@ -612,8 +616,11 @@ type ForallXHist (fi :: * -> Constraint) p
 -- ForallXExpr :: (* -> Constraint) -> * -> Constraint
 type ForallXExpr (fi :: * -> Constraint) p
   = (
+  -- LValues, constructors & fields:
+    fi (XLVName    p)
+  , fi (XLVArr     p)
   -- Expressions, constructors & fields:
-    fi (XExpr      p)
+  , fi (XExpr      p)
   , fi (XELit      p)
   , fi (XEVar      p)
   , fi (XECast     p)
@@ -702,9 +709,9 @@ instance Approx Integer    where (~~) = (==)
 instance Approx VarMod     where (~~) = (==)
 
 instance ForallX Approx p => Approx (LValue p) where
-  LVName  _ la    ~~ LVName  _ ra    = la ~~ ra
-  LVArray _ la lb ~~ LVArray _ ra rb = la ~~ ra && lb ~~ rb
-  _               ~~ _               = False
+  LVName  _ la lb    ~~ LVName  _ ra rb    = la ~~ ra && lb ~~ rb
+  LVArray _ la lb lc ~~ LVArray _ ra rb rc = la ~~ ra && lb ~~ rb && lc ~~ rc
+  _                  ~~ _                  = False
 
 instance ForallX Approx p => Approx (Expr p) where
   EExpr _ la          ~~ EExpr _ ra          = la ~~ ra

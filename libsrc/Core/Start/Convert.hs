@@ -77,7 +77,7 @@ convRTyp = \case
 
 convTyp :: S.Type -> CConv Type
 convTyp = \case
-  S.PrimType t -> pure $ PrimType $ convPTyp t
+  S.PrimType t -> pure $ PrimT $ convPTyp t
   S.RefType  t -> convRTyp t
 
 revo :: (Revisable t, Label t ~ String) => Orig t -> t -> t
@@ -153,11 +153,11 @@ convOne = \case
   xs  -> unimpl $__LOCATION__ xs
 
 convExpN :: S.Name -> CConv SExpr
-convExpN n@(S.Name ns) = ct EVar . LVName NoH . convId <$> convOne ns
+convExpN n@(S.Name ns) = ct EVar . ct LVName . convId <$> convOne ns
 
 convArrAcc :: S.ArrayIndex -> CConv SExpr
 convArrAcc o@(S.ArrayIndex e eis) =
-  ct EVar <$> (LVArray NoH <$> convExp e <*> mapM convExp eis)
+  ct EVar <$> (ct LVArray <$> convExp e <*> mapM convExp eis)
 
 convArrCreate :: S.Type -> [S.Exp] -> Int -> CConv SExpr
 convArrCreate t ls lex =  ct EArrNew
@@ -194,10 +194,10 @@ convApp o = case o of
 
 convArrIx :: S.ArrayIndex -> CConv SExpr
 convArrIx o@(S.ArrayIndex a is) =
-  ct EVar <$> (LVArray NoH <$> convExp a <*> mapM convExp is)
+  ct EVar <$> (ct LVArray <$> convExp a <*> mapM convExp is)
 
 convNLhs :: S.Name -> CConv SExpr
-convNLhs (S.Name is) = ct EVar . LVName NoH . convId <$> convOne is
+convNLhs (S.Name is) = ct EVar . ct LVName . convId <$> convOne is
 
 convAssign :: S.Lhs -> S.AssignOp -> S.Exp -> CConv SExpr
 convAssign lv op e = case lv of
