@@ -35,6 +35,7 @@ import RunJavac
 import PropertyBasedTesting
 import NormalizationStrategies hiding ((<>))
 import InputMonad
+import AlphaUniplate
 
 import Normalizations
 
@@ -100,6 +101,8 @@ application gen ss dirOfModelSolutions = do
 
     -- The normalized ASTs
     let normalizedASTs = executeNormalizer normalizations <$> astContext
+
+    liftIO $ print (alphaRename <$> normalizedASTs)
     
     -- Generate information for the teacher
     if studentSolutionMatches (==) normalizedASTs then
