@@ -90,16 +90,16 @@ name = "AplhaR"
 stages :: [Int]
 stages = [0]
 
+execute :: CompilationUnit -> Maybe CompilationUnit
+execute cu = Just $ evalState (rename cu) newEnv
+
 --Renames all class names, method names, formalparams and method bodies
-rename :: CompilationUnit -> CompilationUnit
-rename (CompilationUnit typeDecls) = undefined
-   {- do
-   newEnv
-   td <- mapM renameClassName typeDecls
-   td' <- mapM renameAllMethodNames td
-   td'' <- mapM renameClass td'
-   return (CompilationUnit td'')
-   -}
+rename :: CompilationUnit -> State Env CompilationUnit
+rename (CompilationUnit typeDecls) =
+    mapM renameClassName typeDecls >>= \td -> 
+    mapM renameAllMethodNames td >>= \td' ->
+    CompilationUnit <$> mapM renameClass td' 
+   
 
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
