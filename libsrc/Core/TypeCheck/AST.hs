@@ -452,7 +452,7 @@ data LVExt = LVExt
   , _leVar  :: VarExt
   } deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-$(deriveLens [''Purity, ''ExprExt, ''VarExt, ''LVExt])
+$(deriveLens [''TLiteral, ''Purity, ''ExprExt, ''VarExt, ''LVExt])
 
 type instance XLVName    TypeCheck = LVExt
 type instance XLVArr     TypeCheck = LVExt
