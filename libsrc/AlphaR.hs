@@ -139,6 +139,7 @@ renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   exitContext
   return (MemberDecl (MethodDecl mType ident fp b))
 
+
 renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
   case varDeclId of
@@ -206,6 +207,7 @@ renameBlock :: Block -> State Env Block
 renameBlock (Block ss) =
   Block <$> mapM renameStatement ss 
 
+
 renameExpression :: Expr -> State Env Expr
 renameExpression expression = 
   case expression of 
@@ -254,6 +256,7 @@ renameExpression expression =
         return (EArrNewI t i (ArrayInit ai))
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
 
+
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = 
   case lValue of
@@ -270,15 +273,18 @@ renameForInit forInit =
     (FIVars typedVVDecl) -> FIVars <$> renameTypedVVDecl typedVVDecl
     (FIExprs exprs) -> FIExprs <$> mapM renameExpression exprs
 
+
 renameTypedVVDecl :: TypedVVDecl -> State Env TypedVVDecl
 renameTypedVVDecl (TypedVVDecl vMType varDecls) = 
   TypedVVDecl vMType <$> mapM renameVarDecl varDecls
+
 
 renameVarDecl :: VarDecl -> State Env VarDecl
 renameVarDecl (VarDecl varDeclId mVarInit) = 
   VarDecl 
   <$> renameVarDleclId varDeclId 
   <*> maybe (return Nothing) ((fmap Just) . renameVarInit) mVarInit
+
 
 renameVarInit :: VarInit -> State Env VarInit
 renameVarInit varInit =
@@ -289,6 +295,7 @@ renameVarInit varInit =
       . ArrayInit 
       <$> mapM renameVarInit arrayInit
 
+
 renameVarDleclId :: VarDeclId -> State Env VarDeclId
 renameVarDleclId varDeclId =
   case varDeclId of 
@@ -297,13 +304,14 @@ renameVarDleclId varDeclId =
       newVarName ident >>= \new -> 
       return (VarDArr new i)
 
+
 renameSwitch :: SwitchBlock -> State Env SwitchBlock
 renameSwitch (SwitchBlock label (Block block)) = 
   case label of
   (SwitchCase expr) ->
     renameExpression expr >>= \e -> 
-    mapM renameStatement block >>= \b ->   
-    return (SwitchBlock (SwitchCase e) (Block b)) 
+    mapM renameStatement block >>= 
+      return . SwitchBlock (SwitchCase e) . Block  
   Default ->
     SwitchBlock Default . Block <$> mapM renameStatement block
 
