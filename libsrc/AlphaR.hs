@@ -258,20 +258,18 @@ renameExpression expression =
 
 
 renameLValue :: LValue -> State Env LValue
-renameLValue lValue = 
-  case lValue of
-    (LVName ident) -> LVName <$> newVarName ident
-    (LVArray expr exprs) -> 
-      LVArray 
-      <$> renameExpression expr
-      <*> mapM renameExpression exprs
+renameLValue lValue = case lValue of
+  (LVName ident) -> LVName <$> newVarName ident
+  (LVArray expr exprs) ->
+    LVArray
+    <$> renameExpression expr
+    <*> mapM renameExpression exprs
       
 
 renameForInit :: ForInit -> State Env ForInit
-renameForInit forInit = 
-  case forInit of
-    (FIVars typedVVDecl) -> FIVars <$> renameTypedVVDecl typedVVDecl
-    (FIExprs exprs) -> FIExprs <$> mapM renameExpression exprs
+renameForInit forInit = case forInit of
+  (FIVars typedVVDecl) -> FIVars <$> renameTypedVVDecl typedVVDecl
+  (FIExprs exprs) -> FIExprs <$> mapM renameExpression exprs
 
 
 renameTypedVVDecl :: TypedVVDecl -> State Env TypedVVDecl
@@ -280,10 +278,14 @@ renameTypedVVDecl (TypedVVDecl vMType varDecls) =
 
 
 renameVarDecl :: VarDecl -> State Env VarDecl
-renameVarDecl (VarDecl varDeclId mVarInit) = 
-  VarDecl 
-  <$> renameVarDleclId varDeclId 
-  <*> maybe (return Nothing) ((fmap Just) . renameVarInit) mVarInit
+renameVarDecl (VarDecl varDeclId mVarInit) =
+   maybe (return Nothing) ((fmap Just) . renameVarInit) mVarInit >>= \mvi ->
+   renameVarDleclId varDeclId >>= \vdi -> return (VarDecl vdi mvi)
+
+int x = 0;
+{
+int x = x +1;
+}
 
 
 renameVarInit :: VarInit -> State Env VarInit
