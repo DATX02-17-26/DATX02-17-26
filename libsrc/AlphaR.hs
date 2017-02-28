@@ -51,7 +51,7 @@ newMethodName old = do
    modify (\s -> s{mName = (mName s) + 1}) 
    st <- get 
    name  <- return (mName st)
-   let new = (Ident $ "Method" ++ show name)
+   let new = (Ident $ "method" ++ show name)
    addIdent new old
 
 --create new variable name
@@ -60,7 +60,7 @@ newVarName old = do
    modify (\s -> s{vName = (vName s) + 1}) 
    st    <- get 
    name  <- return (vName st)
-   let new =  (Ident $ "Var" ++ show name)
+   let new =  (Ident $ "var" ++ show name)
    addIdent new old
 
 --add a Ident to Env return the new ident
