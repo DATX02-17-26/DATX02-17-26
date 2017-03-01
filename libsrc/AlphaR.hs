@@ -1,4 +1,4 @@
-module AlphaR where 
+module AlphaR where
 
 import Control.Monad
 import Data.Map (Map)
@@ -54,29 +54,35 @@ newMethodName old = do
    let new = (Ident $ "method" ++ show name)
    addIdent new old
 
---create new variable name
+--create new variable name if an old does not exist
 newVarName :: Ident -> State Env Ident
 newVarName old = do
-   modify (\s -> s{vName = (vName s) + 1}) 
-   st    <- get 
-   name  <- return (vName st)
-   let new =  (Ident $ "var" ++ show name)
-   addIdent new old
+   mIdent <- lookupIdent old
+   case mIdent of
+     Just new -> return new
+     Nothing -> do
+      modify (\s -> s{vName = (vName s) + 1})
+      st    <- get
+      name  <- return (vName st)
+      let new =  (Ident $ "var" ++ show name)
+      addIdent new old
 
 --add a Ident to Env return the new ident
 addIdent :: Ident -> Ident -> State Env Ident
 addIdent new old = do
   st <- get
   let (n:ns) = (names st)
-  modify(\s -> s{names = (Map.insert new old n):ns})
+  modify(\s -> s{names = (Map.insert old new n):ns})
   return new
 
 --lookup address for var
 lookupIdent :: Ident -> State Env (Maybe Ident)
-lookupIdent id = state ( \s -> let res = (getIdent id (names s)) 
-  in (res, s))
+lookupIdent id = do
+  st <- get
+  let cxt = (names st) in
+    return $ getIdent id cxt
 
---helper to lookupvar
+--helper to lookupIdent
 getIdent :: Ident -> Cxt -> Maybe Ident
 getIdent id [] = Nothing
 getIdent id (n:ns) = 
@@ -89,9 +95,17 @@ name = "AplhaR"
 
 stages :: [Int]
 stages = [0]
-
+--jämför träden så att de returnerar nothing om den nya är == med gamla
 execute :: CompilationUnit -> Maybe CompilationUnit
-execute cu = Just $ evalState (rename cu) newEnv
+execute cu =
+  let ast = evalState (rename cu) newEnv in
+  case cu == ast of
+    True -> Nothing
+    False -> Just $ ast
+
+
+
+
 
 --Renames all class names, method names, formalparams and method bodies
 rename :: CompilationUnit -> State Env CompilationUnit
@@ -247,8 +261,8 @@ renameExpression expression =
       EPlus <$> renameExpression expr
     (EMinus   expr)->
       EMinus <$> renameExpression expr
-    (EMApp name exprs) ->
-      EMApp name <$> mapM renameExpression exprs
+    (EMApp (Name name) exprs) ->
+      EMApp . Name <$> mapM newVarName name <*> mapM renameExpression exprs
     (EArrNew  t exprs i) ->
       mapM renameExpression exprs >>= \es -> return (EArrNew t es i)
     (EArrNewI t i (ArrayInit arrayInit)) -> 
@@ -281,12 +295,6 @@ renameVarDecl :: VarDecl -> State Env VarDecl
 renameVarDecl (VarDecl varDeclId mVarInit) =
    maybe (return Nothing) ((fmap Just) . renameVarInit) mVarInit >>= \mvi ->
    renameVarDleclId varDeclId >>= \vdi -> return (VarDecl vdi mvi)
-
-int x = 0;
-{
-int x = x +1;
-}
-
 
 renameVarInit :: VarInit -> State Env VarInit
 renameVarInit varInit =
