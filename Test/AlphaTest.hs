@@ -6,11 +6,18 @@ import AlphaR
 main :: IO()
 main =  do
   s <- readFile "AlphaTest/Good1.java"
+  s' <- readFile "AlphaTest/Good1-1.java"
   let ast = parseConvUnit s
-  ast <- either undefined pure
-  compareAST ast
+  let ast2 = parseConvUnit s'
+  student <- either undefined pure ast
+  model <- either undefined pure ast2
+  comapareAST student model
 
-comapareAST :: CompilationUnit -> IO()
-comapareAST ast = case execute ast of
-  Just a -> return (show a)
-  Nothing -> return (show "WTF!")
+
+comapareAST :: CompilationUnit -> CompilationUnit -> IO()
+comapareAST student model = case execute student of
+  Just a -> if a == model
+    then print $ "The model is equal to the student"
+    else do print $ "The student solution: " ++ (show a)
+            print ("The model: " ++ (show model))
+  Nothing -> print $ "WTF!"

@@ -1,15 +1,21 @@
 public class Class1 {
-    public static void method1(String[] val1) {
-        int val2 = 0;
-        while (val2 < 10) {
-            System.out.println(printIt(val2));
-            val2++;
+    public static void method1(String[] var1) {
+        int var2 = 0;
+        while (var2 < 10) {
+            System.out.println(method2(var2));
+            var2++;
         }
     }
 
-    public static String printIt(int val3) {
-        String val4 = "Printing: ";
+    public static String method2(int var3) {
+        String var4 = "Printing: ";
 
-        return val4 + val3;
+        if (var4 == "Printing") {
+            int var5 = 0;
+        } else {
+            int var6 = 1;
+        }
+
+        return var4 + var3;
     }
 }

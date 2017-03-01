@@ -10,6 +10,12 @@ public class Good1 {
     public static String printIt(int i) {
         String print = "Printing: ";
 
+        if (print == "Printing") {
+            int hej = 0;
+        } else {
+            int hej = 1;
+        }
+
         return print + i;
     }
 }
