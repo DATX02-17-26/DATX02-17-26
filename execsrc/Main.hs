@@ -22,9 +22,6 @@ import System.Environment
 import System.Exit
 import Control.Monad
 import Options.Applicative
-import Options.Applicative.Types
-import Data.Semigroup hiding (option)
-import Data.List
 import Test.QuickCheck
 import Language.Haskell.Interpreter
 
@@ -37,40 +34,7 @@ import NormalizationStrategies hiding ((<>))
 import InputMonad
 
 import Normalizations
-
--- | The command line arguments
-data CommandLineArguments = CMD { studentSolutionPath :: FilePath
-                                , modelSolutionsPath  :: FilePath
-                                , generatorPair       :: Maybe (String, String)
-                                , environment         :: Env
-                                } deriving Show
-
--- | A parser for command line arguments
-arguments :: Parser CommandLineArguments
-arguments =  CMD
-         <$> argument str       (  metavar "STUDENT_SOLUTION")
-         <*> argument str       (  metavar "MODEL_SOLUTIONS_DIR")
-         <*> option   generator (  metavar "TEST_GENERATOR"
-                                <> long "generator"
-                                <> short 'g'
-                                <> value Nothing
-                                <> help "Should be on the form module:generator")
-         <*> parseEnv
-
--- | A `ReadM` "parser" for "module:function" to specify what generator to use
-generator :: ReadM (Maybe (String, String))
-generator = do
-  s <- readerAsk
-  case elemIndex ':' s of
-    Nothing -> readerError "Could not parse generator, should be on the form FILE:FUNCTION"
-    Just i  -> return (Just (tail <$> splitAt i s))
-
--- | Full parser for arguments
-argumentParser :: ParserInfo CommandLineArguments
-argumentParser = info (arguments <**> helper)
-                 (  fullDesc
-                 <> header "JAA, a program for Java Automated Assessment"
-                 )
+import ParseArguments
 
 -- | The actual entry point of the application
 application :: Maybe (String, String) -> FilePath -> FilePath -> EvalM ()
