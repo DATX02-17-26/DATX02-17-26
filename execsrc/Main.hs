@@ -84,6 +84,7 @@ makeGen Nothing = do
   logMessage "Using arbitrary generator"
   return arbitrary
 makeGen (Just (mod, fun)) = do
+  logMessage $ "Reading generator from " ++ mod ++ ".hs"
   eg <- liftIO $ runInterpreter $ do
     loadModules [mod ++ ".hs"]
     setTopLevelModules [mod]
