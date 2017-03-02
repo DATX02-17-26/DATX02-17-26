@@ -48,8 +48,8 @@ data CommandLineArguments = CMD { studentSolutionPath :: FilePath
 -- | A parser for command line arguments
 arguments :: Parser CommandLineArguments
 arguments =  CMD
-         <$> argument str       (metavar "STUDENT_SOLUTION")
-         <*> argument str       (metavar "MODEL_SOLUTIONS_DIR")
+         <$> argument str       (  metavar "STUDENT_SOLUTION")
+         <*> argument str       (  metavar "MODEL_SOLUTIONS_DIR")
          <*> option   generator (  metavar "TEST_GENERATOR"
                                 <> long "generator"
                                 <> short 'g'
@@ -73,14 +73,15 @@ argumentParser = info (arguments <**> helper)
                  )
 
 -- | The actual entry point of the application
-application :: Gen String -> FilePath -> FilePath -> EvalM ()
-application gen ss dirOfModelSolutions = do
-  -- Get the filepaths of the student and model solutions
-  paths <- getFilePathContext ss dirOfModelSolutions
-
-  -- Try to compile the student and model solutions
-  let compDir = "compilationDirectory"
+application :: Maybe (String, String) -> FilePath -> FilePath -> EvalM ()
+application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
   withTemporaryDirectory compDir $ do
+    -- Get the filepaths of the student and model solutions
+    paths <- getFilePathContext ss dirOfModelSolutions
+
+    -- Get the generator for `stdin` test data
+    gen <- makeGen gp
+
     compilationStatus <- compileContext paths compDir
     case compilationStatus of
       Succeeded -> return ()
@@ -113,6 +114,20 @@ application gen ss dirOfModelSolutions = do
 
     return ()
 
+-- | Create a generator from a module-function pair
+makeGen :: Maybe (String, String) -> EvalM (Gen String)
+makeGen Nothing = do
+  logMessage "Using arbitrary generator"
+  return arbitrary
+makeGen (Just (mod, fun)) = do
+  eg <- liftIO $ runInterpreter $ do
+    loadModules [mod ++ ".hs"]
+    setTopLevelModules [mod]
+    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
+  case eg of
+    Right g    -> return g
+    Left error -> throw $ "Failed to load generator: " ++ show error
+
 main :: IO ()
 main = do
   -- Parse command line arguments
@@ -124,14 +139,5 @@ main = do
       dirOfModelSolutions = modelSolutionsPath  args
       gp                  = generatorPair args
 
-  g <- case gp of
-        Nothing         -> return arbitrary
-        Just (mod, fun) -> do
-          Right g <- runInterpreter $ do
-            loadModules [mod ++ ".hs"]
-            setTopLevelModules [mod]
-            interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
-          return g
-
   -- Run the actual application
-  executeEvalM env $ application g studentSolution dirOfModelSolutions
+  executeEvalM env $ application gp studentSolution dirOfModelSolutions
