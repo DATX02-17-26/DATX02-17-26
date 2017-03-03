@@ -16,9 +16,9 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
-{-# LANGUAGE LambdaCase, TupleSections #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric
+  , LambdaCase, TupleSections
+  , TypeFamilies #-}
 
 -- | Revisable class of types.
 module Core.Common.History (
