@@ -63,8 +63,8 @@ u = undefined
 err :: TCComp a
 err = throwError ()
 
--- NOTE: These functions are somewhat borrowed from previous work / Mazdak
--- From a course in Compiler Construction...
+-- NOTE: Some of these functions are somewhat borrowed from
+-- previous work from a course in Compiler Construction... / Mazdak
 
 -- | 'mfindU': specializes 'mfind' for lists while also allowing an update to
 -- the place the element was considered found. The updated list is yielded
@@ -73,19 +73,21 @@ mfindU :: (a -> Maybe (b, a)) -> [a] -> (Maybe b, [a])
 mfindU tp = maybe (Nothing, []) f . uncons
     where f (a, as) = maybe (second (a:) $ mfindU tp as) (Just *** (:as)) (tp a)
 
-merr :: Maybe a -> TCComp a
-merr = maybe err pure
+errM :: Maybe a -> TCComp a
+errM = maybe err pure
+
+justM :: TCComp (Maybe a) -> TCComp a
+justM = (>>= errM)
+
+getVar :: (LVExt -> LVExt) -> String -> TCComp LVExt
+getVar upd key = justM $ contexts %%= mfindU (ctxLookup upd  key)
 
 loadVar, writeVar :: String -> TCComp LVExt
-loadVar  key = contexts %%= mfindU (ctxLookup readsInc  key) >>= merr
-writeVar key = contexts %%= mfindU (ctxLookup writesInc key) >>= merr
-
-readsInc, writesInc :: LVExt -> LVExt
-readsInc  = (leVar . veReads)  +~ 1
-writesInc = (leVar . veWrites) +~ 1
+loadVar  = getVar $ (leVar . veReads)  +~ 1
+writeVar = getVar $ (leVar . veWrites) +~ 1
 
 ctxLookup :: (LVExt -> LVExt) -> String -> Context -> Maybe (LVExt, Context)
-ctxLookup upd key ctx = case M.updateLookupWithKey (const $ Just . upd) key ctx of
+ctxLookup upd k ctx = case M.updateLookupWithKey (const $ Just . upd) k ctx of
     (Just var, ctx') -> Just (var, ctx')
     (Nothing , _   ) -> Nothing
 
@@ -96,11 +98,78 @@ extendVar set key = do
           (const err)
           (M.lookup key c)
 
-coercesTo, castableTo :: Type -> Type -> TCComp Bool
---coercesTo (PrimT x) (PrimT y) = 
+--------------------------------------------------------------------------------
+-- Type conversions:
+--------------------------------------------------------------------------------
+
+idConv :: Type -> Type -> Bool
+idConv = (==)
+
+widePrimConv :: PrimType -> PrimType -> Bool
+widePrimConv s t = case s of
+  ByteT  | t `elem` [ShortT, IntT, LongT, FloatT, DoubleT] -> True
+  ShortT | t `elem` [IntT, LongT, FloatT, DoubleT]         -> True
+  CharT  | t `elem` [IntT, LongT, FloatT, DoubleT]         -> True
+  IntT   | t `elem` [LongT, FloatT, DoubleT]               -> True
+  LongT  | t `elem` [FloatT, DoubleT]                      -> True
+  FloatT | t `elem` [DoubleT]                              -> True
+  _                                                        -> False
+
+narrPrimConv :: PrimType -> PrimType -> Bool
+narrPrimConv s t = case s of
+  ShortT  | t `elem` [ByteT, CharT]                              -> True
+  CharT   | t `elem` [ByteT, ShortT]                             -> True
+  IntT    | t `elem` [ByteT, ShortT, CharT]                      -> True
+  LongT   | t `elem` [ByteT, ShortT, CharT, IntT]                -> True
+  FloatT  | t `elem` [ByteT, ShortT, CharT, IntT, LongT]         -> True
+  DoubleT | t `elem` [ByteT, ShortT, CharT, IntT, LongT, FloatT] -> True
+  _                                                              -> False
+
+widePConv :: Type -> Type -> Bool
+widePConv s t = case (s, t) of
+  (PrimT s', PrimT t') -> widePrimConv s' t'
+  _                    -> False
+
+narrPConv :: Type -> Type -> Bool
+narrPConv s t = case (s, t) of
+  (PrimT s', PrimT t') -> narrPrimConv s' t'
+  _                    -> False
+
+wiNaPConv :: Type -> Type -> Bool
+wiNaPConv s t = case (s, t) of
+  (PrimT ByteT, PrimT CharT) -> True
+  _                          -> False
+
+boxConv :: Type -> Type -> Bool
+boxConv s t = False -- TODO: tier 1
+
+unBoxConv :: Type -> Type -> Bool
+unBoxConv s t = False -- TODO: tier 1
+
+nullConv :: Type -> Type -> Bool
+nullConv s t = case s of
+  NullT -> case t of
+    ArrayT _ -> True
+    StringT  -> True
+    _        -> False
+  _          -> False
+
+assConv :: Type -> Type -> Bool
+assConv s t =  or $ ($ s) . ($ t)
+           <$> [idConv, widePConv, boxConv, unBoxConv, nullConv]
+
+appConv :: Type -> Type -> Bool
+appConv s t = or $ ($ s) . ($ t)
+           <$> [idConv, widePConv, boxConv, unBoxConv, nullConv]
+
+
+-- | Determines if the first type can be coerced to the second.
+coercesTo :: Type -> Type -> TCComp Bool
+-- coercesTo (PrimT x) (PrimT y) = u
 coercesTo x y | x == y    = pure True
               | otherwise = pure False
 
+castableTo :: Type -> Type -> TCComp Bool
 castableTo x y = coercesTo x y
 
 inferExpr :: SExpr -> TCComp (TcExpr, ExprExt)
