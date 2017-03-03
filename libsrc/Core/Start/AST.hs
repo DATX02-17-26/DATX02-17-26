@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell
   , TypeFamilies, FlexibleInstances #-}
 
 module Core.Start.AST where
@@ -28,6 +28,7 @@ import GHC.Generics (Generic)
 import qualified Language.Java.Syntax as S
 
 import Core.Common.History
+import Core.Common.TH
 import Core.Common.AST
 import Core.Start.Phase as X
 
@@ -66,30 +67,32 @@ data Type
 --------------------------------------------------------------------------------
 
 -- | Literal values.
-data Literal
+data SLiteral
   = Int {
-      _litI :: Integer -- ^ Literal integer.
+      _litI :: Integer -- ^ Literal integer, type is IntT, example: "1".
     }
   | Word {
-      _litI :: Integer -- ^ Literal word.
+      _litI :: Integer -- ^ Literal word, type is LongT, example: "1L".
     }
   | Float {
-      _litD :: Double  -- ^ Literal float.
+      _litD :: Double  -- ^ Literal float, type is FloatT, example: "0.1f".
     }
   | Double {
-      _litD :: Double  -- ^ Literal double.
+      _litD :: Double  -- ^ Literal double, type is DoubleT, example: "0.0".
     }
   | Boolean {
-      _litB :: Bool    -- ^ Literal boolean.
+      _litB :: Bool    -- ^ Literal boolean, type is BoolT, example: "true".
     }
   | Char {
-      _litC :: Char    -- ^ Literal char.
+      _litC :: Char    -- ^ Literal char, type is CharT, example: "'a'".
     }
   | String {
-      _litS :: String  -- ^ Literal String.
+      _litS :: String  -- ^ Literal String, type is StringT, example: "\"A\"".
     }
-  | Null               -- ^ Literal null.
+  | Null               -- ^ Literal null, type is NullT, example: "null".
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+$(deriveLens [''PrimType, ''Type, ''SLiteral])
 
 --------------------------------------------------------------------------------
 -- Type synonyms:
@@ -122,7 +125,7 @@ type SCompilationUnit = CompilationUnit Start
 -- Type families: literal, types.
 --------------------------------------------------------------------------------
 
-type instance XELitT     Start = Literal
+type instance XELitT     Start = SLiteral
 type instance XDefType   Start = Type
 
 --------------------------------------------------------------------------------
