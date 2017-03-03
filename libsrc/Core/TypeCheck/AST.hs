@@ -36,42 +36,6 @@ import Core.Start.AST
 import Control.Lens ((%~))
 
 --------------------------------------------------------------------------------
--- Literals:
---------------------------------------------------------------------------------
-
--- | Literal values.
-data TLiteral
-  = LBool {
-      _litBool   :: Bool    -- ^ Literal boolean.
-    }
-  | LByte {
-      _litByte   :: Integer -- ^ Literal byte  (8 bit signed 2s complement).
-    }
-  | LShort {
-      _litShort  :: Integer -- ^ Literal short (16 bit signed 2s complement).
-    }
-  | LInt {
-      _litInt    :: Integer -- ^ Literal int   (32 bit signed 2s complement).
-    }
-  | LLong {
-      _litLong   :: Integer -- ^ Literal long  (64 bit signed 2s complement).
-    }
-  | LChar {
-      _litChar   :: Char    -- ^ Literal char (16 bit unicode character).
-    }
-  | LStr {
-      _litStr    :: String  -- ^ Literal string, list of chars.
-    }
-  | LFloat {
-      _litFloat  :: Double  -- ^ Literal float, 32-bit IEEE 754.
-    }
-  | LDouble {
-      _litDouble :: Double  -- ^ Literal double, 64-bit IEEE 754.
-    }
-  | Null
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
---------------------------------------------------------------------------------
 -- Type synonyms:
 --------------------------------------------------------------------------------
 
@@ -102,7 +66,7 @@ type TcCompilationUnit = CompilationUnit TypeCheck
 -- Type families: literal, types.
 --------------------------------------------------------------------------------
 
-type instance XELitT     TypeCheck = TLiteral
+type instance XELitT     TypeCheck = SLiteral
 type instance XDefType   TypeCheck = Type
 
 --------------------------------------------------------------------------------
@@ -359,7 +323,7 @@ data LVExt = LVExt
   , _leVar  :: VarExt
   } deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-$(deriveLens [''TLiteral, ''Purity, ''ExprExt, ''VarExt, ''LVExt])
+$(deriveLens [''Purity, ''ExprExt, ''VarExt, ''LVExt])
 
 type instance XLVName    TypeCheck = LVExt
 type instance XLVArr     TypeCheck = LVExt
