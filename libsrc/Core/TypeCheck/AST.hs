@@ -16,10 +16,9 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving #-}
-{-# LANGUAGE GADTs, DataKinds, PolyKinds, KindSignatures, TypeFamilies
-  , LambdaCase, TypeOperators, TemplateHaskell, TypeSynonymInstances
-  , FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving, LambdaCase
+  , TemplateHaskell, GADTs, DataKinds, PolyKinds, TypeFamilies
+  , TypeOperators, FlexibleInstances #-}
 
 module Core.TypeCheck.AST where
 
@@ -35,98 +34,6 @@ import Core.TypeCheck.Phase as X
 import Core.Start.AST
 
 import Control.Lens ((%~))
-
---------------------------------------------------------------------------------
--- Types:
---------------------------------------------------------------------------------
-
--- | Singleton versions of PrimType.
-data SPrimType (t :: PrimType) where
-  TBool   :: SPrimType BoolT   -- ^ Type of bool   expressions, as singleton.
-  TByte   :: SPrimType ByteT   -- ^ Type of byte   expressions, as singleton.
-  TShort  :: SPrimType ShortT  -- ^ Type of short  expressions, as singleton.
-  TInt    :: SPrimType IntT    -- ^ Type of int    expressions, as singleton.
-  TLong   :: SPrimType LongT   -- ^ Type of long   expressions, as singleton.
-  TChar   :: SPrimType CharT   -- ^ Type of char   expressions, as singleton.
-  TFloat  :: SPrimType FloatT  -- ^ Type of float  expressions, as singleton.
-  TDouble :: SPrimType DoubleT -- ^ Type of double expressions, as singleton.
-
--- | Singleton versions of Type.
-data SType (t :: Type) where
-  TPrim  :: SPrimType t -> SType (PrimT t)
-  TStr   :: SType StringT -- ^ Type of string expressions, as singleton.
-  TArray :: SType t -> SType (ArrayT t)
-
-deriving instance Eq   (SPrimType t)
-deriving instance Show (SPrimType t)
-deriving instance Eq   (SType t)
-deriving instance Show (SType t)
-
--- | dynPType: Convert (primitive type) singleton version to dynamic version.
-dynPType :: SPrimType t -> PrimType
-dynPType = \case
-  TBool   -> BoolT
-  TByte   -> ByteT
-  TShort  -> ShortT
-  TInt    -> IntT
-  TLong   -> LongT
-  TChar   -> CharT
-  TFloat  -> FloatT
-  TDouble -> DoubleT
-
--- | dynType :: Convert (type) singleton version to dynamic version.
-dynType :: SType t -> Type
-dynType = \case
-  TPrim t  -> PrimT  $ dynPType t
-  TStr     -> StringT
-  TArray t -> ArrayT $ dynType t
-
--- | TWrap: Existentially quantified version of SType.
--- Exists to allow eqType conversion.
-data TWrap where
-  -- | Construct a TWrap given a proxy (witness for t) + the type.
-  (::~) :: Proxy t -> SType t -> TWrap
-
--- | eqType :: convert dynamic Type to wrapper of
--- existentially quantified singleton version.
-eqType :: Type -> TWrap
-eqType = \case
-  PrimT t   -> case t of
-    BoolT   -> Proxy ::~ TPrim TBool
-    ByteT   -> Proxy ::~ TPrim TByte
-    ShortT  -> Proxy ::~ TPrim TShort
-    IntT    -> Proxy ::~ TPrim TInt
-    LongT   -> Proxy ::~ TPrim TLong
-    CharT   -> Proxy ::~ TPrim TChar
-    FloatT  -> Proxy ::~ TPrim TFloat
-    DoubleT -> Proxy ::~ TPrim TDouble
-  StringT   -> Proxy ::~ TStr
-  ArrayT t  -> case eqType t of
-    Proxy ::~ t' -> Proxy ::~ TArray t'
-
--- | Type level equality...
-data a :~: b where
-  -- | Refl = types are equal...
-  Refl :: a :~: a
-
--- | Determine if two primitive types are the same at run time.
-(=??=) :: SPrimType a -> SPrimType b -> Maybe (a :~: b)
-TBool   =??= TBool   = pure Refl
-TByte   =??= TByte   = pure Refl
-TShort  =??= TShort  = pure Refl
-TInt    =??= TInt    = pure Refl
-TLong   =??= TLong   = pure Refl
-TChar   =??= TChar   = pure Refl
-TFloat  =??= TFloat  = pure Refl
-TDouble =??= TDouble = pure Refl
-_       =??= _       = Nothing
-
--- | Determine if two types are the same at run time.
-(=?=) :: SType a -> SType b -> Maybe (a :~: b)
-TPrim a  =?= TPrim b  = a =??= b >>= \Refl -> pure Refl
-TStr     =?= TStr     = pure Refl
-TArray a =?= TArray b = a =?= b  >>= \Refl -> pure Refl
-_        =?= _        = Nothing
 
 --------------------------------------------------------------------------------
 -- Literals:
