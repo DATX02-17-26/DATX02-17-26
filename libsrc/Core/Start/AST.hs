@@ -58,6 +58,7 @@ data Type
   | ArrayT {
       _tType :: Type     -- ^ An array type of some other type.
     }
+  | NullT                -- ^ Type of the null literal, can't be declared.
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 --------------------------------------------------------------------------------
