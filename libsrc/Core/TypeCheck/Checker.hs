@@ -102,7 +102,9 @@ extendVar set key = do
 -- Type conversions:
 --------------------------------------------------------------------------------
 
-idConv :: Type -> Type -> Bool
+type TConv = Type -> Type -> Bool
+
+idConv :: TConv
 idConv = (==)
 
 widePrimConv :: PrimType -> PrimType -> Bool
@@ -125,28 +127,34 @@ narrPrimConv s t = case s of
   DoubleT | t `elem` [ByteT, ShortT, CharT, IntT, LongT, FloatT] -> True
   _                                                              -> False
 
-widePConv :: Type -> Type -> Bool
+widePConv :: TConv
 widePConv s t = case (s, t) of
   (PrimT s', PrimT t') -> widePrimConv s' t'
   _                    -> False
 
-narrPConv :: Type -> Type -> Bool
+narrPConv :: TConv
 narrPConv s t = case (s, t) of
   (PrimT s', PrimT t') -> narrPrimConv s' t'
   _                    -> False
 
-wiNaPConv :: Type -> Type -> Bool
+wiNaPConv :: TConv
 wiNaPConv s t = case (s, t) of
   (PrimT ByteT, PrimT CharT) -> True
   _                          -> False
 
-boxConv :: Type -> Type -> Bool
+wideRConv :: TConv
+wideRConv s t = False -- TODO: tier 1
+
+narrRConv :: TConv
+narrRConv s t = False -- TODO: tier 1
+
+boxConv :: TConv
 boxConv s t = False -- TODO: tier 1
 
-unBoxConv :: Type -> Type -> Bool
+unBoxConv :: TConv
 unBoxConv s t = False -- TODO: tier 1
 
-nullConv :: Type -> Type -> Bool
+nullConv :: TConv
 nullConv s t = case s of
   NullT -> case t of
     ArrayT _ -> True
@@ -154,13 +162,14 @@ nullConv s t = case s of
     _        -> False
   _          -> False
 
-assConv :: Type -> Type -> Bool
-assConv s t =  or $ ($ s) . ($ t)
-           <$> [idConv, widePConv, boxConv, unBoxConv, nullConv]
+anyConv :: (Foldable t, Functor t) => t TConv -> TConv
+anyConv convs = \s t -> or $ ($ s) . ($ t) <$> convs
+
+assConv :: TConv
+assConv = anyConv [idConv, widePConv, wideRConv, boxConv, unBoxConv, nullConv]
 
 appConv :: Type -> Type -> Bool
-appConv s t = or $ ($ s) . ($ t)
-           <$> [idConv, widePConv, boxConv, unBoxConv, nullConv]
+appConv = anyConv [idConv, widePConv, boxConv, unBoxConv, nullConv]
 
 
 -- | Determines if the first type can be coerced to the second.
