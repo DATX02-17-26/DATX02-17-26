@@ -113,6 +113,10 @@ application gen ss dirOfModelSolutions = do
 
     return ()
 
+genLCAlpha :: Gen String
+genLCAlpha = listOf $ choose ('a','z')
+
+--To run the program use the command: cabal run -- JAA -h
 main :: IO ()
 main = do
   -- Parse command line arguments
@@ -125,7 +129,7 @@ main = do
       gp                  = generatorPair args
 
   g <- case gp of
-        Nothing         -> return arbitrary
+        Nothing         -> return genLCAlpha
         Just (mod, fun) -> do
           Right g <- runInterpreter $ do
             loadModules [mod ++ ".hs"]

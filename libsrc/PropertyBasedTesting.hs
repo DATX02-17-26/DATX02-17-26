@@ -62,22 +62,31 @@ testSolutions :: FilePath -> String -> EvalM Bool
 testSolutions dir input = do
   modelOutputs <- modelSolutionsOutputs dir input
   studO <- studentOutput dir input
-  return $ maybe False (\s -> or [s == output | output <- modelOutputs]) studO
+  maybe (return False) (\s -> compareOutputs s modelOutputs) studO
+
+compareOutputs :: String -> [String] -> EvalM Bool
+compareOutputs _ [] = return True
+compareOutputs student (model:ms) = do
+  if student == model then
+    compareOutputs student ms
+  else do
+    issue $ "Student output: " ++ student ++ "\n    Model output: " ++ model
+    return False
+
 
 -- | Perform the relevant tests on all class files in the directory
--- `dir`, returns `True` if the student solution passes all tests
 runPBT :: FilePath -> Gen String -> EvalM ()
 runPBT dir generator = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
-  inner numTests
-  where
-    -- Ugly inner loop, this should be done more elequently
-    inner 0 = comment "Student solution passed tests"
-    inner n = do
-      input  <- liftIO $ generate generator
-      passed <- testSolutions dir input
-      if passed then
-        inner (n - 1)
-      else
-        issue $ "Student solution does not pass tests, fails on:\"\"\"\n" ++ input ++ "\"\"\""
+  runNumberOfTests numTests dir generator
+
+runNumberOfTests :: Int -> FilePath -> Gen String -> EvalM ()
+runNumberOfTests 0 _ _ = comment "Student solution passed all tests"
+runNumberOfTests numTests dir generator = do
+  input  <- liftIO $ generate $ generator
+  passed <- testSolutions dir input
+  if passed then
+    runNumberOfTests (numTests - 1) dir generator
+  else
+    issue $ "Input was: " ++ input
