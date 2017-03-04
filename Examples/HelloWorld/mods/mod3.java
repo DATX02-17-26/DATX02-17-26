@@ -1,4 +1,4 @@
-public class stud
+public class mod3 
 { 
     public static void main(String [] args)
     {
