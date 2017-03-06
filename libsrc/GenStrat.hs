@@ -16,6 +16,8 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+
 module GenStrat where
 
 import Ideas.Common.Library
@@ -23,6 +25,8 @@ import Ideas.Common.Strategy as S
 import Control.Monad.State
 import Control.Monad as M
 import Data.Generics.Uniplate.DataOnly (transformBi)
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
 
 import CoreS.ASTUnitype
 import CoreS.ASTUnitypeUtils
@@ -90,6 +94,37 @@ locGen ast = do
 
 makeStrategy :: AST -> Strategy AST
 makeStrategy ast = fst $ runState (genStrat 0 ast) 1
+
+data RoseTree a = RoseTree a [RoseTree a]
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+makeASTsRoseTree :: Strategy AST -> RoseTree AST
+makeASTsRoseTree strat = go strat (Hole 0)
+  where
+    go strat ast = RoseTree ast [go strat ast' | ast' <- nextTerms strat ast]
+
+    nextTerms strat ast = map firstTerm $ derivationList (\_ _ -> EQ) strat ast
+
+-- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
+canMatch :: AST -> AST -> Bool
+canMatch _ _ = True
+
+-- | Simple DFS traversal
+matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
+matchesDFS norm (RoseTree ast []) ast' = ast == ast' 
+matchesDFS norm (RoseTree ast asts) ast'
+  | canMatch ast' (norm ast) = or [matchesDFS norm ast'' ast' | ast'' <- asts]
+  | otherwise                = False
+
+-- | Simple BFS traversal
+matchesBFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
+matchesBFS norm tree ast = go [tree]
+  where
+    go [] = False
+    go ((RoseTree a []):trees) = ast == (norm a) || go trees
+    go ((RoseTree a asts):trees)
+      | canMatch ast (norm a) = go (trees ++ asts)
+      | otherwise      = go trees
 
 makeASTs :: Strategy AST -> [AST]
 makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0) 
