@@ -23,6 +23,7 @@ import Options.Applicative.Types
 import Data.Semigroup hiding (option)
 import Data.List
 import Test.QuickCheck
+import Text.Toml
 
 import EvaluationMonad
 
@@ -33,17 +34,33 @@ data CommandLineArguments = CMD { studentSolutionPath :: FilePath
                                 , environment         :: Env
                                 } deriving Show
 
+defaultArguments :: CommandLineArguments
+defaultArguments = CMD { studentSolutionPath = "student.java"
+                       , modelSolutionsPath  = "modelSolutions"
+                       , generatorPair       = Nothing
+                       , environment         = defaultEnv
+                       }
+
 -- | A parser for command line arguments
 arguments :: Parser CommandLineArguments
-arguments =  CMD
-         <$> argument str       (  metavar "STUDENT_SOLUTION")
-         <*> argument str       (  metavar "MODEL_SOLUTIONS_DIR")
-         <*> option   generator (  metavar "TEST_GENERATOR"
-                                <> long "generator"
-                                <> short 'g'
-                                <> value Nothing
-                                <> help "Should be on the form module:generator")
-         <*> parseEnv
+arguments = argumentsWithDefault defaultArguments 
+
+argumentsWithDefault :: CommandLineArguments -> Parser CommandLineArguments
+argumentsWithDefault cmd =
+  CMD
+     <$> argument str       (  metavar "STUDENT_SOLUTION")
+     <*> option   str       (  metavar "MODEL_SOLUTIONS_DIR"
+                            <> long "model-solutions"
+                            <> short 'm'
+                            <> value (modelSolutionsPath cmd)
+                            <> help "The directory containing all model solutions"
+                            )
+     <*> option   generator (  metavar "TEST_GENERATOR"
+                            <> long "generator"
+                            <> short 'g'
+                            <> value (generatorPair cmd)
+                            <> help "Should be on the form module:generator")
+     <*> parseEnvDefault (environment cmd)
 
 -- | A `ReadM` "parser" for "module:function" to specify what generator to use
 generator :: ReadM (Maybe (String, String))
@@ -59,4 +76,3 @@ argumentParser = info (arguments <**> helper)
                  (  fullDesc
                  <> header "JAA, a program for Java Automated Assessment"
                  )
-

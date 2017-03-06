@@ -31,7 +31,8 @@ module EvaluationMonad (
   executeEvalM,
   Env(..),
   defaultEnv,
-  parseEnv 
+  parseEnv,
+  parseEnvDefault
 ) where
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except as E
@@ -92,9 +93,9 @@ defaultEnv = Env { verbose       = False
                  , numberOfTests = 100
                  }
 
--- | A parser for environments
-parseEnv :: Parser Env
-parseEnv =  Env
+parseEnvDefault :: Env -> Parser Env
+parseEnvDefault env =  
+      Env
         <$> switch
               (  long    "verbose"
               <> short   'v'
@@ -103,17 +104,21 @@ parseEnv =  Env
         <*> strOption
               (  long    "logfile"
               <> short   'l'
-              <> value   "logfile.log"
+              <> value   (logfile env)
               <> metavar "LOGFILE"
               <> help    "Logfile produced on program crash"
               )
         <*> option auto
               (  long    "numTests"
               <> short   'n'
-              <> value   100
+              <> value   (numberOfTests env)
               <> metavar "NUM_TESTS"
               <> help    "Number of tests during property based testing"
               )
+
+-- | A parser for environments
+parseEnv :: Parser Env
+parseEnv = parseEnvDefault defaultEnv
 
 -- | `printLog log` converts the log to a format suitable
 -- for logfiles
@@ -200,4 +205,3 @@ inTemporaryDirectory dir evalm = do
   logMessage $ "Changing directory to " ++ was
   liftIO $ setCurrentDirectory was
   return result
-
