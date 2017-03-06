@@ -105,10 +105,6 @@ makeASTsRoseTree strat = go strat (Hole 0)
 
     nextTerms strat ast = map firstTerm $ derivationList (\_ _ -> EQ) strat ast
 
--- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
-canMatch :: AST -> AST -> Bool
-canMatch _ _ = True
-
 -- | Simple DFS traversal
 matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
 matchesDFS norm (RoseTree ast []) ast' = ast == ast' 

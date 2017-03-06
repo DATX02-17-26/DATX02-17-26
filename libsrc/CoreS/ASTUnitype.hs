@@ -172,3 +172,65 @@ convertForInit (CAST.FIExprs es) = FIExprs (map convertExpr es)
 
 convertSwitchBlock :: CAST.SwitchBlock -> AST
 convertSwitchBlock (CAST.SwitchBlock l (CAST.Block bs)) = SwitchBlock l (map convertStmt bs)
+
+-- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
+canMatch :: AST -> AST -> Bool
+canMatch _ (Hole _) = True
+canMatch (Int i)  (Int j) = i == j 
+canMatch (Word i) (Word j) = i == j
+canMatch (Float i) (Float j) = i == j 
+canMatch (Double d) (Double b) = d == b 
+canMatch (Boolean b) (Boolean a) = a == b 
+canMatch (Char c) (Char a) = a == c 
+canMatch (String s) (String s') = s == s' 
+canMatch Null Null = True
+canMatch (LVName i) (LVName j) = i == j
+canMatch (LVArray a as) (LVArray b bs) = canMatch b bs && and [canMatch a b | (a, b) <- zip as bs]
+canMatch (InitExpr ast) (InitExpr ast') = canMatch ast ast' 
+canMatch (InitArr  as) (InitArr bs) = and [canMatch a b | (a, b) <- zip as bs]
+canMatch (ELit ast) (ELit ast') = canMatch ast ast' 
+canMatch (EVar ast) (EVar ast') = canMatch ast ast' 
+canMatch (ECast t ast) (ECast t' ast') = t == t' && canMatch ast ast' 
+canMatch (ECond a b c) (ECast d e f) = canMatch a d && canMatch b e && canMatch c f
+canMatch (EAssign a b) (EAssign c d) = canMatch a c && canMatch b d
+canMatch (EOAssign ast op ast') (EOAssign ast'' op' ast''') = op == op' && canMatch ast ast'' && canMatch ast' ast'''
+canMatch (ENum CAST.NumOp AST AST 
+canMatch (ECmp CAST.CmpOp AST AST 
+canMatch (ELog CAST.LogOp AST AST 
+canMatch (ENot AST 
+canMatch (EStep CAST.StepOp AST 
+canMatch (EBCompl AST 
+canMatch (EPlus   AST 
+canMatch (EMinus  AST 
+canMatch (EMApp CAST.Name [AST]
+canMatch (EArrNew  CAST.Type [AST] Integer
+canMatch (EArrNewI CAST.Type Integer [AST] 
+canMatch (ESysOut  AST 
+canMatch (SEmpty
+canMatch (Block [AST]
+canMatch (SExpr AST 
+canMatch (SVars CAST.TypedVVDecl
+canMatch (SReturn AST 
+canMatch (SVReturn
+canMatch (SIf AST AST 
+canMatch (SIfElse AST AST AST
+canMatch (SWhile AST AST
+canMatch (SDo AST AST
+canMatch (SForB (Maybe AST) (Maybe AST) (Maybe [AST]) AST
+canMatch (SForE CAST.VMType CAST.Ident AST AST
+canMatch (SContinue
+canMatch (SBreak
+canMatch (SSwitch AST [AST]
+canMatch (SwitchBlock CAST.SwitchLabel [AST]
+canMatch (SwitchCase AST
+canMatch (Default
+canMatch (FIVars CAST.TypedVVDecl
+canMatch (FIExprs [AST]
+canMatch (MethodDecl (Maybe CAST.Type) CAST.Ident [AST] AST
+canMatch (FormalParam t d) (FormalParam b c) = t == b && d == c
+canMatch (CompilationUnit a) (CompilationUnit b) = canMatch a b
+canMatch (ClassTypeDecl ast) (ClassTypeDecl ast') = canMatch ast ast' 
+canMatch (ClassDecl i ast) (ClassDecl j ast') = i == j && canMatch ast ast' 
+canMatch (ClassBody ast) (ClassBody ast') = canMatch ast ast' 
+canMatch (MemberDecl ast) (MemberDecl ast') = canMatch ast ast'
+canMatch _ _ = False
