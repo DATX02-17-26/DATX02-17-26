@@ -18,20 +18,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 module SolutionContext where
 import System.Directory
-import Control.Lens hiding (Context)
 import Control.Monad.Trans.State
 import System.FilePath
 
 import EvaluationMonad
 
 -- | The context in which we are investigating a student solution
-data SolutionContext a = Ctx { _studentSolution :: a
-                             , _modelSolutions  :: [a]
+data SolutionContext a = Ctx { studentSolution :: a
+                             , modelSolutions  :: [a]
                              }
                              deriving (Eq, Show, Ord)
-
--- | Obligatory lenses
-$(makeLenses ''SolutionContext)
 
 -- | `Context` is a functor, obviously
 instance Functor SolutionContext where
@@ -58,24 +54,28 @@ getFilePathContext studentPath modelDir = do
 
   return $ Ctx studentPath (combine modelDir <$> modelDirJavaFiles)
 
--- | Read the context in which we are working from the directory
-readRawContext :: SolutionContext FilePath -> EvalM (SolutionContext String)
-readRawContext ctx = do
+-- | Read the contents from the student and model solution paths
+readRawContents :: SolutionContext FilePath -> EvalM (SolutionContext String)
+readRawContents ctx = do
   -- Do some logging
   logMessage $ "Reading student solution"
 
   -- Read the student solution
-  studentSolution <- liftIO $ readFile $ ctx ^. studentSolution
+  studentSolution <- liftIO $ readFile $ studentSolution ctx
 
   -- Do some more logging
   logMessage $ "Reading model solutions"
 
   -- Get the contents of the model solutions
-  modelSolutions <- liftIO $ sequence $ readFile <$> ctx ^. modelSolutions
+  modelSolutions <- liftIO $ sequence $ readFile <$> modelSolutions ctx
 
   -- Return the contest
   return $ Ctx studentSolution modelSolutions
 
 -- | Check if a student solution matches any of the model solutions
 studentSolutionMatches :: (a -> a -> Bool) -> SolutionContext a -> Bool
-studentSolutionMatches eqCheck ctx = any (eqCheck $ ctx ^. studentSolution) (ctx ^. modelSolutions)
+studentSolutionMatches eqCheck ctx = any (eqCheck $ studentSolution ctx) (modelSolutions ctx)
+
+-- | Zip together two SolutionContext's
+zipContexts :: SolutionContext a -> SolutionContext b -> SolutionContext (a, b)
+zipContexts (Ctx a as) (Ctx b bs) = Ctx (a, b) (zip as bs)
