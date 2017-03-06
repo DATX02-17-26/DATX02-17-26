@@ -174,6 +174,8 @@ convertSwitchBlock :: CAST.SwitchBlock -> AST
 convertSwitchBlock (CAST.SwitchBlock l (CAST.Block bs)) = SwitchBlock l (map convertStmt bs)
 
 -- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
+--
+-- todo: refactor....
 canMatch :: AST -> AST -> Bool
 canMatch _ (Hole _) = True
 canMatch (Int i)  (Int j) = i == j 
@@ -185,48 +187,50 @@ canMatch (Char c) (Char a) = a == c
 canMatch (String s) (String s') = s == s' 
 canMatch Null Null = True
 canMatch (LVName i) (LVName j) = i == j
-canMatch (LVArray a as) (LVArray b bs) = canMatch b bs && and [canMatch a b | (a, b) <- zip as bs]
+canMatch (LVArray a as) (LVArray b bs) = canMatch a b && and [canMatch a b | (a, b) <- zip as bs]
 canMatch (InitExpr ast) (InitExpr ast') = canMatch ast ast' 
 canMatch (InitArr  as) (InitArr bs) = and [canMatch a b | (a, b) <- zip as bs]
 canMatch (ELit ast) (ELit ast') = canMatch ast ast' 
 canMatch (EVar ast) (EVar ast') = canMatch ast ast' 
 canMatch (ECast t ast) (ECast t' ast') = t == t' && canMatch ast ast' 
-canMatch (ECond a b c) (ECast d e f) = canMatch a d && canMatch b e && canMatch c f
+canMatch (ECond a b c) (ECond d e f) = canMatch a d && canMatch b e && canMatch c f
 canMatch (EAssign a b) (EAssign c d) = canMatch a c && canMatch b d
 canMatch (EOAssign ast op ast') (EOAssign ast'' op' ast''') = op == op' && canMatch ast ast'' && canMatch ast' ast'''
-canMatch (ENum CAST.NumOp AST AST 
-canMatch (ECmp CAST.CmpOp AST AST 
-canMatch (ELog CAST.LogOp AST AST 
-canMatch (ENot AST 
-canMatch (EStep CAST.StepOp AST 
-canMatch (EBCompl AST 
-canMatch (EPlus   AST 
-canMatch (EMinus  AST 
-canMatch (EMApp CAST.Name [AST]
-canMatch (EArrNew  CAST.Type [AST] Integer
-canMatch (EArrNewI CAST.Type Integer [AST] 
-canMatch (ESysOut  AST 
-canMatch (SEmpty
-canMatch (Block [AST]
-canMatch (SExpr AST 
-canMatch (SVars CAST.TypedVVDecl
-canMatch (SReturn AST 
-canMatch (SVReturn
-canMatch (SIf AST AST 
-canMatch (SIfElse AST AST AST
-canMatch (SWhile AST AST
-canMatch (SDo AST AST
-canMatch (SForB (Maybe AST) (Maybe AST) (Maybe [AST]) AST
-canMatch (SForE CAST.VMType CAST.Ident AST AST
-canMatch (SContinue
-canMatch (SBreak
-canMatch (SSwitch AST [AST]
-canMatch (SwitchBlock CAST.SwitchLabel [AST]
-canMatch (SwitchCase AST
-canMatch (Default
-canMatch (FIVars CAST.TypedVVDecl
-canMatch (FIExprs [AST]
-canMatch (MethodDecl (Maybe CAST.Type) CAST.Ident [AST] AST
+canMatch (ENum op ast ast') (ENum op' ast'' ast''') = op == op' && canMatch ast ast'' && canMatch ast' ast'''
+canMatch (ECmp op ast bst) (ECmp op' ast' bst') = op == op' && canMatch ast ast' && canMatch bst bst' 
+canMatch (ELog op ast bst) (ELog op' ast' bst') = op == op' && canMatch ast ast' && canMatch bst bst' 
+canMatch (ENot ast) (ENot ast') = canMatch ast ast'
+canMatch (EStep op ast) (EStep op' ast') = op == op' && canMatch ast ast' 
+canMatch (EBCompl ast) (EBCompl ast') = canMatch ast ast' 
+canMatch (EPlus ast) (EPlus ast') = canMatch ast ast' 
+canMatch (EMinus ast) (EMinus ast') = canMatch ast ast' 
+canMatch (EMApp c asts) (EMApp d asts') = c == d && and [canMatch a b | (a, b) <- zip asts asts']
+canMatch (EArrNew  t xs is)  (EArrNew  t' xs' is') = t == t' && and [canMatch x y | (x,y) <- zip xs xs'] && is == is'
+canMatch (EArrNewI t i xs) (EArrNewI t' i' xs') = t == t' && i == i' && and [canMatch x y | (x, y) <- zip xs xs'] 
+canMatch (ESysOut ast) (ESysOut ast') = canMatch ast ast'
+canMatch SEmpty SEmpty = True
+canMatch (Block ast) (Block ast') = and [canMatch a b | (a, b) <- zip ast ast']
+canMatch (SExpr ast) (SExpr ast') = canMatch ast ast' 
+canMatch (SVars t) (SVars t') = t == t'
+canMatch (SReturn ast) (SReturn ast') = canMatch ast ast' 
+canMatch SVReturn SVReturn = True
+canMatch (SIf a b) (SIf c d) = canMatch a c && canMatch c d
+canMatch (SIfElse b f s) (SIfElse b' f' s') = canMatch b b' && canMatch f f' && canMatch s s'
+canMatch (SWhile b bd) (SWhile b' bd') = canMatch b b' && canMatch bd bd'
+canMatch (SDo b bd) (SDo b' bd') = canMatch b b' && canMatch bd bd'
+canMatch (SForB ma mb mcs d) (SForB ma' mb' mcs' d') = canMatch d d' && (ma == ma' || maybe False id (canMatch <$> ma <*> ma')) &&
+                                                       (mb == mb' || maybe False id (canMatch <$> mb <*> mb')) &&
+                                                       (mcs == mcs' || maybe False id ((\ xs ys -> and [canMatch x y | (x, y) <- zip xs ys]) <$> mcs <*> mcs'))
+canMatch (SForE t i a b) (SForE t' i' a' b') = t == t' && i == i' && canMatch a a' && canMatch b b' 
+canMatch SContinue SContinue = True
+canMatch SBreak SBreak = True
+canMatch (SSwitch ast asts) (SSwitch ast' asts') = canMatch ast ast' && and [canMatch a b | (a, b) <- zip asts asts']
+canMatch (SwitchBlock l asts) (SwitchBlock l' asts') = l == l' && and [canMatch a b | (a, b) <- zip asts asts']
+canMatch (SwitchCase ast) (SwitchCase ast') = canMatch ast ast' 
+canMatch Default Default = True
+canMatch (FIVars i) (FIVars j) = i == j
+canMatch (FIExprs as) (FIExprs bs) = and [canMatch a b | (a, b) <- zip as bs] 
+canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && and [canMatch x x' | (x, x') <- zip xs xs'] && canMatch ast ast'
 canMatch (FormalParam t d) (FormalParam b c) = t == b && d == c
 canMatch (CompilationUnit a) (CompilationUnit b) = canMatch a b
 canMatch (ClassTypeDecl ast) (ClassTypeDecl ast') = canMatch ast ast' 
