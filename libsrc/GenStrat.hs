@@ -27,6 +27,7 @@ import Control.Monad as M
 import Data.Generics.Uniplate.DataOnly (transformBi)
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
+import Debug.Trace
 
 import CoreS.ASTUnitype
 import CoreS.ASTUnitypeUtils
@@ -99,11 +100,11 @@ data RoseTree a = RoseTree a [RoseTree a]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 makeASTsRoseTree :: Strategy AST -> RoseTree AST
-makeASTsRoseTree strat = go strat (Hole 0)
+makeASTsRoseTree strat = go (Hole 0)
   where
-    go strat ast = RoseTree ast [go strat ast' | ast' <- nextTerms strat ast]
+    go ast = RoseTree ast [go ast' | ast' <- nextTerms ast]
 
-    nextTerms strat ast = map firstTerm $ derivationList (\_ _ -> EQ) strat ast
+    nextTerms ast = filter (ast /=) $ applyAll strat ast
 
 -- | Simple DFS traversal
 matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
@@ -131,4 +132,4 @@ makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 -- | `matches a b` checks if `a` matches the strategy generated
 -- by `b`
 matches :: (AST -> AST) -> AST -> AST -> Bool
-matches norm a b = matchesDFS norm (makeASTsRoseTree b) a --a `elem` (map norm $ makeASTs (makeStrategy b))
+matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a --a `elem` (map norm $ makeASTs (makeStrategy b))
