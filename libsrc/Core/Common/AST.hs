@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving, DataKinds
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving
   , ConstraintKinds, TypeFamilies, UndecidableInstances, TemplateHaskell #-}
 
 module Core.Common.AST where
@@ -25,8 +25,6 @@ import Data.Function (on)
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 import GHC.Types (Constraint)
-
-import Control.Lens (makeLenses, makePrisms)
 
 import Class.Approx
 import Core.Common.TH

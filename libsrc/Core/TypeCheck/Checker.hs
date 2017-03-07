@@ -16,30 +16,39 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell #-}
-
-{-
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving #-}
-{-# LANGUAGE GADTs, DataKinds, PolyKinds, KindSignatures, TypeFamilies
-  , LambdaCase, TypeOperators, TemplateHaskell, TypeSynonymInstances
-  , FlexibleInstances #-}
--}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell, LambdaCase
+  , RecordWildCards #-}
 
 module Core.TypeCheck.Checker where
 
+import Prelude hiding (EQ, LT, GT)
+
 import qualified Data.Map as M
 
-import Data.List (uncons)
-import Control.Arrow (second, (***))
 import Control.Monad.State
 import Control.Monad.Except
 
-import Control.Lens ((%%=), (.=), (+~), use)
+import Data.Monoid ((<>))
+--import Data.Maybe (fromMaybe)
+--import Data.Foldable (find)
+import Util.List
 
+import Control.Lens ((%%=), (.=), (+~), use, (^?))
+
+import Core.Common.History
 import Core.Common.TH
 import Core.Common.AST
+import Core.Common.Type
+import Core.Common.Purity
+import Core.Common.Literal
 import Core.Start.AST
 import Core.TypeCheck.AST
+
+u = undefined
+
+--------------------------------------------------------------------------------
+-- Environment:
+--------------------------------------------------------------------------------
 
 type Context  = M.Map String LVExt
 type Contexts = [Context]
@@ -58,26 +67,14 @@ newtype TCComp a = TCComp
   } deriving (Functor, Applicative, Monad, MonadFix,
               MonadState TCEnv, MonadError ())
 
-u = undefined
-
 err :: TCComp a
 err = throwError ()
 
--- NOTE: Some of these functions are somewhat borrowed from
--- previous work from a course in Compiler Construction... / Mazdak
-
--- | 'mfindU': specializes 'mfind' for lists while also allowing an update to
--- the place the element was considered found. The updated list is yielded
--- alongside the potenially found transformed element as a pair.
-mfindU :: (a -> Maybe (b, a)) -> [a] -> (Maybe b, [a])
-mfindU tp = maybe (Nothing, []) f . uncons
-    where f (a, as) = maybe (second (a:) $ mfindU tp as) (Just *** (:as)) (tp a)
-
-errM :: Maybe a -> TCComp a
-errM = maybe err pure
+lM :: Maybe a -> TCComp a
+lM = maybe err pure
 
 justM :: TCComp (Maybe a) -> TCComp a
-justM = (>>= errM)
+justM = (>>= lM)
 
 getVar :: (LVExt -> LVExt) -> String -> TCComp LVExt
 getVar upd key = justM $ contexts %%= mfindU (ctxLookup upd  key)
@@ -99,105 +96,90 @@ extendVar set key = do
           (M.lookup key c)
 
 --------------------------------------------------------------------------------
--- Type conversions:
+-- Type inference:
 --------------------------------------------------------------------------------
 
-type TConv = Type -> Type -> Bool
+inferLit :: SExpr -> TCComp TcExpr
+inferLit e = let l = _eLit e in pure $ ELit NoH (EExt Constant $ litType l) l
 
-idConv :: TConv
-idConv = (==)
+geType :: TcExpr -> TCComp Type
+geType = lM . (^? eType)
 
-widePrimConv :: PrimType -> PrimType -> Bool
-widePrimConv s t = case s of
-  ByteT  | t `elem` [ShortT, IntT, LongT, FloatT, DoubleT] -> True
-  ShortT | t `elem` [IntT, LongT, FloatT, DoubleT]         -> True
-  CharT  | t `elem` [IntT, LongT, FloatT, DoubleT]         -> True
-  IntT   | t `elem` [LongT, FloatT, DoubleT]               -> True
-  LongT  | t `elem` [FloatT, DoubleT]                      -> True
-  FloatT | t `elem` [DoubleT]                              -> True
-  _                                                        -> False
+gePurity :: HasPurity x => x -> TCComp Purity
+gePurity = lM . (^? purity)
 
-narrPrimConv :: PrimType -> PrimType -> Bool
-narrPrimConv s t = case s of
-  ShortT  | t `elem` [ByteT, CharT]                              -> True
-  CharT   | t `elem` [ByteT, ShortT]                             -> True
-  IntT    | t `elem` [ByteT, ShortT, CharT]                      -> True
-  LongT   | t `elem` [ByteT, ShortT, CharT, IntT]                -> True
-  FloatT  | t `elem` [ByteT, ShortT, CharT, IntT, LongT]         -> True
-  DoubleT | t `elem` [ByteT, ShortT, CharT, IntT, LongT, FloatT] -> True
-  _                                                              -> False
+inferX :: SExpr -> TCComp ((TcExpr, Type), Purity)
+inferX e = do
+  e' <- inferExpr e
+  t  <- geType e'
+  p  <- gePurity e'
+  pure ((e', t), p)
 
-widePConv :: TConv
-widePConv s t = case (s, t) of
-  (PrimT s', PrimT t') -> widePrimConv s' t'
-  _                    -> False
+inferB :: SExpr -> SExpr -> TCComp ((TcExpr, Type), (TcExpr, Type), Purity)
+inferB l r = (\(x, px) (y, py) -> (x, y, px <> px)) <$> inferX l <*> inferX r
 
-narrPConv :: TConv
-narrPConv s t = case (s, t) of
-  (PrimT s', PrimT t') -> narrPrimConv s' t'
-  _                    -> False
+inferBin :: (Revisor l d o -> ExprExt -> op -> TcExpr -> TcExpr -> TcExpr)
+         -> TConv -> op -> SExpr -> SExpr -> TCComp TcExpr
+inferBin ctor tc o l r = do
+  ((l', tl), (r', tr), p) <- inferB l r
+  t' <- lM $ tc tl tr
+  pure $ ctor NoH (EExt p $ pure t') o l' r'
 
-wiNaPConv :: TConv
-wiNaPConv s t = case (s, t) of
-  (PrimT ByteT, PrimT CharT) -> True
-  _                          -> False
+inferNB, inferBI, inferSH :: NumOp -> SExpr -> SExpr -> TCComp TcExpr
+inferNB = inferBin ENum numBinConv
+inferBI = inferBin ENum biBinConv
+inferSH = inferBin ENum unConvSh
 
-wideRConv :: TConv
-wideRConv s t = False -- TODO: tier 1
+inferNum :: NumOp -> SExpr -> SExpr -> TCComp TcExpr
+inferNum o = case o of
+  Add     -> inferNB o
+  Sub     -> inferNB o
+  Mul     -> inferNB o
+  Div     -> inferNB o
+  Rem     -> inferNB o
+  LShift  -> inferSH o
+  RShift  -> inferSH o
+  RRShift -> inferSH o
+  And     -> inferBI o
+  Xor     -> inferBI o
+  Or      -> inferBI o
 
-narrRConv :: TConv
-narrRConv s t = False -- TODO: tier 1
+inferUna :: (Revisor l d o -> ExprExt -> TcExpr -> TcExpr)
+         -> UConv -> SExpr -> TCComp TcExpr
+inferUna ctor conv e = do
+  ((e', t), p) <- inferX e
+  t'           <- lM $ conv t
+  pure $ ctor NoH (EExt p $ pure t') e'
 
-boxConv :: TConv
-boxConv s t = False -- TODO: tier 1
+inferNCmp :: CmpOp -> SExpr -> SExpr -> TCComp TcExpr
+inferNCmp = inferBin ECmp numBinConv
 
-unBoxConv :: TConv
-unBoxConv s t = False -- TODO: tier 1
+inferCmp :: CmpOp -> SExpr -> SExpr -> TCComp TcExpr
+inferCmp o = case o of
+  EQ -> inferBin ECmp eqOpConv o
+  NE -> inferBin ECmp eqOpConv o
+  LT -> inferNCmp o
+  GT -> inferNCmp o
+  LE -> inferNCmp o
+  GE -> inferNCmp o
 
-nullConv :: TConv
-nullConv s t = case s of
-  NullT -> case t of
-    ArrayT _ -> True
-    StringT  -> True
-    _        -> False
-  _          -> False
-
-anyConv :: (Foldable t, Functor t) => t TConv -> TConv
-anyConv convs = \s t -> or $ ($ s) . ($ t) <$> convs
-
-assConv :: TConv
-assConv = anyConv [idConv, widePConv, wideRConv, boxConv, unBoxConv, nullConv]
-
-appConv :: Type -> Type -> Bool
-appConv = anyConv [idConv, widePConv, boxConv, unBoxConv, nullConv]
-
-
--- | Determines if the first type can be coerced to the second.
-coercesTo :: Type -> Type -> TCComp Bool
--- coercesTo (PrimT x) (PrimT y) = u
-coercesTo x y | x == y    = pure True
-              | otherwise = pure False
-
-castableTo :: Type -> Type -> TCComp Bool
-castableTo x y = coercesTo x y
-
-inferExpr :: SExpr -> TCComp (TcExpr, ExprExt)
-inferExpr expr = case expr of
-  EExpr    {} -> u
-  ELit     {} -> u
+inferExpr :: SExpr -> TCComp TcExpr
+inferExpr e = case e of
+  EExpr    {} -> undefined
+  ELit     {} -> inferLit e
   EVar     {} -> u
   ECast    {} -> u
   ECond    {} -> u
   EAssign  {} -> u
   EOAssign {} -> u
-  ENum     {} -> u
-  ECmp     {} -> u
-  ELog     {} -> u
-  ENot     {} -> u
+  ENum     {..} -> inferNum _eNumOp _eLeft _eRight
+  ECmp     {..} -> inferCmp _eCmpOp _eLeft _eRight
+  ELog     {..} -> inferBin ELog boolConv _eLogOp _eLeft _eRight
+  ENot     {..} -> inferUna ENot (unBin [boT] boolConv) _eExpr
   EStep    {} -> u
-  EBCompl  {} -> u
-  EPlus    {} -> u
-  EMinus   {} -> u
+  EBCompl  {..} -> inferUna EBCompl intUnConv _eExpr
+  EPlus    {..} -> inferUna EPlus   unConv    _eExpr
+  EMinus   {..} -> inferUna EMinus  unConv    _eExpr
   EMApp    {} -> u
   EArrNew  {} -> u
   EArrNewI {} -> u

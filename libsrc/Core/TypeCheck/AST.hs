@@ -17,12 +17,10 @@
  -}
 
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, StandaloneDeriving, LambdaCase
-  , TemplateHaskell, GADTs, DataKinds, PolyKinds, TypeFamilies
-  , TypeOperators, FlexibleInstances #-}
+  , TemplateHaskell, RecordWildCards, TypeFamilies, FlexibleInstances #-}
 
 module Core.TypeCheck.AST where
 
-import Data.Proxy (Proxy (..))
 import Data.Void (Void)
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
@@ -30,10 +28,13 @@ import GHC.Generics (Generic)
 import Core.Common.TH
 import Core.Common.History
 import Core.Common.AST
+import Core.Common.Type
+import Core.Common.Purity
+import Core.Common.Literal
 import Core.TypeCheck.Phase as X
 import Core.Start.AST
 
-import Control.Lens ((%~))
+import Control.Lens ((%~), Lens', Prism', Traversal', _Just)
 
 --------------------------------------------------------------------------------
 -- Type synonyms:
@@ -303,11 +304,6 @@ instance Revisable TcCompilationUnit where
 -- Type families: extra stuff.
 --------------------------------------------------------------------------------
 
-data Purity = Constant | Pure | Impure
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-type RType = Maybe Type
-
 data ExprExt = EExt
   { _eePurity :: Purity
   , _eeType   :: RType
@@ -323,7 +319,7 @@ data LVExt = LVExt
   , _leVar  :: VarExt
   } deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-$(deriveLens [''Purity, ''ExprExt, ''VarExt, ''LVExt])
+$(deriveLens [''ExprExt, ''VarExt, ''LVExt])
 
 type instance XLVName    TypeCheck = LVExt
 type instance XLVArr     TypeCheck = LVExt
@@ -365,3 +361,64 @@ type instance XSSwitch   TypeCheck = Purity
 type instance XBlock     TypeCheck = Purity
 type instance XMethDecl  TypeCheck = Purity
 type instance XFormPar   TypeCheck = VarExt
+
+lvExt :: Lens' TcLValue LVExt
+lvExt f = \case
+  LVName  {..} -> (\x -> LVName  { _lvXLVN = x, .. }) § _lvXLVN
+  LVArray {..} -> (\x -> LVArray { _lvXLVA = x, .. }) § _lvXLVA
+  where (§) h = fmap h . f
+
+eExt :: Lens' TcExpr ExprExt
+eExt f = \case
+  EExpr    {  } -> undefined
+  ELit     {..} -> (\x -> ELit     { _eXLit     = x, .. }) § _eXLit
+  EVar     {..} -> (\x -> EVar     { _eXVar     = x, .. }) § _eXVar
+  ECast    {..} -> (\x -> ECast    { _eXCast    = x, .. }) § _eXCast
+  ECond    {..} -> (\x -> ECond    { _eXCond    = x, .. }) § _eXCond
+  EAssign  {..} -> (\x -> EAssign  { _eXAssign  = x, .. }) § _eXAssign
+  EOAssign {..} -> (\x -> EOAssign { _eXOAssign = x, .. }) § _eXOAssign
+  ENum     {..} -> (\x -> ENum     { _eXNum     = x, .. }) § _eXNum
+  ECmp     {..} -> (\x -> ECmp     { _eXCmp     = x, .. }) § _eXCmp
+  ELog     {..} -> (\x -> ELog     { _eXLog     = x, .. }) § _eXLog
+  ENot     {..} -> (\x -> ENot     { _eXNot     = x, .. }) § _eXNot
+  EStep    {..} -> (\x -> EStep    { _eXStep    = x, .. }) § _eXStep
+  EBCompl  {..} -> (\x -> EBCompl  { _eXBCompl  = x, .. }) § _eXBCompl
+  EPlus    {..} -> (\x -> EPlus    { _eXPlus    = x, .. }) § _eXPlus
+  EMinus   {..} -> (\x -> EMinus   { _eXMinus   = x, .. }) § _eXMinus
+  EMApp    {..} -> (\x -> EMApp    { _eXMApp    = x, .. }) § _eXMApp
+  EArrNew  {..} -> (\x -> EArrNew  { _eXArrNew  = x, .. }) § _eXArrNew
+  EArrNewI {..} -> (\x -> EArrNewI { _eXArrNew  = x, .. }) § _eXArrNew
+  ESysOut  {..} -> (\x -> ESysOut  { _eXSysOut  = x, .. }) § _eXSysOut
+  where (§) h = fmap h . f
+
+eRType :: Lens' TcExpr RType
+eRType = eExt . eeType
+
+eType :: Traversal' TcExpr Type
+eType = eRType . _Just
+
+sPurity :: Lens' TcStmt Purity
+sPurity f = \case
+  SStmt     {  } -> undefined
+  SEmpty    {..} -> (\x -> SEmpty    { _sXSEmpty    = x, .. }) § _sXSEmpty
+  SBlock    {..} -> (\x -> SBlock    { _sXSBlock    = x, .. }) § _sXSBlock
+  SExpr     {..} -> (\x -> SExpr     { _sXSExpr     = x, .. }) § _sXSExpr
+  SVars     {..} -> (\x -> SVars     { _sXSVars     = x, .. }) § _sXSVars
+  SReturn   {..} -> (\x -> SReturn   { _sXSReturn   = x, .. }) § _sXSReturn
+  SVReturn  {..} -> (\x -> SVReturn  { _sXSVReturn  = x, .. }) § _sXSVReturn
+  SIf       {..} -> (\x -> SIf       { _sXSIf       = x, .. }) § _sXSIf
+  SIfElse   {..} -> (\x -> SIfElse   { _sXSIfElse   = x, .. }) § _sXSIfElse
+  SWhile    {..} -> (\x -> SWhile    { _sXSWhile    = x, .. }) § _sXSWhile
+  SDo       {..} -> (\x -> SDo       { _sXSDo       = x, .. }) § _sXSDo
+  SForB     {..} -> (\x -> SForB     { _sXSForB     = x, .. }) § _sXSForB
+  SForE     {..} -> (\x -> SForE     { _sXSForE     = x, .. }) § _sXSForE
+  SContinue {..} -> (\x -> SContinue { _sXSContinue = x, .. }) § _sXSContinue
+  SBreak    {..} -> (\x -> SBreak    { _sXSBreak    = x, .. }) § _sXSBreak
+  SSwitch   {..} -> (\x -> SSwitch   { _sXSSwitch   = x, .. }) § _sXSSwitch
+  where (§) h = fmap h . f
+
+instance HasPurity TcExpr where
+  purity = eExt . eePurity
+
+instance HasPurity TcStmt where
+  purity = sPurity

@@ -16,11 +16,11 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE StandaloneDeriving
-  , GADTs, DataKinds, PolyKinds, LambdaCase #-}
+{-# LANGUAGE StandaloneDeriving, LambdaCase
+  , GADTs, DataKinds, PolyKinds, TypeOperators #-}
 
--- | Types from Core.Start.AST as singletons.
-module Core.TypeCheck.SType (
+-- | Types from Core.Common.AST as singletons.
+module Core.Common.SType (
   -- * Data types:
     SPrimType (..)
   , SType (..)
@@ -38,7 +38,7 @@ import Data.Proxy (Proxy (..))
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 
-import Core.Start.AST
+import Core.Common.Type
 
 --------------------------------------------------------------------------------
 -- Types:

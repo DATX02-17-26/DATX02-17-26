@@ -16,83 +16,21 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell
-  , TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies, FlexibleInstances #-}
 
 module Core.Start.AST where
 
 import Data.Void (Void)
-import Data.Data (Data, Typeable)
-import GHC.Generics (Generic)
+import Control.Lens ((%~))
 
 import qualified Language.Java.Syntax as S
 
 import Core.Common.History
-import Core.Common.TH
 import Core.Common.AST
+import Core.Common.Type
+import Core.Common.Literal
+
 import Core.Start.Phase as X
-
-import Control.Lens ((%~))
-
---------------------------------------------------------------------------------
--- Types:
---------------------------------------------------------------------------------
-
--- | Primitive types.
-data PrimType
-  = BoolT   -- ^ Type of bool   values and expressions.
-  | ByteT   -- ^ Type of byte   values and expressions.
-  | ShortT  -- ^ Type of short  values and expressions.
-  | IntT    -- ^ Type of int    values and expressions.
-  | LongT   -- ^ Type of long   values and expressions.
-  | CharT   -- ^ Type of char   values and expressions.
-  | FloatT  -- ^ Type of float  values and expressions.
-  | DoubleT -- ^ Type of double values and expressions.
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
--- | All possible types that value / expression can be of.
-data Type
-  = PrimT {
-      _tPrim :: PrimType -- ^ A primitive type.
-    }
-  | StringT              -- ^ A String type.
-  | ArrayT {
-      _tType :: Type     -- ^ An array type of some other type.
-    }
-  | NullT                -- ^ Type of the null literal, can't be declared.
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
---------------------------------------------------------------------------------
--- Literals:
---------------------------------------------------------------------------------
-
--- | Literal values.
-data SLiteral
-  = Int {
-      _litI :: Integer -- ^ Literal integer, type is IntT, example: "1".
-    }
-  | Word {
-      _litI :: Integer -- ^ Literal word, type is LongT, example: "1L".
-    }
-  | Float {
-      _litD :: Double  -- ^ Literal float, type is FloatT, example: "0.1f".
-    }
-  | Double {
-      _litD :: Double  -- ^ Literal double, type is DoubleT, example: "0.0".
-    }
-  | Boolean {
-      _litB :: Bool    -- ^ Literal boolean, type is BoolT, example: "true".
-    }
-  | Char {
-      _litC :: Char    -- ^ Literal char, type is CharT, example: "'a'".
-    }
-  | String {
-      _litS :: String  -- ^ Literal String, type is StringT, example: "\"A\"".
-    }
-  | Null               -- ^ Literal null, type is NullT, example: "null".
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-$(deriveLens [''PrimType, ''Type, ''SLiteral])
 
 --------------------------------------------------------------------------------
 -- Type synonyms:
