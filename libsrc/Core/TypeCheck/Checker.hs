@@ -99,11 +99,14 @@ extendVar set key = do
 -- Type inference:
 --------------------------------------------------------------------------------
 
+mke :: (Revisor l d o -> ExprExt -> t) -> Purity -> Type -> t
+mke ctor p t' = ctor NoH (EExt p $ pure t')
+
 inferLit :: SExpr -> TCComp TcExpr
 inferLit e = let l = _eLit e in pure $ ELit NoH (EExt Constant $ litType l) l
 
-geType :: TcExpr -> TCComp Type
-geType = lM . (^? eType)
+geType :: HasType t => t -> TCComp Type
+geType = lM . (^? ttype)
 
 gePurity :: HasPurity x => x -> TCComp Purity
 gePurity = lM . (^? purity)
@@ -123,7 +126,7 @@ inferBin :: (Revisor l d o -> ExprExt -> op -> TcExpr -> TcExpr -> TcExpr)
 inferBin ctor tc o l r = do
   ((l', tl), (r', tr), p) <- inferB l r
   t' <- lM $ tc tl tr
-  pure $ ctor NoH (EExt p $ pure t') o l' r'
+  pure $ (mke ctor p t') o l' r'
 
 inferNB, inferBI, inferSH :: NumOp -> SExpr -> SExpr -> TCComp TcExpr
 inferNB = inferBin ENum numBinConv
@@ -149,7 +152,7 @@ inferUna :: (Revisor l d o -> ExprExt -> TcExpr -> TcExpr)
 inferUna ctor conv e = do
   ((e', t), p) <- inferX e
   t'           <- lM $ conv t
-  pure $ ctor NoH (EExt p $ pure t') e'
+  pure $ mke ctor p t' e'
 
 inferNCmp :: CmpOp -> SExpr -> SExpr -> TCComp TcExpr
 inferNCmp = inferBin ECmp numBinConv
@@ -163,13 +166,38 @@ inferCmp o = case o of
   LE -> inferNCmp o
   GE -> inferNCmp o
 
+inferCond :: SExpr -> SExpr -> SExpr -> TCComp TcExpr
+inferCond c i e = do
+  ((c', tc), pc) <- inferX c
+  tc' <- lM $ boolConv tc boT
+  ((i', ti), pi) <- inferX i
+  ((e', te), pe) <- inferX e
+  tr <- lM $ condConv pi pe ti te
+  let p' = pc <> pi <> pe
+  pure $ mke ECond p' tr c' i' e'
+
+inferId :: SIdent -> TCComp TcIdent
+inferId i = pure $ reviseOrig "typecheck.conv.ident" i $ Ident NoH $ _idId i
+
+inferLVal :: SLValue -> TCComp TcLValue
+inferLVal lv = reviseOrig "typecheck.infer.lvalue" lv <$> case lv of
+  LVName  {..} -> do
+    i'  <- inferId _lvId
+    lve <- loadVar $ _idId i'
+    pure $ LVName NoH lve i'
+  LVArray {..} -> do
+     a'  <- inferExpr _lvExpr
+     ds' <- mapM inferExpr _lvExprs
+
+     u
+
 inferExpr :: SExpr -> TCComp TcExpr
-inferExpr e = case e of
+inferExpr e = reviseOrig "typecheck.infer.expr" e <$> case e of
   EExpr    {} -> undefined
   ELit     {} -> inferLit e
   EVar     {} -> u
   ECast    {} -> u
-  ECond    {} -> u
+  ECond    {..} -> inferCond _eCond _eExpI _eExpE
   EAssign  {} -> u
   EOAssign {} -> u
   ENum     {..} -> inferNum _eNumOp _eLeft _eRight

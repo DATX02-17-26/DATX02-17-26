@@ -26,7 +26,7 @@ import GHC.Generics (Generic)
 import Data.Maybe (fromMaybe)
 import Data.Foldable (find, msum)
 import Control.Monad (mfilter, mplus)
-import Control.Lens ((^?), isn't)
+import Control.Lens (Lens', Traversal', _Just, (^?), isn't)
 
 import Core.Common.TH
 import Core.Common.Purity
@@ -63,6 +63,22 @@ $(deriveLens [''PrimType, ''Type])
 
 -- | Return types (including "void").
 type RType = Maybe Type
+
+--------------------------------------------------------------------------------
+-- Array related:
+--------------------------------------------------------------------------------
+
+-- | Dimensionality of a type, an array adds +1 dimensionality.
+dimens :: Type -> Integer
+dimens = \case
+  PrimT _  -> 0
+  StringT  -> 0
+  ArrayT t -> 1 + dimens t
+  NullT    -> 0
+
+--------------------------------------------------------------------------------
+-- Aliases:
+--------------------------------------------------------------------------------
 
 -- | Short hand for PrimT BoolT.
 boT :: Type
@@ -103,6 +119,19 @@ isTNum t = fromMaybe False $ isn't _BoolT <$> (t ^? tPrim)
 -- | Yields True if the type is primitive integral.
 isTInt :: Type -> Bool
 isTInt t = t `elem` [byT, chT, shT, inT, loT]
+
+--------------------------------------------------------------------------------
+-- HasType:
+--------------------------------------------------------------------------------
+
+-- | Class of terms with knowledge about their type.
+class HasType x where
+  -- | Lens for the rtype of the term.
+  rtype :: Lens' x RType
+
+  -- | Traversal for the value type of the term.
+  ttype :: Traversal' x Type
+  ttype = rtype . _Just
 
 --------------------------------------------------------------------------------
 -- Type conversions:
@@ -250,6 +279,7 @@ condConv pl pr = anyConv
            , anyOf [shT] $ binConv wpConv
            , anyConv [constNp2iConv pl, flip (constNp2iConv pr)]
         -- , unBox...
+           , numBinConv
            ]
 
 -- | An identity conversion of given type.

@@ -368,6 +368,12 @@ lvExt f = \case
   LVArray {..} -> (\x -> LVArray { _lvXLVA = x, .. }) § _lvXLVA
   where (§) h = fmap h . f
 
+lvEE :: Lens' TcLValue ExprExt
+lvEE = lvExt . leExpr
+
+lvVE :: Lens' TcLValue VarExt
+lvVE = lvExt . leVar
+
 eExt :: Lens' TcExpr ExprExt
 eExt f = \case
   EExpr    {  } -> undefined
@@ -391,34 +397,34 @@ eExt f = \case
   ESysOut  {..} -> (\x -> ESysOut  { _eXSysOut  = x, .. }) § _eXSysOut
   where (§) h = fmap h . f
 
-eRType :: Lens' TcExpr RType
-eRType = eExt . eeType
+instance HasType TcLValue where
+  rtype = lvEE . eeType
 
-eType :: Traversal' TcExpr Type
-eType = eRType . _Just
+instance HasType TcExpr where
+  rtype = eExt . eeType
 
-sPurity :: Lens' TcStmt Purity
-sPurity f = \case
-  SStmt     {  } -> undefined
-  SEmpty    {..} -> (\x -> SEmpty    { _sXSEmpty    = x, .. }) § _sXSEmpty
-  SBlock    {..} -> (\x -> SBlock    { _sXSBlock    = x, .. }) § _sXSBlock
-  SExpr     {..} -> (\x -> SExpr     { _sXSExpr     = x, .. }) § _sXSExpr
-  SVars     {..} -> (\x -> SVars     { _sXSVars     = x, .. }) § _sXSVars
-  SReturn   {..} -> (\x -> SReturn   { _sXSReturn   = x, .. }) § _sXSReturn
-  SVReturn  {..} -> (\x -> SVReturn  { _sXSVReturn  = x, .. }) § _sXSVReturn
-  SIf       {..} -> (\x -> SIf       { _sXSIf       = x, .. }) § _sXSIf
-  SIfElse   {..} -> (\x -> SIfElse   { _sXSIfElse   = x, .. }) § _sXSIfElse
-  SWhile    {..} -> (\x -> SWhile    { _sXSWhile    = x, .. }) § _sXSWhile
-  SDo       {..} -> (\x -> SDo       { _sXSDo       = x, .. }) § _sXSDo
-  SForB     {..} -> (\x -> SForB     { _sXSForB     = x, .. }) § _sXSForB
-  SForE     {..} -> (\x -> SForE     { _sXSForE     = x, .. }) § _sXSForE
-  SContinue {..} -> (\x -> SContinue { _sXSContinue = x, .. }) § _sXSContinue
-  SBreak    {..} -> (\x -> SBreak    { _sXSBreak    = x, .. }) § _sXSBreak
-  SSwitch   {..} -> (\x -> SSwitch   { _sXSSwitch   = x, .. }) § _sXSSwitch
-  where (§) h = fmap h . f
+instance HasPurity TcLValue where
+  purity = lvEE . eePurity
 
 instance HasPurity TcExpr where
   purity = eExt . eePurity
 
 instance HasPurity TcStmt where
-  purity = sPurity
+  purity f = \case
+    SStmt     {  } -> undefined
+    SEmpty    {..} -> (\x -> SEmpty    { _sXSEmpty    = x, .. }) § _sXSEmpty
+    SBlock    {..} -> (\x -> SBlock    { _sXSBlock    = x, .. }) § _sXSBlock
+    SExpr     {..} -> (\x -> SExpr     { _sXSExpr     = x, .. }) § _sXSExpr
+    SVars     {..} -> (\x -> SVars     { _sXSVars     = x, .. }) § _sXSVars
+    SReturn   {..} -> (\x -> SReturn   { _sXSReturn   = x, .. }) § _sXSReturn
+    SVReturn  {..} -> (\x -> SVReturn  { _sXSVReturn  = x, .. }) § _sXSVReturn
+    SIf       {..} -> (\x -> SIf       { _sXSIf       = x, .. }) § _sXSIf
+    SIfElse   {..} -> (\x -> SIfElse   { _sXSIfElse   = x, .. }) § _sXSIfElse
+    SWhile    {..} -> (\x -> SWhile    { _sXSWhile    = x, .. }) § _sXSWhile
+    SDo       {..} -> (\x -> SDo       { _sXSDo       = x, .. }) § _sXSDo
+    SForB     {..} -> (\x -> SForB     { _sXSForB     = x, .. }) § _sXSForB
+    SForE     {..} -> (\x -> SForE     { _sXSForE     = x, .. }) § _sXSForE
+    SContinue {..} -> (\x -> SContinue { _sXSContinue = x, .. }) § _sXSContinue
+    SBreak    {..} -> (\x -> SBreak    { _sXSBreak    = x, .. }) § _sXSBreak
+    SSwitch   {..} -> (\x -> SSwitch   { _sXSSwitch   = x, .. }) § _sXSSwitch
+    where (§) h = fmap h . f
