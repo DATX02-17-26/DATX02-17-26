@@ -88,7 +88,8 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
 
     return ()
 
---Create a "standard" generator that is used when no other is specified
+
+-- | A generator for alphanumeric strings of lower case letters
 genLCAlpha :: Gen String
 genLCAlpha = listOf $ choose ('a','z')
 
@@ -96,7 +97,7 @@ genLCAlpha = listOf $ choose ('a','z')
 makeGen :: Maybe (String, String) -> EvalM (Gen String)
 makeGen Nothing = do
   logMessage "Using arbitrary generator"
-  return arbitrary
+  return genLCAlpha
 makeGen (Just (mod, fun)) = do
   eg <- liftIO $ runInterpreter $ do
     loadModules [mod ++ ".hs"]
