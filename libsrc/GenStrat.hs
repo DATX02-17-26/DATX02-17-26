@@ -107,10 +107,13 @@ makeASTsRoseTree strat = go strat (Hole 0)
 
 -- | Simple DFS traversal
 matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
-matchesDFS norm (RoseTree ast []) ast' = ast == ast' 
-matchesDFS norm (RoseTree ast asts) ast'
-  | canMatch ast' (norm ast) = or [matchesDFS norm ast'' ast' | ast'' <- asts]
-  | otherwise                = False
+matchesDFS norm tree ast = go [tree]
+  where
+    go [] = False
+    go ((RoseTree a []):trees) = ast == (norm a) || go trees
+    go ((RoseTree a asts):trees)
+      | canMatch ast (norm a) = go (asts ++ trees)
+      | otherwise             = go trees
 
 -- | Simple BFS traversal
 matchesBFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
