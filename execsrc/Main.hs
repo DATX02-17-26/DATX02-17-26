@@ -16,6 +16,16 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+ {-
+ To run the program use one of the commands:
+ cabal run -- JAA -h
+ stack exec JAA
+ :main
+ :set args
+   main
+ All should include PATH_TO_STUDENT_SOLUTION/SOLUTION.java PATH_TO_MODEL_SOLUTIONS/
+ -}
+
 module Main where
 
 import System.Environment
@@ -78,11 +88,16 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
 
     return ()
 
+
+-- | A generator for alphanumeric strings of lower case letters
+genLCAlpha :: Gen String
+genLCAlpha = listOf $ choose ('a','z')
+
 -- | Create a generator from a module-function pair
 makeGen :: Maybe (String, String) -> EvalM (Gen String)
 makeGen Nothing = do
   logMessage "Using arbitrary generator"
-  return arbitrary
+  return genLCAlpha
 makeGen (Just (mod, fun)) = do
   eg <- liftIO $ runInterpreter $ do
     loadModules [mod ++ ".hs"]
@@ -102,6 +117,15 @@ main = do
       studentSolution     = studentSolutionPath args
       dirOfModelSolutions = modelSolutionsPath  args
       gp                  = generatorPair args
+
+  g <- case gp of
+        Nothing         -> return genLCAlpha
+        Just (mod, fun) -> do
+          Right g <- runInterpreter $ do
+            loadModules [mod ++ ".hs"]
+            setTopLevelModules [mod]
+            interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
+          return g
 
   -- Run the actual application
   executeEvalM env $ application gp studentSolution dirOfModelSolutions
