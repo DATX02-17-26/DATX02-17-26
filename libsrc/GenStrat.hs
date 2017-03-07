@@ -131,4 +131,4 @@ makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 -- | `matches a b` checks if `a` matches the strategy generated
 -- by `b`
 matches :: (AST -> AST) -> AST -> AST -> Bool
-matches norm a b = a `elem` (map norm $ makeASTs (makeStrategy b))
+matches norm a b = matchesDFS norm (makeASTsRoseTree b) a --a `elem` (map norm $ makeASTs (makeStrategy b))
