@@ -21,11 +21,14 @@ module Util.List (
   , countBy
   , isPerm
   , isPermEq
+  , mfind, mfindU
   ) where
 
 import Data.Function (on)
-import Data.List (sort)
+import Data.List (uncons, sort)
 import Data.Foldable (foldl')
+import Data.Monoid (getFirst, First (..))
+import Control.Arrow (second, (***))
 
 -- | Count the occurences of the first argument in the second using (==).
 -- This assumes the given foldable is of finite length.
@@ -50,3 +53,19 @@ isPermEq xs ys = ((==) `on` length) xs ys &&
 -- This assumes the given foldable is of finite length.
 isPerm :: Ord a => [a] -> [a] -> Bool
 isPerm = (==) `on` sort
+
+-- NOTE: Some of these functions are somewhat borrowed from
+-- previous work from a course in Compiler Construction... / Mazdak
+
+-- | 'mfind': generalizes 'find' taking a "predicate" using 'Maybe' where
+-- 'Nothing' rejects the element and 'Just' accepts it. It then it maybe finds
+-- the leftmost element mapped, or 'Nothing' if all elements were rejected.
+mfind :: Foldable t => (a -> Maybe b) -> t a -> Maybe b
+mfind p = getFirst . foldMap (First . p)
+
+-- | 'mfindU': specializes 'mfind' for lists while also allowing an update to
+-- the place the element was considered found. The updated list is yielded
+-- alongside the potenially found transformed element as a pair.
+mfindU :: (a -> Maybe (b, a)) -> [a] -> (Maybe b, [a])
+mfindU tp = maybe (Nothing, []) f . uncons
+    where f (a, as) = maybe (second (a:) $ mfindU tp as) (Just *** (:as)) (tp a)
