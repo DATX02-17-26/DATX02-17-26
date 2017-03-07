@@ -64,6 +64,7 @@ testSolutions dir input = do
   studO <- studentOutput dir input
   maybe (return False) (\s -> compareOutputs s modelOutputs) studO
 
+--Compares the output of all model solutions to 1 student solution
 compareOutputs :: String -> [String] -> EvalM Bool
 compareOutputs _ [] = return True
 compareOutputs student (model:ms) = do
@@ -81,6 +82,7 @@ runPBT dir generator = do
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
   runNumberOfTests numTests dir generator
 
+--Runs the specified number of tests
 runNumberOfTests :: Int -> FilePath -> Gen String -> EvalM ()
 runNumberOfTests 0 _ _ = comment "Student solution passed all tests"
 runNumberOfTests numTests dir generator = do
