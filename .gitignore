@@ -20,3 +20,5 @@ cabal.project.local
 *.sw*
 dist/
 logfile.log
+.idea/
+*.class

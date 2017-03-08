@@ -107,64 +107,69 @@ data Literal
   | Char Char
   | String String
   | Null
+  | HoleLiteral Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data LValue
   = LVName Ident
   | LVArray Expr [Expr]
+  | HoleLValue Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data VarInit
   = InitExpr Expr
   | InitArr  ArrayInit
+  | HoleVarInit Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data ArrayInit = ArrayInit [VarInit]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data Expr
- = ELit Literal
- | EVar LValue
- | ECast Type Expr
- | ECond Expr Expr Expr
- | EAssign LValue Expr
- | EOAssign LValue NumOp Expr
- | ENum NumOp Expr Expr
- | ECmp CmpOp Expr Expr
- | ELog LogOp Expr Expr
- | ENot Expr
- | EStep StepOp Expr
- | EBCompl  Expr
- | EPlus    Expr
- | EMinus   Expr
- | EMApp Name [Expr]
- | EArrNew  Type [Expr] Integer
- | EArrNewI Type Integer ArrayInit
- | ESysOut  Expr
- deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  = ELit Literal
+  | EVar LValue
+  | ECast Type Expr
+  | ECond Expr Expr Expr
+  | EAssign LValue Expr
+  | EOAssign LValue NumOp Expr
+  | ENum NumOp Expr Expr
+  | ECmp CmpOp Expr Expr
+  | ELog LogOp Expr Expr
+  | ENot Expr
+  | EStep StepOp Expr
+  | EBCompl  Expr
+  | EPlus    Expr
+  | EMinus   Expr
+  | EMApp Name [Expr]
+  | EArrNew  Type [Expr] Integer
+  | EArrNewI Type Integer ArrayInit
+  | ESysOut  Expr
+  | HoleExpr Int
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 --------------------------------------------------------------------------------
 -- Statements:
 --------------------------------------------------------------------------------
 
-data Block = Block [Stmt]
+data Block = Block [Stmt] | HoleBlock Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data VarDeclId
   = VarDId  Ident
   | VarDArr Ident Integer
+  | HoleVarDeclId Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data VarDecl = VarDecl VarDeclId (Maybe VarInit)
+data VarDecl = VarDecl VarDeclId (Maybe VarInit) | HoleVarDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data VarMod = VMFinal | VMNormal
   deriving (Eq, Ord, Enum,Bounded, Show, Read, Typeable, Data, Generic)
 
-data VMType = VMType VarMod Type
+data VMType = VMType VarMod Type | HoleVMType Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data TypedVVDecl = TypedVVDecl VMType [VarDecl]
+data TypedVVDecl = TypedVVDecl VMType [VarDecl] | HoleTypedVVDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data Stmt
@@ -183,49 +188,52 @@ data Stmt
   | SContinue
   | SBreak
   | SSwitch Expr [SwitchBlock]
+  | HoleStmt Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data SwitchBlock = SwitchBlock SwitchLabel Block
+data SwitchBlock = SwitchBlock SwitchLabel Block | HoleSwitchBlock Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data SwitchLabel
   = SwitchCase Expr
   | Default
+  | HoleSwitchLabel Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data ForInit
   = FIVars  TypedVVDecl
   | FIExprs [Expr]
+  | HoleForInit Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 --------------------------------------------------------------------------------
 -- Method:
 --------------------------------------------------------------------------------
 
-data MemberDecl = MethodDecl (Maybe Type) Ident [FormalParam] Block
+data MemberDecl = MethodDecl (Maybe Type) Ident [FormalParam] Block | HoleMemberDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data FormalParam = FormalParam VMType VarDeclId
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-newtype MethodBody = MethodBody Block
+data MethodBody = MethodBody Block | HoleMethodBody Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 --------------------------------------------------------------------------------
 -- Compilation Unit:
 --------------------------------------------------------------------------------
 
-data CompilationUnit = CompilationUnit [TypeDecl]
+data CompilationUnit = CompilationUnit [TypeDecl] | HoleCompilationUnit Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data TypeDecl  = ClassTypeDecl ClassDecl
+data TypeDecl  = ClassTypeDecl ClassDecl | HoleTypeDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data ClassDecl = ClassDecl Ident ClassBody
+data ClassDecl = ClassDecl Ident ClassBody | HoleClassDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-newtype ClassBody = ClassBody [Decl]
+data ClassBody = ClassBody [Decl] | HoleClassBody Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data Decl = MemberDecl MemberDecl
+data Decl = MemberDecl MemberDecl | HoleDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)

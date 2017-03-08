@@ -2,6 +2,7 @@ module Main where
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
+import CoreS.Parse
 
 import Language.Java.Parser as JP
 import Language.Java.Syntax as JA
@@ -34,4 +35,6 @@ allTests = testGroup "All tests"
   ]
 
 main :: IO ()
-main = defaultMain allTests
+main =
+  defaultMain allTests
+
