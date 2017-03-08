@@ -77,7 +77,10 @@ addExpsIntoStmt mExprs stmt = case mExprs of
   Nothing -> stmt
   (Just exprs) -> SBlock $ Block ([stmt] ++ (SExpr <$> exprs))
 
---Depending on what kind of init, turn into stmts
+{-
+  Depending on what kind of init, turn into stmts
+  Should work with holes. Maybe handle hole in different way?
+-}
 forInitToStmt :: ForInit -> Stmt
 forInitToStmt fInit = case fInit of
   FIVars typedVVDecl -> SVars typedVVDecl
