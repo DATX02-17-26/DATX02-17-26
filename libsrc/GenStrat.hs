@@ -49,7 +49,7 @@ refine ast i = toStrategy $ makeRule ruleId f
       f p = Just $ transformBi refine' p
 
       refine' e
-         | holeId e == Just i = ast 
+         | holeId e == Just i = ast
          | otherwise          = e
 
       ruleId = "refine" ++ show i
@@ -58,12 +58,24 @@ refine ast i = toStrategy $ makeRule ruleId f
 -- does not create all strategies we want, we need to go to
 -- a DAG approach for that
 makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
-makeDependencyStrategy [] = return $ succeed 
+makeDependencyStrategy [] = return $ succeed
 makeDependencyStrategy [(x, loc)] = genStrat loc x
 makeDependencyStrategy ((x, xl):(y, yl):zs)
   | y `dependsOn` x = (.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs)
   | otherwise       = (.|.) <$> ((.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs))
                             <*> ((.*.) <$> genStrat xl y <*> makeDependencyStrategy ((x, yl):zs))
+
+dagHelper :: [(AST, Int)] -> [(AST, Int)] -> [((AST, Int), [(AST, Int)])]
+dagHelper [] _       = []
+dagHelper (a:as) old = (a, (filter ((`dependsOn` (fst a)) . fst) old)): (dagHelper as (a:old))
+
+--allTop top [] = RoseTree (fst top) []
+allTop top as = RoseTree (fst top) $ [ allTop x (rest x as) | x <- lowDep ]
+  where
+    lowDep             = (filter ( (0 ==) . length . snd )) as
+    rest ((t,i),ts) rs = map (\(a,b) -> (a, (filter ((/=i) . snd) b)))
+                             $ filter ((/=i) . snd . fst) rs
+
 
 -- | Can we make this more DRY?
 --
@@ -74,7 +86,7 @@ genStrat loc (Block xs)                   = do
   strategy <- makeDependencyStrategy (zip xs ids)
   return $ refine (Block (map Hole ids)) loc .*. strategy
 genStrat loc (MethodDecl t i params body) = (MethodDecl t i params $$ body) loc
-genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc 
+genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc
 genStrat loc (ClassBody body)             = (ClassBody $$ body) loc
 genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
 genStrat loc (CompilationUnit body)       = (CompilationUnit $$ body) loc
@@ -127,7 +139,7 @@ matchesBFS norm tree ast = go [tree]
       | otherwise      = go trees
 
 makeASTs :: Strategy AST -> [AST]
-makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0) 
+makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 
 -- | `matches a b` checks if `a` matches the strategy generated
 -- by `b`
