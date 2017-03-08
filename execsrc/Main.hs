@@ -16,19 +16,28 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+ {-
+ To run the program use one of the commands:
+ cabal run -- JAA -h
+ stack exec JAA
+ :main
+ :set args
+   main
+ All should include PATH_TO_STUDENT_SOLUTION/SOLUTION.java PATH_TO_MODEL_SOLUTIONS/
+ -}
+
 module Main where
 
 import System.Environment
 import System.Exit
 import Control.Monad
 import Options.Applicative
-import Options.Applicative.Types
-import Data.Semigroup hiding (option)
-import Data.List
 import Test.QuickCheck
 import Language.Haskell.Interpreter
 
 import CoreS.Parse
+import qualified CoreS.ASTUnitype as AST
+import GenStrat
 import SolutionContext
 import EvaluationMonad
 import RunJavac
@@ -37,50 +46,18 @@ import NormalizationStrategies hiding ((<>))
 import InputMonad
 
 import Normalizations
-
--- | The command line arguments
-data CommandLineArguments = CMD { studentSolutionPath :: FilePath
-                                , modelSolutionsPath  :: FilePath
-                                , generatorPair       :: Maybe (String, String)
-                                , environment         :: Env
-                                } deriving Show
-
--- | A parser for command line arguments
-arguments :: Parser CommandLineArguments
-arguments =  CMD
-         <$> argument str       (metavar "STUDENT_SOLUTION")
-         <*> argument str       (metavar "MODEL_SOLUTIONS_DIR")
-         <*> option   generator (  metavar "TEST_GENERATOR"
-                                <> long "generator"
-                                <> short 'g'
-                                <> value Nothing
-                                <> help "Should be on the form module:generator")
-         <*> parseEnv
-
--- | A `ReadM` "parser" for "module:function" to specify what generator to use
-generator :: ReadM (Maybe (String, String))
-generator = do
-  s <- readerAsk
-  case elemIndex ':' s of
-    Nothing -> readerError "Could not parse generator, should be on the form FILE:FUNCTION"
-    Just i  -> return (Just (tail <$> splitAt i s))
-
--- | Full parser for arguments
-argumentParser :: ParserInfo CommandLineArguments
-argumentParser = info (arguments <**> helper)
-                 (  fullDesc
-                 <> header "JAA, a program for Java Automated Assessment"
-                 )
+import ParseArguments
 
 -- | The actual entry point of the application
-application :: Gen String -> FilePath -> FilePath -> EvalM ()
-application gen ss dirOfModelSolutions = do
-  -- Get the filepaths of the student and model solutions
-  paths <- getFilePathContext ss dirOfModelSolutions
-
-  -- Try to compile the student and model solutions
-  let compDir = "compilationDirectory"
+application :: Maybe (String, String) -> FilePath -> FilePath -> EvalM ()
+application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
   withTemporaryDirectory compDir $ do
+    -- Get the filepaths of the student and model solutions
+    paths <- getFilePathContext ss dirOfModelSolutions
+
+    -- Get the generator for `stdin` test data
+    gen <- makeGen gp
+
     compilationStatus <- compileContext paths compDir
     case compilationStatus of
       Succeeded -> return ()
@@ -99,10 +76,11 @@ application gen ss dirOfModelSolutions = do
                   sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
 
     -- The normalized ASTs
-    let normalizedASTs = executeNormalizer normalizations <$> astContext
-    
+    let normalize = executeNormalizer normalizations
+    let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
+
     -- Generate information for the teacher
-    if studentSolutionMatches (==) normalizedASTs then
+    if studentSolutionMatches (matches (AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI)) normalizedASTs then
       comment "Student solution matches a model solution"
     else
       do 
@@ -112,6 +90,24 @@ application gen ss dirOfModelSolutions = do
           _         -> return ()
 
     return ()
+
+-- | A generator for alphanumeric strings of lower case letters
+genLCAlpha :: Gen String
+genLCAlpha = listOf $ choose ('a','z')
+
+-- | Create a generator from a module-function pair
+makeGen :: Maybe (String, String) -> EvalM (Gen String)
+makeGen Nothing = do
+  logMessage "Using arbitrary generator"
+  return genLCAlpha
+makeGen (Just (mod, fun)) = do
+  eg <- liftIO $ runInterpreter $ do
+    loadModules [mod ++ ".hs"]
+    setTopLevelModules [mod]
+    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
+  case eg of
+    Right g    -> return g
+    Left error -> throw $ "Failed to load generator: " ++ show error
 
 main :: IO ()
 main = do
@@ -125,7 +121,7 @@ main = do
       gp                  = generatorPair args
 
   g <- case gp of
-        Nothing         -> return arbitrary
+        Nothing         -> return genLCAlpha
         Just (mod, fun) -> do
           Right g <- runInterpreter $ do
             loadModules [mod ++ ".hs"]
@@ -134,4 +130,4 @@ main = do
           return g
 
   -- Run the actual application
-  executeEvalM env $ application g studentSolution dirOfModelSolutions
+  executeEvalM env $ application gp studentSolution dirOfModelSolutions
