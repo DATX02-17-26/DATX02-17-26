@@ -186,8 +186,12 @@ inferLVal lv = reviseOrig "typecheck.infer.lvalue" lv <$> case lv of
     lve <- loadVar $ _idId i'
     pure $ LVName NoH lve i'
   LVArray {..} -> do
-     a'  <- inferExpr _lvExpr
-     ds' <- mapM inferExpr _lvExprs
+     a'   <- inferExpr _lvExpr
+     ta1  <- geType a'
+     ds'  <- mapM inferExpr _lvExprs
+     tds' <- mapM (geType >=> (lM . intUnConv)) ds'
+
+     
 
      u
 

@@ -28,6 +28,8 @@ import Data.Foldable (find, msum)
 import Control.Monad (mfilter, mplus)
 import Control.Lens (Lens', Traversal', _Just, (^?), isn't)
 
+import Class.Sizeables
+
 import Core.Common.TH
 import Core.Common.Purity
 
@@ -67,6 +69,13 @@ type RType = Maybe Type
 --------------------------------------------------------------------------------
 -- Array related:
 --------------------------------------------------------------------------------
+
+instance Growable   Type where
+  grow = ArrayT
+
+instance Shrinkable Type where
+  shrink = \case ArrayT t -> t
+                 x        -> x
 
 -- | Dimensionality of a type, an array adds +1 dimensionality.
 dimens :: Type -> Integer
