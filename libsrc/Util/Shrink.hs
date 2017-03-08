@@ -19,14 +19,20 @@
 -- See https://github.com/nick8325/quickcheck/pull/136/
 -- for more info and where the inspiration comes from
 -- https://github.com/ambiata/disorder.hs/blob/master/disorder-jack
-
+-- https://deque.blog/2017/02/03/code-your-own-quickcheck/
 
 module Util.Shrink where
 
-import           Data.Monoid ((<>))
+import Data.Monoid ((<>))
+import Test.QuickCheck
+import qualified Test.QuickCheck.Gen as QC
+--import System.Random (split)
+import Test.QuickCheck.Random (QCGen)
 
+--Create a Rose Tree Data Type
 data RoseTree a = Node a [RoseTree a]
 
+--Creating Functor, Applicative and Monad for the Rose Tree
 instance Functor RoseTree where
   fmap f (Node a rs) = Node (f a) (fmap f <$> rs)
 
@@ -43,7 +49,9 @@ instance Monad RoseTree where
     let Node y ys = k x in
       Node y $ fmap (>>= k) xs <> ys
 
-newtype RoseGen a = RoseGen { runGen :: RoseGen (RoseTree a) }
+
+--Rose Generator wrapping the Generator from QC
+newtype RoseGen a = RoseGen { unGen :: Gen (RoseTree a) }
 
 instance Functor RoseGen where
    fmap f (RoseGen g) = RoseGen (fmap (fmap f) g)
@@ -53,7 +61,26 @@ instance Applicative RoseGen where
   RoseGen f <*> RoseGen x = RoseGen $ (<*>) <$> f <*> x
 
 instance Monad RoseGen where
-  return = RoseGen . return . return
-  RoseGen a >>= f = RoseGen $ do undefined
+  return = pure
 
+  (>>=) m0 k0 =
+    RoseGen $ bindGenTree (unGen m0) (unGen . k0)
 
+-- | Used to implement '(>>=)' for 'Jack'.
+bindGenTree :: Gen (RoseTree a) -> (a -> Gen (RoseTree b)) -> Gen (RoseTree b)
+bindGenTree m k = undefined
+  -- It's important to note that we don't use 'traverse' here, we explicitly
+  -- only split the seed once, this ensures we get the same behaviour for our
+  -- Monad and Applicative instances.
+ {-} QC.MkGen $ \seed0 size ->
+    let
+      (seed1, seed2) =
+        split seed0
+
+      runGen :: QCGen -> RoseGen x -> x
+      runGen seed gen =
+        unGen gen seed size
+    in
+      runGen seed1 m >>= runGen seed2 . k
+
+-}
