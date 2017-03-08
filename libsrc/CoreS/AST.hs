@@ -122,7 +122,7 @@ data VarInit
   | HoleVarInit Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data ArrayInit = ArrayInit [VarInit] | HoleArrayInit Int
+data ArrayInit = ArrayInit [VarInit]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data Expr
@@ -213,7 +213,7 @@ data ForInit
 data MemberDecl = MethodDecl (Maybe Type) Ident [FormalParam] Block | HoleMemberDecl Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-data FormalParam = FormalParam VMType VarDeclId | HoleFormalParam Int
+data FormalParam = FormalParam VMType VarDeclId
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 data MethodBody = MethodBody Block | HoleMethodBody Int
