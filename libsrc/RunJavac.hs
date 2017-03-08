@@ -36,7 +36,7 @@ data CompilationStatus = FailedWith { stdout :: String, stderr :: String }
 tryCompile :: FilePath -> FilePath -> EvalM CompilationStatus
 tryCompile dir path = do
   -- Run javac with the -d option
-  let command = "javac -d " ++ dir ++ " " ++ path 
+  let command = "javac -d " ++ dir ++ " " ++ path
   logMessage $ "Running the command: " ++ command 
   (exitCode, stdin, stderr) <- liftIO $ readCreateProcessWithExitCode (shell command) ""
 
@@ -68,11 +68,11 @@ compileThrow dir path = do
 compileContext :: SolutionContext FilePath -> FilePath -> EvalM CompilationStatus
 compileContext ctx dir = do
   -- Create directories for the model and studnet solutions
-  liftIO $ createDirectory (dir </> "model/")
-  liftIO $ createDirectory (dir </> "student/")
+  liftIO $ createDirectory (dir </> "model")
+  liftIO $ createDirectory (dir </> "student")
 
   -- Try to compile all the model solutions
-  sequence $ compileThrow (dir </> "model/") <$> modelSolutions ctx
+  sequence $ compileThrow (dir </> "model") <$> modelSolutions ctx
 
   -- Try to compile the student solution
-  tryCompile (dir </> "student/") (studentSolution ctx)
+  tryCompile (dir </> "student") (studentSolution ctx)
