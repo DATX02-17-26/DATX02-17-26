@@ -5,6 +5,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.State
 import CoreS.AST
+import NormalizationStrategies (makeRule, NormalizationRule)
 
 --A Context
 type Cxt = [Map Ident Ident]
@@ -89,6 +90,9 @@ getIdent id (n:ns) =
        case Map.lookup id n of
           Nothing -> getIdent id ns
           ident -> ident
+
+alphaRenaming :: NormalizationRule CompilationUnit
+alphaRenaming = makeRule execute name stages
 
 name :: String
 name = "AplhaR"

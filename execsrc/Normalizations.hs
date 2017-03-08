@@ -20,11 +20,14 @@ module Normalizations where
 
 import CoreS.AST
 import NormalizationStrategies hiding ((<>))
+import AlphaR
 
 -- All normalizations in scope 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ identityTransformation ]
+normalizations = [ identityTransformation, alphaRenaming ]
 
 -- Do nothing
 identityTransformation :: NormalizationRule CompilationUnit 
 identityTransformation = makeRule (const Nothing) "Identity" [0]
+
+
