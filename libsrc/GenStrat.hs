@@ -54,23 +54,15 @@ refine ast i = toStrategy $ makeRule ruleId f
 
       ruleId = "refine" ++ show i
 
-{-
--- | A naïve method for making a dependency-aware ordering,
--- does not create all strategies we want, we need to go to
--- a DAG approach for that
-makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
-makeDependencyStrategy [] = return $ succeed
-makeDependencyStrategy [(x, loc)] = genStrat loc x
-makeDependencyStrategy ((x, xl):(y, yl):zs)
-  | y `dependsOn` x = (.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs)
-  | otherwise       = (.|.) <$> ((.*.) <$> genStrat xl x <*> makeDependencyStrategy ((y, yl):zs))
-                            <*> ((.*.) <$> genStrat xl y <*> makeDependencyStrategy ((x, yl):zs))
--}
-
+-- Creates a DAG of dependencies of given ASTs, in the form of a list where each
+-- element describes a node and a list of all other nodes that node are dependant
+-- on
 dagHelper :: [(AST, Int)] -> [(AST, Int)] -> [((AST, Int), [(AST, Int)])]
 dagHelper [] _       = []
 dagHelper (a:as) old = (a, (filter ((`dependsOn` (fst a)) . fst) old)): (dagHelper as (a:old))
 
+-- Returns all possible topological orderings in a RoseTree, where each level
+-- represents a new step, and its elements possible pathways.
 allTop top [] = RoseTree ((fst . fst) top) []
 allTop top as = RoseTree ((fst . fst) top) $ [ allTop x (rest x as) | x <- lowDep ]
   where
@@ -78,12 +70,14 @@ allTop top as = RoseTree ((fst . fst) top) $ [ allTop x (rest x as) | x <- lowDe
     rest ((t,i),ts) rs = map (\(a,b) -> (a, (filter ((/=i) . snd) b)))
                              $ filter ((/=i) . snd . fst) rs
 
+-- Generates a strategy for the possible pathways of a  given RoseTree
 makeAllTopStrat (RoseTree r []) (loc:ls) = genStrat loc r
 makeAllTopStrat (RoseTree r ts) (loc:ls) = (.*.) <$> (genStrat loc r) <*> (foo ts)
    where
      foo []     = return $ failS
      foo (x:xs) = (.|.) <$> (makeAllTopStrat x ls) <*> (foo xs)
 
+-- Generates a strategy handling all possible orderings of AST
 makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
 makeDependencyStrategy []         = return $ succeed
 makeDependencyStrategy [(x, loc)] = genStrat loc x
