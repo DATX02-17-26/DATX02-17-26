@@ -67,7 +67,8 @@ library
 
 executable JAA 
   main-is:          Main.hs
-  other-modules:    Normalizations
+  other-modules:    Normalizations,
+                    ParseArguments
   build-depends:
       base >=4.8 && < 5
     , lens >= 4.14
