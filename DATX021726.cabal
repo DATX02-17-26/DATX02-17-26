@@ -51,6 +51,7 @@ library
     , CoreS.ASTUnitype
     , CoreS.ASTUnitypeUtils
     , Util.List
+    , AlphaR
   build-depends:
       base >=4.8 && < 5
     , lens >= 4.14
