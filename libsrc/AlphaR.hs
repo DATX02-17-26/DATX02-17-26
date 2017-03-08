@@ -109,6 +109,7 @@ execute cu =
 
 --Renames all class names, method names, formalparams and method bodies
 rename :: CompilationUnit -> State Env CompilationUnit
+rename hcu@(HoleCompilationUnit _) = return hcu
 rename (CompilationUnit typeDecls) =
     mapM renameClassName typeDecls >>= \td -> 
     mapM renameAllMethodNames td >>= \td' ->
@@ -118,34 +119,50 @@ rename (CompilationUnit typeDecls) =
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
 renameClass :: TypeDecl -> State Env TypeDecl
-renameClass (ClassTypeDecl (ClassDecl ident (ClassBody decls))) = do
-  newContext
-  decls' <- mapM renameMethod decls
-  exitContext
-  return (ClassTypeDecl (ClassDecl ident (ClassBody decls'))) 
+renameClass htd@(HoleTypeDecl _) = return htd
+renameClass (ClassTypeDecl ctd) =
+  case ctd of
+    (ClassDecl ident(ClassBody decls)) -> do
+      newContext
+      decls' <- mapM renameMethod decls
+      exitContext
+      return (ClassTypeDecl (ClassDecl ident (ClassBody decls')))
+    holeClassDecl -> return $ ClassTypeDecl holeClassDecl
 
 
 --Renames a class to a new (Unique) Ident
 renameClassName :: TypeDecl-> State Env TypeDecl
-renameClassName (ClassTypeDecl (ClassDecl ident body)) =
+renameClassName htd@(HoleTypeDecl _ ) = return htd
+renameClassName (ClassTypeDecl ctd) =
+  case ctd of
+    (ClassDecl ident body) ->
       newClassName ident >>= \name ->
       return (ClassTypeDecl (ClassDecl name body))
+    holeClassDecl -> return $ ClassTypeDecl holeClassDecl
 
 --Renamses all method names in a Class to a new Ident
 renameAllMethodNames :: TypeDecl -> State Env TypeDecl
-renameAllMethodNames (ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
-   mapM renameMethodName decls >>= \ds -> 
-   return (ClassTypeDecl (ClassDecl ident (ClassBody ds)))
+renameAllMethodNames htd@(HoleTypeDecl _ ) = return htd
+renameAllMethodNames (ClassTypeDecl ctd) =
+  case ctd of
+    (ClassDecl ident (ClassBody decls)) ->
+       mapM renameMethodName decls >>= \ds ->
+       return (ClassTypeDecl (ClassDecl ident (ClassBody ds)))
+    holeClassDecl -> return $ ClassTypeDecl holeClassDecl
 
 --Renames a method to a new (Unique) Ident
 renameMethodName :: Decl -> State Env Decl
-renameMethodName (MemberDecl
-                 (MethodDecl mType ident formalParams block)) = 
-          newMethodName ident >>= \name ->
-          return (MemberDecl $ MethodDecl mType name formalParams block)
+renameMethodName hd@(HoleDecl _) = return hd
+renameMethodName (MemberDecl md) =
+  case md of
+    (MethodDecl mType ident formalParams block) ->
+      newMethodName ident >>= \name ->
+      return (MemberDecl $ MethodDecl mType name formalParams block)
+    holeMethodDecl -> return $ MemberDecl holeMethodDecl
 
 --Renames FormalParams and MethodBody (Block) in a method context
 renameMethod :: Decl -> State Env Decl
+renameMethod hd@(HoleDecl _) = return hd
 renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   newContext
   fp <- mapM renameFormalParam formalParams
@@ -153,7 +170,7 @@ renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   exitContext
   return (MemberDecl (MethodDecl mType ident fp b))
 
-
+--Renames the Formal Parameters
 renameFormalParam :: FormalParam -> State Env FormalParam
 renameFormalParam (FormalParam vmType varDeclId) = do
   case varDeclId of
@@ -164,7 +181,7 @@ renameFormalParam (FormalParam vmType varDeclId) = do
       newVarName ident >>= \name ->
       return (FormalParam vmType (VarDArr name i))
 
-
+--Renames a Stetment
 renameStatement :: Stmt -> State Env Stmt
 renameStatement statement = do 
   case statement of
@@ -215,13 +232,15 @@ renameStatement statement = do
       SSwitch 
       <$> renameExpression expr 
       <*> mapM renameSwitch switchBlocks
+    (HoleStmt i) -> return (HoleStmt i)
 
-
+--Renames a Block
 renameBlock :: Block -> State Env Block
-renameBlock (Block ss) =
-  Block <$> mapM renameStatement ss 
+renameBlock block  = case block of
+  (Block ss) -> Block <$> mapM renameStatement ss
+  holeBlock  -> return holeBlock
 
-
+--Renames an Expression
 renameExpression :: Expr -> State Env Expr
 renameExpression expression = 
   case expression of 
@@ -269,8 +288,9 @@ renameExpression expression =
       mapM renameVarInit arrayInit >>= \ai -> 
         return (EArrNewI t i (ArrayInit ai))
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
+    holeExpr -> return holeExpr
 
-
+--Renames a Literal Value
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = case lValue of
   (LVName ident) -> LVName <$> newVarName ident
@@ -278,24 +298,31 @@ renameLValue lValue = case lValue of
     LVArray
     <$> renameExpression expr
     <*> mapM renameExpression exprs
+  holeLValue -> return holeLValue
       
-
+--Renames a For initialization
 renameForInit :: ForInit -> State Env ForInit
 renameForInit forInit = case forInit of
   (FIVars typedVVDecl) -> FIVars <$> renameTypedVVDecl typedVVDecl
   (FIExprs exprs) -> FIExprs <$> mapM renameExpression exprs
+  holeForInit -> return holeForInit
 
-
+--Renames a Typed VV Decleration
 renameTypedVVDecl :: TypedVVDecl -> State Env TypedVVDecl
-renameTypedVVDecl (TypedVVDecl vMType varDecls) = 
-  TypedVVDecl vMType <$> mapM renameVarDecl varDecls
+renameTypedVVDecl typedVVDecl = case typedVVDecl of
+  (TypedVVDecl vMType varDecls) ->
+    TypedVVDecl vMType <$> mapM renameVarDecl varDecls
+  holeTypedVVDecl -> return holeTypedVVDecl
 
-
+--Renames a Variable Declaration
 renameVarDecl :: VarDecl -> State Env VarDecl
-renameVarDecl (VarDecl varDeclId mVarInit) =
-   maybe (return Nothing) ((fmap Just) . renameVarInit) mVarInit >>= \mvi ->
-   renameVarDleclId varDeclId >>= \vdi -> return (VarDecl vdi mvi)
+renameVarDecl varDecl = case varDecl of
+  (VarDecl varDeclId mVarInit) ->
+    maybe (return Nothing) ((fmap Just) . renameVarInit) mVarInit >>= \mvi ->
+    renameVarDleclId varDeclId >>= \vdi -> return (VarDecl vdi mvi)
+  holeVarDecl -> return holeVarDecl
 
+--Renames a Variable Initialization
 renameVarInit :: VarInit -> State Env VarInit
 renameVarInit varInit =
   case varInit of
@@ -304,8 +331,9 @@ renameVarInit varInit =
       InitArr 
       . ArrayInit 
       <$> mapM renameVarInit arrayInit
+    holeVarInit -> return holeVarInit
 
-
+--Renames a Variable Declaration Id
 renameVarDleclId :: VarDeclId -> State Env VarDeclId
 renameVarDleclId varDeclId =
   case varDeclId of 
@@ -313,10 +341,12 @@ renameVarDleclId varDeclId =
     (VarDArr ident i) -> 
       newVarName ident >>= \new -> 
       return (VarDArr new i)
+    holeVarDeclId -> return holeVarDeclId
 
-
+--Renames a Switch Block / Statement
 renameSwitch :: SwitchBlock -> State Env SwitchBlock
-renameSwitch (SwitchBlock label (Block block)) = 
+renameSwitch hsb@(HoleSwitchBlock i) = return hsb
+renameSwitch (SwitchBlock label (Block block)) =
   case label of
   (SwitchCase expr) ->
     renameExpression expr >>= \e -> 
@@ -324,4 +354,5 @@ renameSwitch (SwitchBlock label (Block block)) =
       return . SwitchBlock (SwitchCase e) . Block  
   Default ->
     SwitchBlock Default . Block <$> mapM renameStatement block
+  holeSwitchLabel -> SwitchBlock holeSwitchLabel . Block <$> mapM renameStatement block
 
