@@ -5,22 +5,53 @@ import Data.Maybe
 
 --start at compunit, go inte each classbody
 execute :: CompilationUnit -> Maybe CompilationUnit
-execute (CompilationUnit tds) = Just $ CompilationUnit $ intoClassbody <$> tds
+execute cu = case cu of
+  CompilationUnit tds -> Just $ CompilationUnit $ intoClassTypeDecl <$> tds
+  hole -> Just hole
 
---start at classBody, go into each methodbody
-intoClassbody :: TypeDecl -> TypeDecl
-intoClassbody (ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
-  ClassTypeDecl $ ClassDecl ident $ ClassBody $ intoMethodbody <$> decls
+--start at classBody, go into ClassDecl
+intoClassTypeDecl :: TypeDecl -> TypeDecl
+intoClassTypeDecl ctd = case ctd of
+  ClassTypeDecl cd -> ClassTypeDecl (intoClassDecl cd)
+  hole             -> hole
+  --ClassTypeDecl $ ClassDecl ident $ ClassBody $ intoMethodbody <$> decls
 
---start at methodBody, go into each stmt
-intoMethodbody :: Decl -> Decl
-intoMethodbody (MemberDecl (MethodDecl mt ident fp (Block stmts))) =
-  MemberDecl $ MethodDecl mt ident fp $ Block $ intoStmt <$> stmts
+--ClassDecl go into ClassBody
+intoClassDecl :: ClassDecl -> ClassDecl
+intoClassDecl cd = case cd of
+  (ClassDecl ident cb) -> ClassDecl ident (intoClassBody cb)
+  hole                 -> hole
+
+--ClassBody go into Decl
+intoClassBody :: ClassBody -> ClassBody
+intoClassBody cb = case cb of
+  ClassBody decls -> ClassBody (intoDecl <$> decls)
+  hole            -> hole
+
+--Decl go into MemberDecl
+intoDecl :: Decl -> Decl
+intoDecl dec = case dec of
+  MemberDecl md -> MemberDecl (intoMemberDecl md)
+  hole          -> hole
+
+--MemberDecl go into Block
+intoMemberDecl :: MemberDecl -> MemberDecl
+intoMemberDecl md = case md of
+  MethodDecl mt ident fp block -> MethodDecl mt ident fp (intoBlock block)
+  hole                         -> hole
+
+--Block go into stmts
+intoBlock :: Block -> Block
+intoBlock block = case block of
+  (Block stmts) -> Block (intoStmt <$> stmts)
+  hole          -> hole
+   --(MemberDecl (MethodDecl mt ident fp (Block stmts))) =
+  --MemberDecl $ MethodDecl mt ident fp $ Block $ intoStmt <$> stmts
 
 {-
   looks like hell, fix with record wildcards.
   At the moment only changes for to while, adds a scope
-  around it.
+  around it. Should work with holes
 -}
 intoStmt :: Stmt -> Stmt
 intoStmt stm = case stm of
@@ -39,6 +70,7 @@ intoStmt stm = case stm of
 {-
   makes maybe exprs into statements and puts them
   in same scope as the block as the stmts in a loop.
+  Should work with holes.
 -}
 addExpsIntoStmt :: Maybe [Expr] -> Stmt -> Stmt
 addExpsIntoStmt mExprs stmt = case mExprs of
@@ -50,3 +82,4 @@ forInitToStmt :: ForInit -> Stmt
 forInitToStmt fInit = case fInit of
   FIVars typedVVDecl -> SVars typedVVDecl
   FIExprs exprs      -> SBlock $ Block $ SExpr <$> exprs
+  HoleForInit i      -> HoleStmt i
