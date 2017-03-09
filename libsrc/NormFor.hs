@@ -2,6 +2,11 @@ module NormFor where
 
 import CoreS.AST
 import Data.Maybe
+import NormalizationStrategies (makeRule, NormalizationRule)
+
+--make a rule that normalizes for into while
+normForToWhile :: NormalizationRule CompilationUnit
+normForToWhile = makeRule execute name stages
 
 --The name of the normalization step
 name :: String
