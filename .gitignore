@@ -22,3 +22,5 @@ dist/
 mods/
 stud.java
 logfile.log
+.idea
+Test/AlphaTest/
