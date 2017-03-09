@@ -76,7 +76,8 @@ allTop top as = RoseTree ((fst . fst) top)
                            $ filter ((/=i) . snd . fst) rs
 
 -- Generates a strategy for the possible pathways of a given RoseTree
-makeAllTopStrat (RoseTree r []) (loc:ls) = genStrat loc r
+makeAllTopStrat :: RoseTree AST -> [Int] -> State Int (Strategy AST)
+makeAllTopStrat (RoseTree r []) [loc]    = genStrat loc r
 makeAllTopStrat (RoseTree r ts) (loc:ls) =
   (.*.) <$> (genStrat loc r)
         <*> foldr (\x -> ((.|.) <$> (makeAllTopStrat x ls) <*>))
@@ -93,9 +94,9 @@ makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
 makeDependencyStrategy = \case
   []         -> return $ succeed
   [(x, loc)] -> genStrat loc x
-  as         -> makeAllTopStrat
-                (allTop ((Block [],-1),[]) (dagHelper as []))
-                (((-1:) . snd . unzip) as)
+  as         -> let roseTree = allTop ((SEmpty,-1),[]) (dagHelper as []) in
+                  makeAllTopStrat
+                    roseTree $ (-1):(map snd as)
 
 -- | Can we make this more DRY?
 --
@@ -106,7 +107,7 @@ genStrat loc (Block xs)                   = do
   strategy <- makeDependencyStrategy (zip xs ids)
   return $ refine (Block (map Hole ids)) loc .*. strategy
 genStrat loc (MethodDecl t i params body) = (MethodDecl t i params $$ body) loc
-genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc
+genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc 
 genStrat loc (ClassBody body)             = (ClassBody $$ body) loc
 genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
 genStrat loc (CompilationUnit body)       = (CompilationUnit $$ body) loc
@@ -134,7 +135,7 @@ data RoseTree a = RoseTree a [RoseTree a]
 makeASTsRoseTree :: Strategy AST -> RoseTree AST
 makeASTsRoseTree strat = go (Hole 0)
   where
-    go ast = RoseTree ast [go ast' | ast' <- nextTerms ast]
+    go ast = RoseTree ast $ map go (nextTerms ast)
 
     nextTerms ast = filter (ast /=) $ applyAll strat ast
 
@@ -143,7 +144,9 @@ matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
 matchesDFS norm tree ast = go [tree]
   where
     go [] = False
-    go ((RoseTree a []):trees) = ast == (norm a) || go trees
+    go ((RoseTree a []):trees) 
+      | ast == (norm a) = True
+      | otherwise       = go trees
     go ((RoseTree a asts):trees)
       | canMatch ast (norm a) = go (asts ++ trees)
       | otherwise             = go trees
@@ -164,4 +167,4 @@ makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 -- | `matches a b` checks if `a` matches the strategy generated
 -- by `b`
 matches :: (AST -> AST) -> AST -> AST -> Bool
-matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a --a `elem` (map norm $ makeASTs (makeStrategy b))
+matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a

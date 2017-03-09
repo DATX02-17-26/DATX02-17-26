@@ -79,8 +79,10 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
     let normalize = executeNormalizer normalizations
     let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
 
+    let normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
+
     -- Generate information for the teacher
-    if studentSolutionMatches (matches (AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI)) normalizedASTs then
+    if studentSolutionMatches (matches normalizeUAST) normalizedASTs then
       comment "Student solution matches a model solution"
     else
       do 

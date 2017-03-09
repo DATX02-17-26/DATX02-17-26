@@ -279,6 +279,11 @@ convertSwitchBlockI :: AST -> CAST.SwitchBlock
 convertSwitchBlockI (SwitchBlock l stmts) = CAST.SwitchBlock l (CAST.Block (map convertStmtI stmts))
 convertSwitchBlockI (Hole i)              = CAST.HoleSwitchBlock i
 
+matchList :: [AST] -> [AST] -> Bool
+matchList as bs
+  | length as == length bs = and [canMatch a b | (a, b) <- zip as bs]
+  | otherwise = False
+
 -- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
 --
 -- todo: refactor....
@@ -293,9 +298,9 @@ canMatch (Char c) (Char a) = a == c
 canMatch (String s) (String s') = s == s' 
 canMatch Null Null = True
 canMatch (LVName i) (LVName j) = i == j
-canMatch (LVArray a as) (LVArray b bs) = canMatch a b && and [canMatch a b | (a, b) <- zip as bs]
+canMatch (LVArray a as) (LVArray b bs) = canMatch a b && matchList as bs
 canMatch (InitExpr ast) (InitExpr ast') = canMatch ast ast' 
-canMatch (InitArr  as) (InitArr bs) = and [canMatch a b | (a, b) <- zip as bs]
+canMatch (InitArr  as) (InitArr bs) = matchList as bs
 canMatch (ELit ast) (ELit ast') = canMatch ast ast' 
 canMatch (EVar ast) (EVar ast') = canMatch ast ast' 
 canMatch (ECast t ast) (ECast t' ast') = t == t' && canMatch ast ast' 
@@ -310,12 +315,12 @@ canMatch (EStep op ast) (EStep op' ast') = op == op' && canMatch ast ast'
 canMatch (EBCompl ast) (EBCompl ast') = canMatch ast ast' 
 canMatch (EPlus ast) (EPlus ast') = canMatch ast ast' 
 canMatch (EMinus ast) (EMinus ast') = canMatch ast ast' 
-canMatch (EMApp c asts) (EMApp d asts') = c == d && and [canMatch a b | (a, b) <- zip asts asts']
-canMatch (EArrNew  t xs is)  (EArrNew  t' xs' is') = t == t' && and [canMatch x y | (x,y) <- zip xs xs'] && is == is'
-canMatch (EArrNewI t i xs) (EArrNewI t' i' xs') = t == t' && i == i' && and [canMatch x y | (x, y) <- zip xs xs'] 
+canMatch (EMApp c asts) (EMApp d asts') = c == d && matchList asts asts'
+canMatch (EArrNew  t xs is) (EArrNew  t' xs' is') = t == t' && matchList xs xs' && is == is'
+canMatch (EArrNewI t i xs) (EArrNewI t' i' xs') = t == t' && i == i' && matchList xs xs'
 canMatch (ESysOut ast) (ESysOut ast') = canMatch ast ast'
 canMatch SEmpty SEmpty = True
-canMatch (Block ast) (Block ast') = and [canMatch a b | (a, b) <- zip ast ast']
+canMatch (Block ast) (Block ast') = matchList ast ast'
 canMatch (SExpr ast) (SExpr ast') = canMatch ast ast' 
 canMatch (SVars t) (SVars t') = t == t'
 canMatch (SReturn ast) (SReturn ast') = canMatch ast ast' 
@@ -326,16 +331,16 @@ canMatch (SWhile b bd) (SWhile b' bd') = canMatch b b' && canMatch bd bd'
 canMatch (SDo b bd) (SDo b' bd') = canMatch b b' && canMatch bd bd'
 canMatch (SForB ma mb mcs d) (SForB ma' mb' mcs' d') = canMatch d d' && (ma == ma' || maybe False id (canMatch <$> ma <*> ma')) &&
                                                        (mb == mb' || maybe False id (canMatch <$> mb <*> mb')) &&
-                                                       (mcs == mcs' || maybe False id ((\ xs ys -> and [canMatch x y | (x, y) <- zip xs ys]) <$> mcs <*> mcs'))
+                                                       (mcs == mcs' || maybe False id (matchList <$> mcs <*> mcs'))
 canMatch (SForE t i a b) (SForE t' i' a' b') = t == t' && i == i' && canMatch a a' && canMatch b b' 
 canMatch SContinue SContinue = True
 canMatch SBreak SBreak = True
-canMatch (SSwitch ast asts) (SSwitch ast' asts') = canMatch ast ast' && and [canMatch a b | (a, b) <- zip asts asts']
-canMatch (SwitchBlock l asts) (SwitchBlock l' asts') = l == l' && and [canMatch a b | (a, b) <- zip asts asts']
+canMatch (SSwitch ast asts) (SSwitch ast' asts') = canMatch ast ast' && matchList asts asts'
+canMatch (SwitchBlock l asts) (SwitchBlock l' asts') = l == l' && matchList asts asts'
 canMatch (SwitchCase ast) (SwitchCase ast') = canMatch ast ast' 
 canMatch Default Default = True
 canMatch (FIVars i) (FIVars j) = i == j
-canMatch (FIExprs as) (FIExprs bs) = and [canMatch a b | (a, b) <- zip as bs] 
+canMatch (FIExprs as) (FIExprs bs) = matchList as bs
 canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && xs == xs' && canMatch ast ast'
 canMatch (CompilationUnit a) (CompilationUnit b) = canMatch a b
 canMatch (ClassTypeDecl ast) (ClassTypeDecl ast') = canMatch ast ast' 
