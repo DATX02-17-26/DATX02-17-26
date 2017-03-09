@@ -76,21 +76,21 @@ data AST =
   | Default
   | FIVars CAST.TypedVVDecl
   | FIExprs [AST]
-  | MethodDecl (Maybe CAST.Type) CAST.Ident [CAST.FormalParam] AST
-  | CompilationUnit AST
+  | MethodDecl (Maybe CAST.Type) CAST.Ident [CAST.FormalParam] [AST]
+  | CompilationUnit [AST]
   | ClassTypeDecl AST
   | ClassDecl CAST.Ident AST
-  | ClassBody AST
+  | ClassBody [AST]
   | MemberDecl AST
   | Hole Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 convertCompilationUnit :: CAST.CompilationUnit -> AST
-convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (Block (map convertTypeDecl tds))
+convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (map convertTypeDecl tds)
 convertCompilationUnit (CAST.HoleCompilationUnit i) = Hole i
 
 convertCompilationUnitI :: AST -> CAST.CompilationUnit
-convertCompilationUnitI (CompilationUnit (Block tds)) = CAST.CompilationUnit (map convertTypeDeclI tds)
+convertCompilationUnitI (CompilationUnit tds) = CAST.CompilationUnit (map convertTypeDeclI tds)
 convertCompilationUnitI (Hole i) = CAST.HoleCompilationUnit i 
 
 convertTypeDecl :: CAST.TypeDecl -> AST
@@ -110,11 +110,11 @@ convertClassDeclI (ClassDecl i body) = CAST.ClassDecl i (convertClassBodyI body)
 convertClassDeclI (Hole i) = CAST.HoleClassDecl i
 
 convertClassBody :: CAST.ClassBody -> AST
-convertClassBody (CAST.ClassBody decls) = ClassBody (Block (map convertDecl decls))
+convertClassBody (CAST.ClassBody decls) = ClassBody (map convertDecl decls)
 convertClassBody (CAST.HoleClassBody i) = Hole i
 
 convertClassBodyI :: AST -> CAST.ClassBody
-convertClassBodyI (ClassBody (Block decls)) = CAST.ClassBody (map convertDeclI decls)
+convertClassBodyI (ClassBody decls) = CAST.ClassBody (map convertDeclI decls)
 convertClassBodyI (Hole i) = CAST.HoleClassBody i
 
 convertDecl :: CAST.Decl -> AST
@@ -127,11 +127,11 @@ convertDeclI (Hole i)       = CAST.HoleDecl i
 
 convertMemberDecl :: CAST.MemberDecl -> AST
 convertMemberDecl (CAST.MethodDecl m i fmparms (CAST.Block bs)) =
-  MethodDecl m i fmparms (Block (map convertStmt bs))
+  MethodDecl m i fmparms (map convertStmt bs)
 convertMemberDecl (CAST.HoleMemberDecl i) = Hole i
 
 convertMemberDeclI :: AST -> CAST.MemberDecl
-convertMemberDeclI (MethodDecl m i fmparms (Block bs)) =
+convertMemberDeclI (MethodDecl m i fmparms bs) =
   CAST.MethodDecl m i fmparms (CAST.Block (map convertStmtI bs))
 convertMemberDeclI (Hole i) = CAST.HoleMemberDecl i
 
@@ -341,10 +341,10 @@ canMatch (SwitchCase ast) (SwitchCase ast') = canMatch ast ast'
 canMatch Default Default = True
 canMatch (FIVars i) (FIVars j) = i == j
 canMatch (FIExprs as) (FIExprs bs) = matchList as bs
-canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && xs == xs' && canMatch ast ast'
-canMatch (CompilationUnit a) (CompilationUnit b) = canMatch a b
+canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && xs == xs' && matchList ast ast'
+canMatch (CompilationUnit a) (CompilationUnit b) = matchList a b
 canMatch (ClassTypeDecl ast) (ClassTypeDecl ast') = canMatch ast ast' 
 canMatch (ClassDecl i ast) (ClassDecl j ast') = i == j && canMatch ast ast' 
-canMatch (ClassBody ast) (ClassBody ast') = canMatch ast ast' 
+canMatch (ClassBody ast) (ClassBody ast') = matchList ast ast' 
 canMatch (MemberDecl ast) (MemberDecl ast') = canMatch ast ast'
 canMatch _ _ = False

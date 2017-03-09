@@ -104,18 +104,20 @@ makeDependencyStrategy = \case
 --
 -- (generics?)
 genStrat :: Generator
-genStrat loc (Block xs)                   = do
-  ids <- M.sequence [nextId | _ <- xs]
-  strategy <- makeDependencyStrategy (zip xs ids)
-  return $ refine (Block (map Hole ids)) loc .*. strategy
-genStrat loc (MethodDecl t i params body) = (MethodDecl t i params $$ body) loc
+genStrat loc (Block xs)                   = refList loc Block xs 
+genStrat loc (MethodDecl t i params body) = refList loc (MethodDecl t i params) body
 genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc 
-genStrat loc (ClassBody body)             = (ClassBody $$ body) loc
+genStrat loc (ClassBody body)             = refList loc ClassBody body
 genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
-genStrat loc (CompilationUnit body)       = (CompilationUnit $$ body) loc
+genStrat loc (CompilationUnit body)       = refList loc CompilationUnit body 
 genStrat loc (MemberDecl body)            = (MemberDecl $$ body) loc
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
+
+refList loc cons xs = do
+  ids <- M.sequence [nextId | _ <- xs]
+  strategy <- makeDependencyStrategy (zip xs ids)
+  return $ refine (cons (map Hole ids)) loc .*. strategy
 
 locGen :: AST -> State Int (Int, Strategy AST)
 locGen ast = do
@@ -134,17 +136,11 @@ makeStrategy ast = fst $ runState (genStrat 0 ast) 1
 data RoseTree a = RoseTree a [RoseTree a]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-{-
 makeASTsRoseTree :: Strategy AST -> RoseTree AST
-makeASTsRoseTree strat = go (Hole 0)
+makeASTsRoseTree strat = tree
   where
-    go ast = RoseTree ast $ map go (nextTerms ast)
+    tree = go (Hole 0, (firstsTree (emptyPrefix strat (Hole 0))))
 
-    nextTerms ast = filter (ast /=) $ applyAll strat ast
--}
-makeASTsRoseTree :: Strategy AST -> RoseTree AST
-makeASTsRoseTree strat = go (Hole 0, (firstsTree (emptyPrefix strat (Hole 0))))
-  where
     go :: (AST, DerivationTree (Elem (Prefix AST)) (Prefix AST)) -> RoseTree AST
     go (ast, t) = RoseTree ast (map go (zip (map (get . fst) (firsts (root t))) (subtrees t)))
 

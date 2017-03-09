@@ -167,6 +167,7 @@ renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   b <- renameBlock block
   exitContext
   return (MemberDecl (MethodDecl mType ident fp b))
+renameMethod hd@(MemberDecl _) = return hd
 
 --Renames the Formal Parameters
 renameFormalParam :: FormalParam -> State Env FormalParam
