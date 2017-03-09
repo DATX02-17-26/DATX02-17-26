@@ -29,5 +29,3 @@ normalizations = [ identityTransformation, alphaRenaming ]
 -- Do nothing
 identityTransformation :: NormalizationRule CompilationUnit 
 identityTransformation = makeRule (const Nothing) "Identity" [0]
-
-

@@ -1,4 +1,4 @@
-module AlphaR where
+module AlphaR (alphaRenaming) where
 
 import Control.Monad
 import Data.Map (Map)
@@ -6,6 +6,15 @@ import qualified Data.Map as Map
 import Control.Monad.State
 import CoreS.AST
 import NormalizationStrategies (makeRule, NormalizationRule)
+
+alphaRenaming :: NormalizationRule CompilationUnit
+alphaRenaming = makeRule execute name stages
+
+name :: String
+name = "AlphaR"
+
+stages :: [Int]
+stages = [0]
 
 --A Context
 type Cxt = [Map Ident Ident]
@@ -27,7 +36,6 @@ newEnv = Env {
   vName = 0,
   names = [Map.empty]
 }
-
 
 --create a new Context
 newContext :: State Env ()
@@ -91,25 +99,13 @@ getIdent id (n:ns) =
           Nothing -> getIdent id ns
           ident -> ident
 
-alphaRenaming :: NormalizationRule CompilationUnit
-alphaRenaming = makeRule execute name stages
-
-name :: String
-name = "AplhaR"
-
-stages :: [Int]
-stages = [0]
---jämför träden så att de returnerar nothing om den nya är == med gamla
+-- Compare the trees, for fun and stuff...
 execute :: CompilationUnit -> Maybe CompilationUnit
 execute cu =
   let ast = evalState (rename cu) newEnv in
   case cu == ast of
     True -> Nothing
     False -> Just $ ast
-
-
-
-
 
 --Renames all class names, method names, formalparams and method bodies
 rename :: CompilationUnit -> State Env CompilationUnit
@@ -118,7 +114,6 @@ rename (CompilationUnit typeDecls) =
     mapM renameClassName typeDecls >>= \td -> 
     mapM renameAllMethodNames td >>= \td' ->
     CompilationUnit <$> mapM renameClass td' 
-   
 
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
@@ -132,7 +127,6 @@ renameClass (ClassTypeDecl ctd) =
       exitContext
       return (ClassTypeDecl (ClassDecl ident (ClassBody decls')))
     holeClassDecl -> return $ ClassTypeDecl holeClassDecl
-
 
 --Renames a class to a new (Unique) Ident
 renameClassName :: TypeDecl-> State Env TypeDecl
@@ -359,4 +353,3 @@ renameSwitch (SwitchBlock label (Block block)) =
   Default ->
     SwitchBlock Default . Block <$> mapM renameStatement block
   holeSwitchLabel -> SwitchBlock holeSwitchLabel . Block <$> mapM renameStatement block
-
