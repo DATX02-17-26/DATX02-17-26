@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE LambdaCase, DeriveDataTypeable, DeriveGeneric #-}
 
 module GenStrat where
 
@@ -54,36 +54,48 @@ refine ast i = toStrategy $ makeRule ruleId f
 
       ruleId = "refine" ++ show i
 
--- Creates a DAG of dependencies of given ASTs, in the form of a list where each
--- element describes a node and a list of all other nodes that node are dependant
--- on
+-- Creates a DAG of dependencies of given ASTs, in the form of a list where
+-- each element describes a node and a list of all other nodes that node are
+-- dependant on
 dagHelper :: [(AST, Int)] -> [(AST, Int)] -> [((AST, Int), [(AST, Int)])]
 dagHelper [] _       = []
-dagHelper (a:as) old = (a, (filter ((`dependsOn` (fst a)) . fst) old)): (dagHelper as (a:old))
+dagHelper (a:as) old =
+  (a, (filter ((`dependsOn` (fst a)) . fst) old)):(dagHelper as (a:old))
 
 -- Returns all possible topological orderings in a RoseTree, where each level
 -- represents a new step, and its elements possible pathways.
+allTop :: ((AST, Int), [(AST, Int)])
+       -> [((AST, Int), [(AST, Int)])]
+       -> RoseTree AST
 allTop top [] = RoseTree ((fst . fst) top) []
-allTop top as = RoseTree ((fst . fst) top) $ [ allTop x (rest x as) | x <- lowDep ]
+allTop top as = RoseTree ((fst . fst) top)
+                       $ map (\x -> allTop x (rest x as))
+                       $ filter ((0 ==) . length . snd) as
   where
-    lowDep             = (filter ( (0 ==) . length . snd )) as
     rest ((t,i),ts) rs = map (\(a,b) -> (a, (filter ((/=i) . snd) b)))
-                             $ filter ((/=i) . snd . fst) rs
+                           $ filter ((/=i) . snd . fst) rs
 
--- Generates a strategy for the possible pathways of a  given RoseTree
+-- Generates a strategy for the possible pathways of a given RoseTree
 makeAllTopStrat (RoseTree r []) (loc:ls) = genStrat loc r
-makeAllTopStrat (RoseTree r ts) (loc:ls) = (.*.) <$> (genStrat loc r) <*> (foo ts)
-   where
-     foo []     = return $ failS
-     foo (x:xs) = (.|.) <$> (makeAllTopStrat x ls) <*> (foo xs)
+makeAllTopStrat (RoseTree r ts) (loc:ls) =
+  (.*.) <$> (genStrat loc r)
+        <*> foldr (\x -> ((.|.) <$> (makeAllTopStrat x ls) <*>))
+                  (return $ failS) ts
+{-makeAllTopStrat (RoseTree r ts) (loc:ls) =
+  (.*.) <$> (genStrat loc r) <*> (appChildren ts)
+    where
+      appChildren []     = return $ failS
+      appChildren (x:xs) = (.|.) <$> (makeAllTopStrat x ls) <*> (foo xs)
+      -}
 
 -- Generates a strategy handling all possible orderings of AST
 makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
-makeDependencyStrategy []         = return $ succeed
-makeDependencyStrategy [(x, loc)] = genStrat loc x
-makeDependencyStrategy as         = makeAllTopStrat
-                                        (allTop ((CoreS.ASTUnitype.Block [],-1),[]) (dagHelper as []))
-                                        (((-1:) . snd . unzip) as)
+makeDependencyStrategy = \case
+  []         -> return $ succeed
+  [(x, loc)] -> genStrat loc x
+  as         -> makeAllTopStrat
+                (allTop ((Block [],-1),[]) (dagHelper as []))
+                (((-1:) . snd . unzip) as)
 
 -- | Can we make this more DRY?
 --
