@@ -26,7 +26,7 @@ module Util.Shrink where
 import Data.Monoid ((<>))
 import Test.QuickCheck
 import qualified Test.QuickCheck.Gen as QC
---import System.Random (split)
+import System.Random (split)
 import Test.QuickCheck.Random (QCGen)
 
 --Create a Rose Tree Data Type
@@ -66,21 +66,15 @@ instance Monad RoseGen where
   (>>=) m0 k0 =
     RoseGen $ bindGenTree (unGen m0) (unGen . k0)
 
--- | Used to implement '(>>=)' for 'Jack'.
+-- | Used to implement '(>>=)'
 bindGenTree :: Gen (RoseTree a) -> (a -> Gen (RoseTree b)) -> Gen (RoseTree b)
 bindGenTree m k = undefined
-  -- It's important to note that we don't use 'traverse' here, we explicitly
-  -- only split the seed once, this ensures we get the same behaviour for our
-  -- Monad and Applicative instances.
- {-} QC.MkGen $ \seed0 size ->
+  QC.MkGen $ \seed0 size ->
     let
-      (seed1, seed2) =
-        split seed0
+      (seed1, seed2) = split seed0
 
-      runGen :: QCGen -> RoseGen x -> x
+      runGen :: QCGen -> Gen x -> x
       runGen seed gen =
-        unGen gen seed size
+        QC.unGen gen seed size
     in
       runGen seed1 m >>= runGen seed2 . k
-
--}
