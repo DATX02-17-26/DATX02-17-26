@@ -21,7 +21,9 @@
 module GenStrat where
 
 import Ideas.Common.Library
+import Ideas.Common.DerivationTree
 import Ideas.Common.Strategy as S
+import Ideas.Common.Strategy.Sequence hiding ((.*.))
 import Control.Monad.State
 import Control.Monad as M
 import Data.Generics.Uniplate.DataOnly (transformBi)
@@ -132,12 +134,21 @@ makeStrategy ast = fst $ runState (genStrat 0 ast) 1
 data RoseTree a = RoseTree a [RoseTree a]
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+{-
 makeASTsRoseTree :: Strategy AST -> RoseTree AST
 makeASTsRoseTree strat = go (Hole 0)
   where
     go ast = RoseTree ast $ map go (nextTerms ast)
 
     nextTerms ast = filter (ast /=) $ applyAll strat ast
+-}
+makeASTsRoseTree :: Strategy AST -> RoseTree AST
+makeASTsRoseTree strat = go (Hole 0, (firstsTree (emptyPrefix strat (Hole 0))))
+  where
+    go :: (AST, DerivationTree (Elem (Prefix AST)) (Prefix AST)) -> RoseTree AST
+    go (ast, t) = RoseTree ast (map go (zip (map (get . fst) (firsts (root t))) (subtrees t)))
+
+    get (_, term, _) = term
 
 -- | Simple DFS traversal
 matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
