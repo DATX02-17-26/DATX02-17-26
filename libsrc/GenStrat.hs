@@ -102,7 +102,7 @@ data RoseTree a = RoseTree a [RoseTree a]
 makeASTsRoseTree :: Strategy AST -> RoseTree AST
 makeASTsRoseTree strat = go (Hole 0)
   where
-    go ast = RoseTree ast [go ast' | ast' <- nextTerms ast]
+    go ast = RoseTree ast $ map go (nextTerms ast)
 
     nextTerms ast = filter (ast /=) $ applyAll strat ast
 
@@ -111,7 +111,9 @@ matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
 matchesDFS norm tree ast = go [tree]
   where
     go [] = False
-    go ((RoseTree a []):trees) = ast == (norm a) || go trees
+    go ((RoseTree a []):trees) 
+      | ast == (norm a) = True
+      | otherwise       = go trees
     go ((RoseTree a asts):trees)
       | canMatch ast (norm a) = go (asts ++ trees)
       | otherwise             = go trees
@@ -132,4 +134,4 @@ makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 -- | `matches a b` checks if `a` matches the strategy generated
 -- by `b`
 matches :: (AST -> AST) -> AST -> AST -> Bool
-matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a --a `elem` (map norm $ makeASTs (makeStrategy b))
+matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a
