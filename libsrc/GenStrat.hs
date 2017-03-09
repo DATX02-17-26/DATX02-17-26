@@ -104,7 +104,7 @@ makeASTsRoseTree strat = go (Hole 0)
   where
     go ast = RoseTree ast $ map go (nextTerms ast)
 
-    nextTerms ast = filter (ast /=) $ applyAll strat ast
+    nextTerms ast = applyAll strat ast
 
 -- | Simple DFS traversal
 matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
