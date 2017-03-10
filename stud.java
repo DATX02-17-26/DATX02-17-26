@@ -11,5 +11,5 @@ public class stud
   public static int v4(){return 3;}
   public static int v31(){return 12;}
   public static int v41(){return 13;}
+  public static int v51(){return 13;}
 }
-  

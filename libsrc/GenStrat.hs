@@ -84,12 +84,6 @@ makeAllTopStrat (RoseTree r ts) (loc:ls) =
   (.*.) <$> (genStrat loc r)
         <*> foldr (\x -> ((.|.) <$> (makeAllTopStrat x ls) <*>))
                   (return $ failS) ts
-{-makeAllTopStrat (RoseTree r ts) (loc:ls) =
-  (.*.) <$> (genStrat loc r) <*> (appChildren ts)
-    where
-      appChildren []     = return $ failS
-      appChildren (x:xs) = (.|.) <$> (makeAllTopStrat x ls) <*> (foo xs)
-      -}
 
 -- Generates a strategy handling all possible orderings of AST
 makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
