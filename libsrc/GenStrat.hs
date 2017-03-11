@@ -90,20 +90,19 @@ makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
 makeDependencyStrategy = \case
   []         -> return $ succeed
   [(x, loc)] -> genStrat loc x
-  as         -> let roseTree = allTop ((SEmpty,-1),[]) (dagHelper as []) in
-                  makeAllTopStrat
-                    roseTree $ (-1):(map snd as)
+  as         ->  makeAllTopStrat (allTop ((SEmpty,-1),[]) (dagHelper as []))
+                 $ (-1):(map snd as)
 
 -- | Can we make this more DRY?
 --
 -- (generics?)
 genStrat :: Generator
-genStrat loc (Block xs)                   = refList loc Block xs 
+genStrat loc (Block xs)                   = refList loc Block xs
 genStrat loc (MethodDecl t i params body) = refList loc (MethodDecl t i params) body
-genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc 
+genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc
 genStrat loc (ClassBody body)             = refList loc ClassBody body
 genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
-genStrat loc (CompilationUnit body)       = refList loc CompilationUnit body 
+genStrat loc (CompilationUnit body)       = refList loc CompilationUnit body
 genStrat loc (MemberDecl body)            = (MemberDecl $$ body) loc
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
@@ -145,7 +144,7 @@ matchesDFS :: (AST -> AST) -> RoseTree AST -> AST -> Bool
 matchesDFS norm tree ast = go [tree]
   where
     go [] = False
-    go ((RoseTree a []):trees) 
+    go ((RoseTree a []):trees)
       | ast == (norm a) = True
       | otherwise       = go trees
     go ((RoseTree a asts):trees)
