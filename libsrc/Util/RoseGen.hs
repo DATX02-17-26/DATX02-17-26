@@ -22,15 +22,13 @@
 -- https://deque.blog/2017/02/03/code-your-own-quickcheck/
 module Util.RoseGen where
 
-
-import Test.QuickCheck
 import qualified Test.QuickCheck.Gen as QC
-import System.Random (split)
+import System.Random (split, Random, randomR)
 import Test.QuickCheck.Random (QCGen)
 import Data.RoseTree
 
 --Rose Generator wrapping the Generator from QC
-newtype RoseGen a = RoseGen { unGen :: Gen (RoseTree a) }
+newtype RoseGen a = RoseGen { unGen :: QC.Gen (RoseTree a) }
 
 --Instances for Functor, Applicative and Monad for RoseGen
 instance Functor RoseGen where
@@ -47,14 +45,34 @@ instance Monad RoseGen where
     RoseGen $ bindGenTree (unGen m0) (unGen . k0)
 
 -- | Used to implement '(>>=)'
-bindGenTree :: Gen (RoseTree a) -> (a -> Gen (RoseTree b)) -> Gen (RoseTree b)
+bindGenTree :: QC.Gen (RoseTree a) -> (a -> QC.Gen (RoseTree b)) -> QC.Gen (RoseTree b)
 bindGenTree m k =
   QC.MkGen $ \seed0 size ->
     let
       (seed1, seed2) = split seed0
 
-      runGen :: QCGen -> Gen x -> x
+      runGen :: QCGen -> QC.Gen x -> x
       runGen seed gen =
         QC.unGen gen seed size
     in
       runGen seed1 m >>= runGen seed2 . k
+
+choose :: Random a => (a,a) -> RoseGen a
+choose = undefined --RoseGen . QC.choose
+
+listOf :: RoseGen a -> RoseGen [a]
+listOf = undefined --RoseGen . QC.listOf . unGen
+
+frequency ::  [(Int, RoseGen a)] -> RoseGen a
+frequency = RoseGen . QC.frequency . map unGenSnd
+  where
+    unGenSnd (i, gen) = (i, (unGen gen))
+
+elements :: [RoseTree a] -> RoseGen a
+elements = RoseGen . QC.elements
+
+oneOf :: [RoseGen a] -> RoseGen a
+oneOf = RoseGen . QC.oneof . map unGen
+
+shrink :: a -> [a]
+shrink = undefined
