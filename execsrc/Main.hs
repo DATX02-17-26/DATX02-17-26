@@ -78,6 +78,7 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
     -- The normalized ASTs
     let normalize = executeNormalizer normalizations
     let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
+
     let normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
 
     -- Generate information for the teacher

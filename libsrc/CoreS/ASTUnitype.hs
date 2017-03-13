@@ -76,21 +76,21 @@ data AST =
   | Default
   | FIVars CAST.TypedVVDecl
   | FIExprs [AST]
-  | MethodDecl (Maybe CAST.Type) CAST.Ident [CAST.FormalParam] AST
-  | CompilationUnit AST
+  | MethodDecl (Maybe CAST.Type) CAST.Ident [CAST.FormalParam] [AST]
+  | CompilationUnit [AST]
   | ClassTypeDecl AST
   | ClassDecl CAST.Ident AST
-  | ClassBody AST
+  | ClassBody [AST]
   | MemberDecl AST
   | Hole Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 convertCompilationUnit :: CAST.CompilationUnit -> AST
-convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (Block (map convertTypeDecl tds))
+convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (map convertTypeDecl tds)
 convertCompilationUnit (CAST.HoleCompilationUnit i) = Hole i
 
 convertCompilationUnitI :: AST -> CAST.CompilationUnit
-convertCompilationUnitI (CompilationUnit (Block tds)) = CAST.CompilationUnit (map convertTypeDeclI tds)
+convertCompilationUnitI (CompilationUnit tds) = CAST.CompilationUnit (map convertTypeDeclI tds)
 convertCompilationUnitI (Hole i) = CAST.HoleCompilationUnit i 
 
 convertTypeDecl :: CAST.TypeDecl -> AST
@@ -110,11 +110,11 @@ convertClassDeclI (ClassDecl i body) = CAST.ClassDecl i (convertClassBodyI body)
 convertClassDeclI (Hole i) = CAST.HoleClassDecl i
 
 convertClassBody :: CAST.ClassBody -> AST
-convertClassBody (CAST.ClassBody decls) = ClassBody (Block (map convertDecl decls))
+convertClassBody (CAST.ClassBody decls) = ClassBody (map convertDecl decls)
 convertClassBody (CAST.HoleClassBody i) = Hole i
 
 convertClassBodyI :: AST -> CAST.ClassBody
-convertClassBodyI (ClassBody (Block decls)) = CAST.ClassBody (map convertDeclI decls)
+convertClassBodyI (ClassBody decls) = CAST.ClassBody (map convertDeclI decls)
 convertClassBodyI (Hole i) = CAST.HoleClassBody i
 
 convertDecl :: CAST.Decl -> AST
@@ -127,11 +127,11 @@ convertDeclI (Hole i)       = CAST.HoleDecl i
 
 convertMemberDecl :: CAST.MemberDecl -> AST
 convertMemberDecl (CAST.MethodDecl m i fmparms (CAST.Block bs)) =
-  MethodDecl m i fmparms (Block (map convertStmt bs))
+  MethodDecl m i fmparms (map convertStmt bs)
 convertMemberDecl (CAST.HoleMemberDecl i) = Hole i
 
 convertMemberDeclI :: AST -> CAST.MemberDecl
-convertMemberDeclI (MethodDecl m i fmparms (Block bs)) =
+convertMemberDeclI (MethodDecl m i fmparms bs) =
   CAST.MethodDecl m i fmparms (CAST.Block (map convertStmtI bs))
 convertMemberDeclI (Hole i) = CAST.HoleMemberDecl i
 
@@ -279,6 +279,11 @@ convertSwitchBlockI :: AST -> CAST.SwitchBlock
 convertSwitchBlockI (SwitchBlock l stmts) = CAST.SwitchBlock l (CAST.Block (map convertStmtI stmts))
 convertSwitchBlockI (Hole i)              = CAST.HoleSwitchBlock i
 
+matchList :: [AST] -> [AST] -> Bool
+matchList as bs
+  | length as == length bs = and [canMatch a b | (a, b) <- zip as bs]
+  | otherwise = False
+
 -- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
 --
 -- todo: refactor....
@@ -293,9 +298,9 @@ canMatch (Char c) (Char a) = a == c
 canMatch (String s) (String s') = s == s' 
 canMatch Null Null = True
 canMatch (LVName i) (LVName j) = i == j
-canMatch (LVArray a as) (LVArray b bs) = canMatch a b && and [canMatch a b | (a, b) <- zip as bs]
+canMatch (LVArray a as) (LVArray b bs) = canMatch a b && matchList as bs
 canMatch (InitExpr ast) (InitExpr ast') = canMatch ast ast' 
-canMatch (InitArr  as) (InitArr bs) = and [canMatch a b | (a, b) <- zip as bs]
+canMatch (InitArr  as) (InitArr bs) = matchList as bs
 canMatch (ELit ast) (ELit ast') = canMatch ast ast' 
 canMatch (EVar ast) (EVar ast') = canMatch ast ast' 
 canMatch (ECast t ast) (ECast t' ast') = t == t' && canMatch ast ast' 
@@ -310,12 +315,12 @@ canMatch (EStep op ast) (EStep op' ast') = op == op' && canMatch ast ast'
 canMatch (EBCompl ast) (EBCompl ast') = canMatch ast ast' 
 canMatch (EPlus ast) (EPlus ast') = canMatch ast ast' 
 canMatch (EMinus ast) (EMinus ast') = canMatch ast ast' 
-canMatch (EMApp c asts) (EMApp d asts') = c == d && and [canMatch a b | (a, b) <- zip asts asts']
-canMatch (EArrNew  t xs is)  (EArrNew  t' xs' is') = t == t' && and [canMatch x y | (x,y) <- zip xs xs'] && is == is'
-canMatch (EArrNewI t i xs) (EArrNewI t' i' xs') = t == t' && i == i' && and [canMatch x y | (x, y) <- zip xs xs'] 
+canMatch (EMApp c asts) (EMApp d asts') = c == d && matchList asts asts'
+canMatch (EArrNew  t xs is) (EArrNew  t' xs' is') = t == t' && matchList xs xs' && is == is'
+canMatch (EArrNewI t i xs) (EArrNewI t' i' xs') = t == t' && i == i' && matchList xs xs'
 canMatch (ESysOut ast) (ESysOut ast') = canMatch ast ast'
 canMatch SEmpty SEmpty = True
-canMatch (Block ast) (Block ast') = and [canMatch a b | (a, b) <- zip ast ast']
+canMatch (Block ast) (Block ast') = matchList ast ast'
 canMatch (SExpr ast) (SExpr ast') = canMatch ast ast' 
 canMatch (SVars t) (SVars t') = t == t'
 canMatch (SReturn ast) (SReturn ast') = canMatch ast ast' 
@@ -326,20 +331,20 @@ canMatch (SWhile b bd) (SWhile b' bd') = canMatch b b' && canMatch bd bd'
 canMatch (SDo b bd) (SDo b' bd') = canMatch b b' && canMatch bd bd'
 canMatch (SForB ma mb mcs d) (SForB ma' mb' mcs' d') = canMatch d d' && (ma == ma' || maybe False id (canMatch <$> ma <*> ma')) &&
                                                        (mb == mb' || maybe False id (canMatch <$> mb <*> mb')) &&
-                                                       (mcs == mcs' || maybe False id ((\ xs ys -> and [canMatch x y | (x, y) <- zip xs ys]) <$> mcs <*> mcs'))
+                                                       (mcs == mcs' || maybe False id (matchList <$> mcs <*> mcs'))
 canMatch (SForE t i a b) (SForE t' i' a' b') = t == t' && i == i' && canMatch a a' && canMatch b b' 
 canMatch SContinue SContinue = True
 canMatch SBreak SBreak = True
-canMatch (SSwitch ast asts) (SSwitch ast' asts') = canMatch ast ast' && and [canMatch a b | (a, b) <- zip asts asts']
-canMatch (SwitchBlock l asts) (SwitchBlock l' asts') = l == l' && and [canMatch a b | (a, b) <- zip asts asts']
+canMatch (SSwitch ast asts) (SSwitch ast' asts') = canMatch ast ast' && matchList asts asts'
+canMatch (SwitchBlock l asts) (SwitchBlock l' asts') = l == l' && matchList asts asts'
 canMatch (SwitchCase ast) (SwitchCase ast') = canMatch ast ast' 
 canMatch Default Default = True
 canMatch (FIVars i) (FIVars j) = i == j
-canMatch (FIExprs as) (FIExprs bs) = and [canMatch a b | (a, b) <- zip as bs] 
-canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && xs == xs' && canMatch ast ast'
-canMatch (CompilationUnit a) (CompilationUnit b) = canMatch a b
+canMatch (FIExprs as) (FIExprs bs) = matchList as bs
+canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && xs == xs' && matchList ast ast'
+canMatch (CompilationUnit a) (CompilationUnit b) = matchList a b
 canMatch (ClassTypeDecl ast) (ClassTypeDecl ast') = canMatch ast ast' 
 canMatch (ClassDecl i ast) (ClassDecl j ast') = i == j && canMatch ast ast' 
-canMatch (ClassBody ast) (ClassBody ast') = canMatch ast ast' 
+canMatch (ClassBody ast) (ClassBody ast') = matchList ast ast' 
 canMatch (MemberDecl ast) (MemberDecl ast') = canMatch ast ast'
 canMatch _ _ = False

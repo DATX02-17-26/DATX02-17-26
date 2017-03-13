@@ -25,8 +25,7 @@ data Env = Env {
   cName :: Int,
   vName :: Int,
   names :: Cxt
-  }
-     deriving (Eq, Show)
+  } deriving (Eq, Show)
 
 --create a new Env
 newEnv :: Env
@@ -35,7 +34,7 @@ newEnv = Env {
   cName = 0,
   vName = 0,
   names = [Map.empty]
-}
+  }
 
 --create a new Context
 newContext :: State Env ()
@@ -121,7 +120,7 @@ renameClass :: TypeDecl -> State Env TypeDecl
 renameClass htd@(HoleTypeDecl _) = return htd
 renameClass (ClassTypeDecl ctd) =
   case ctd of
-    (ClassDecl ident(ClassBody decls)) -> do
+    (ClassDecl ident (ClassBody decls)) -> do
       newContext
       decls' <- mapM renameMethod decls
       exitContext
@@ -167,6 +166,7 @@ renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   b <- renameBlock block
   exitContext
   return (MemberDecl (MethodDecl mType ident fp b))
+renameMethod hd@(MemberDecl _) = return hd
 
 --Renames the Formal Parameters
 renameFormalParam :: FormalParam -> State Env FormalParam
