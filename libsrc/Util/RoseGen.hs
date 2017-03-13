@@ -26,6 +26,7 @@ import qualified Test.QuickCheck.Gen as QC
 import System.Random (split, Random, randomR)
 import Test.QuickCheck.Random (QCGen)
 import Data.RoseTree
+import Control.Monad
 
 --Rose Generator wrapping the Generator from QC
 newtype RoseGen a = RoseGen { unGen :: QC.Gen (RoseTree a) }
@@ -61,7 +62,10 @@ choose :: Random a => (a,a) -> RoseGen a
 choose = undefined --RoseGen . QC.choose
 
 listOf :: RoseGen a -> RoseGen [a]
-listOf = undefined --RoseGen . QC.listOf . unGen
+listOf gen = undefined {-QC.sized $ \n -> do
+  k <- QC.choose (0,n)
+  fmap (replicateM k ) (unGen gen)
+-}
 
 frequency ::  [(Int, RoseGen a)] -> RoseGen a
 frequency = RoseGen . QC.frequency . map unGenSnd
@@ -73,6 +77,3 @@ elements = RoseGen . QC.elements
 
 oneOf :: [RoseGen a] -> RoseGen a
 oneOf = RoseGen . QC.oneof . map unGen
-
-shrink :: a -> [a]
-shrink = undefined
