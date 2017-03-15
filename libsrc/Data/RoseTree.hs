@@ -1,9 +1,10 @@
 module Data.RoseTree where
 
 import Data.Monoid ((<>))
+import Text.PrettyPrint hiding ((<>))
 
 --Create a Rose Tree Data Type
-data RoseTree a = RoseTree { root :: a, branches :: [RoseTree a] } deriving (Eq, Ord, Show)
+data RoseTree a = RoseTree { root :: a, branches :: [RoseTree a] } deriving (Eq, Ord)
 
 --Creating Functor, Applicative and Monad for the Rose Tree
 instance Functor RoseTree where
@@ -27,3 +28,16 @@ instance Monad RoseTree where
 filterTree :: RoseTree a -> (a -> Bool) -> RoseTree a
 filterTree (RoseTree a trees) p =
   RoseTree a [filterTree t p | t@(RoseTree a' _) <- trees, p a']
+
+prettyRoseTree :: Show a => RoseTree a -> Doc
+prettyRoseTree (RoseTree a rs) =
+  text "-" <+>
+  text (show a) $$
+    nest 2 (vcat $ map prettyRoseTree rs)
+
+instance Show a => Show (RoseTree a) where
+  show = render . prettyRoseTree
+
+prune :: Int -> Int -> RoseTree a -> RoseTree a
+prune w 0 (RoseTree a _)     = RoseTree a []
+prune w d (RoseTree a trees) = RoseTree a [prune w (d - 1) tree | tree <- take w trees]

@@ -32,10 +32,16 @@ import Control.Monad.Reader
 
 data Env = Env { width :: Int, depth :: Int } deriving (Ord, Eq, Show)
 
+defaultEnv :: Env
+defaultEnv = Env 10 10
+
 type Internal a = ReaderT Env QC.Gen (RoseTree a)
 
 --Rose Generator wrapping the Generator from QC
 newtype RoseGen a = RoseGen { unGen :: Internal a }
+
+generate :: RoseGen a -> IO (RoseTree a)
+generate (RoseGen gen) = QC.generate (runReaderT gen defaultEnv)
 
 --Instances for Functor, Applicative and Monad for RoseGen
 instance Functor RoseGen where
