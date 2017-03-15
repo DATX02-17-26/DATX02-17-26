@@ -21,7 +21,7 @@ execute :: CompilationUnit -> Maybe CompilationUnit
 execute cu = case cu of
   CompilationUnit tds ->
     let normCU = CompilationUnit $ intoClassTypeDecl <$> tds
-    in if cu == normCU then Just normCU else Nothing
+    in if cu == normCU then Nothing else Just normCU
   hole -> Nothing
 
 --start at classBody, go into ClassDecl
@@ -50,6 +50,7 @@ intoDecl dec = case dec of
   hole          -> hole
 
 --MemberDecl go into Block
+--to run the method where blocks are removed, add a 0 to intoBlock
 intoMemberDecl :: MemberDecl -> MemberDecl
 intoMemberDecl md = case md of
   MethodDecl mt ident fp block -> MethodDecl mt ident fp (intoBlock block)
@@ -58,19 +59,34 @@ intoMemberDecl md = case md of
 --Block go into stmts
 intoBlock :: Block -> Block
 intoBlock block = case block of
+  --Block stmts -> Block (goStmts stmts)
   (Block stmts) -> Block (intoStmt <$> stmts)
   hole          -> hole
-   --(MemberDecl (MethodDecl mt ident fp (Block stmts))) =
-  --MemberDecl $ MethodDecl mt ident fp $ Block $ intoStmt <$> stmts
+
+{-
+--This method will only work when blocks are already removed, otherwise
+--it may remove blocks that are not supposed to be removed
+
+intoBlock :: Block -> Int -> Block
+intoBlock b i = case b of
+  (Block bStmts) -> case (splitAt i bStmts) of
+  --  (stmts1, (x:[]))   -> Block $ stmts1 ++ [intoStmt x]
+    (stmts1, [])       -> Block stmts1
+    (stms1, (s:stms2)) -> case intoStmt s of
+      SBlock (Block [si, (SWhile e ws)]) -> intoBlock (Block (stms1 ++ [si] ++ [(SWhile e ws)] ++ stms2)) (i+1)
+      stmt                               -> intoBlock (Block (stms1 ++ [stmt] ++ stms2)) (i+1)
+  hole           -> hole
+-}
 
 {-
   At the moment only changes for to while, adds a scope
   around it. Should work with holes
+  To run block removal: SBlock $ intoBlock block 0
 -}
 intoStmt :: Stmt -> Stmt
 intoStmt stm = case stm of
-  SBlock (Block stmts)         -> SBlock $ Block $ intoStmt <$> stmts
-  SIf expr stmt                -> (SIf expr (intoStmt stmt))
+  SBlock block                 -> SBlock $ intoBlock block
+  SIf expr stmt                -> SIf expr (intoStmt stmt)
   SIfElse expr stmt1 stmt2     -> SIfElse expr (intoStmt stmt1) (intoStmt stmt2)
   SWhile expr stmt             -> SWhile expr $ intoStmt stmt
   SDo expr stmt                -> SDo expr (intoStmt stmt)
