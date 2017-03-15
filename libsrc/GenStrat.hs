@@ -113,6 +113,10 @@ genStrat loc (SIfElse cond onTrue onFalse)  = do
   return $ refine (SIfElse cond (Hole trueLoc) (Hole falseLoc)) loc .*. trueStrat .*. falseStrat
 genStrat loc (SWhile cond body)             = (SWhile cond $$ body) loc
 genStrat loc (SDo cond body)                = (SDo cond $$ body) loc
+genStrat loc (SwitchCase body)              = (SwitchCase $$ body) loc
+genStrat loc (SwitchBlock lab asts)         = do
+  (locs, strats) <- unzip <$> mapM locGen asts
+  return $ refine (SwitchBlock lab [Hole l | l <- locs]) loc .*. sequenceS strats
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
 
