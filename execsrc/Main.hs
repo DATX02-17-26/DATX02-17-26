@@ -36,6 +36,8 @@ import Test.QuickCheck
 import Language.Haskell.Interpreter
 
 import CoreS.Parse
+import qualified CoreS.ASTUnitype as AST
+import GenStrat
 import SolutionContext
 import EvaluationMonad
 import RunJavac
@@ -74,10 +76,13 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
                   sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
 
     -- The normalized ASTs
-    let normalizedASTs = executeNormalizer normalizations <$> astContext
-    
+    let normalize = executeNormalizer normalizations
+    let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
+
+    let normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
+
     -- Generate information for the teacher
-    if studentSolutionMatches (==) normalizedASTs then
+    if studentSolutionMatches (matches normalizeUAST) normalizedASTs then
       comment "Student solution matches a model solution"
     else
       do 
@@ -87,7 +92,6 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
           _         -> return ()
 
     return ()
-
 
 -- | A generator for alphanumeric strings of lower case letters
 genLCAlpha :: Gen String

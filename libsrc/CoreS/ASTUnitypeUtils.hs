@@ -16,16 +16,17 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+module CoreS.ASTUnitypeUtils where
 
-import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import CoreS.ASTUnitype
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ identityTransformation, alphaRenaming ]
-
--- Do nothing
-identityTransformation :: NormalizationRule CompilationUnit 
-identityTransformation = makeRule (const Nothing) "Identity" [0]
+-- | `dependsOn y x` is `True` if `y` depends on `x`
+--
+-- if `dependsOn y x == False` then `y; x;` and `x; y;`
+-- should be semantically identical
+dependsOn :: AST -> AST -> Bool
+dependsOn SEmpty _ = False
+dependsOn _ SEmpty = False
+dependsOn (MethodDecl _ _ _ _) (MethodDecl _ _ _ _) = False
+dependsOn (MemberDecl _) (MemberDecl _) = False
+dependsOn y x = True
