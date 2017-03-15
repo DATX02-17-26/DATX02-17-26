@@ -27,3 +27,8 @@ instance Monad RoseTree where
 filterTree :: RoseTree a -> (a -> Bool) -> RoseTree a
 filterTree (RoseTree a trees) p =
   RoseTree a [filterTree t p | t@(RoseTree a' _) <- trees, p a']
+
+-- TODO
+diagonalize :: [RoseTree a] -> RoseTree [a]
+diagonalize []           = RoseTree [] []
+diagonalize (tree:trees) = undefined

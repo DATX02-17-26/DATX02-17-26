@@ -23,14 +23,19 @@
 module Util.RoseGen where
 
 import qualified Test.QuickCheck.Gen as QC
+import qualified Test.QuickCheck as QC
 import System.Random (split, Random, randomR)
 import Test.QuickCheck.Random (QCGen)
 import Data.RoseTree
 import Control.Monad
 import Control.Monad.Reader
 
+data Env = Env { width :: Int, depth :: Int } deriving (Ord, Eq, Show)
+
+type Internal a = ReaderT Env QC.Gen (RoseTree a)
+
 --Rose Generator wrapping the Generator from QC
-newtype RoseGen a = RoseGen { unGen :: ReaderT Int QC.Gen (RoseTree a) }
+newtype RoseGen a = RoseGen { unGen :: Internal a }
 
 --Instances for Functor, Applicative and Monad for RoseGen
 instance Functor RoseGen where
@@ -47,7 +52,7 @@ instance Monad RoseGen where
     RoseGen $ bindGenTree (unGen m) (unGen . f)
 
 -- | Used to implement '(>>=)'
-bindGenTree :: ReaderT Int QC.Gen (RoseTree a) -> (a -> ReaderT Int QC.Gen (RoseTree b)) -> ReaderT Int QC.Gen (RoseTree b)
+bindGenTree :: Internal a -> (a -> Internal b) -> Internal b
 bindGenTree m k = do
   env <- ask
   lift $ QC.MkGen $ \seed0 size ->
@@ -60,30 +65,41 @@ bindGenTree m k = do
     in
       runGen seed1 (runReaderT m env) >>= runGen seed2 . (flip runReaderT env) . k
 
+-- | Generate an arbitrary value, and all ways to shrink that value
+anything :: (QC.Arbitrary a) => RoseGen a
+anything = RoseGen $ do
+  a <- lift $ QC.arbitrary
+  return $ makeTree a
+  where
+    makeTree a = RoseTree a [makeTree a' | a' <- QC.shrink a]
+
+-- TODO: Use the environment to
+-- decide how much to shrink
 choose :: Random a => (a,a) -> RoseGen a
 choose (lo, hi) = RoseGen $ do
   a <- lift $ QC.choose (lo, hi)
-  let shrinks = []
+  let shrinks = [] -- Use the environment to know how aggressively to shrink
   return $ RoseTree a shrinks
 
--- TODO
+-- TODO: Test this
 listOf :: RoseGen a -> RoseGen [a]
-listOf gen = undefined {-QC.sized $ \n -> do
-  k <- QC.choose (0,n)
-  fmap (replicateM k ) (unGen gen)
--}
+listOf gen = RoseGen $ do
+  env <- ask
+  lift $ QC.sized $ \n -> do
+    k <- QC.choose (0,n)
+    trees <- replicateM k $ runReaderT (unGen gen) env
+    return $ diagonalize trees
 
+-- | Generate a value such that a predicate holds for that value
 suchThat :: RoseGen a -> (a -> Bool) -> RoseGen a
 suchThat gen p = RoseGen $ do
   env  <- ask
   tree <- lift $ (runReaderT (unGen gen) env) `QC.suchThat` (\(RoseTree a _) -> p a)
   return $ filterTree tree p
 
--- TODO
+-- | Randomly choose a generator based on some frequency
 frequency ::  [(Int, RoseGen a)] -> RoseGen a
-frequency = undefined {-RoseGen . (lift QC.frequency) . map unGenSnd
-  where
-    unGenSnd (i, gen) = (i, (unGen gen))-}
+frequency gp = oneOf $ concat [replicate i g | (i, g) <- gp]
 
 -- TODO: Is this the way we want
 -- this generator to work, or do we want
@@ -92,6 +108,7 @@ frequency = undefined {-RoseGen . (lift QC.frequency) . map unGenSnd
 elements :: [a] -> RoseGen a
 elements = oneOf . map return
 
+-- Randomly choose a generator
 oneOf :: [RoseGen a] -> RoseGen a
 oneOf gens = RoseGen $ do
   env <- ask
