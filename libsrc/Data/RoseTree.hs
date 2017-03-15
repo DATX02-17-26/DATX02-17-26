@@ -3,7 +3,7 @@ module Data.RoseTree where
 import Data.Monoid ((<>))
 
 --Create a Rose Tree Data Type
-data RoseTree a = RoseTree a [RoseTree a] deriving (Eq, Ord, Show)
+data RoseTree a = RoseTree { root :: a, branches :: [RoseTree a] } deriving (Eq, Ord, Show)
 
 --Creating Functor, Applicative and Monad for the Rose Tree
 instance Functor RoseTree where
@@ -27,8 +27,3 @@ instance Monad RoseTree where
 filterTree :: RoseTree a -> (a -> Bool) -> RoseTree a
 filterTree (RoseTree a trees) p =
   RoseTree a [filterTree t p | t@(RoseTree a' _) <- trees, p a']
-
--- TODO
-diagonalize :: [RoseTree a] -> RoseTree [a]
-diagonalize []           = RoseTree [] []
-diagonalize (tree:trees) = undefined

@@ -88,7 +88,12 @@ listOf gen = RoseGen $ do
   lift $ QC.sized $ \n -> do
     k <- QC.choose (0,n)
     trees <- replicateM k $ runReaderT (unGen gen) env
-    return $ diagonalize trees
+    return $ diagonalizeAndShrink env trees
+
+diagonalizeAndShrink :: Env -> [RoseTree a] -> RoseTree [a]
+diagonalizeAndShrink env trees = RoseTree (map root trees) brs
+  where
+    brs = []
 
 -- | Generate a value such that a predicate holds for that value
 suchThat :: RoseGen a -> (a -> Bool) -> RoseGen a
