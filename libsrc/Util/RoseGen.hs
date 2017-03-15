@@ -27,9 +27,10 @@ import System.Random (split, Random, randomR)
 import Test.QuickCheck.Random (QCGen)
 import Data.RoseTree
 import Control.Monad
+import Control.Monad.Reader
 
 --Rose Generator wrapping the Generator from QC
-newtype RoseGen a = RoseGen { unGen :: QC.Gen (RoseTree a) }
+newtype RoseGen a = RoseGen { unGen :: ReaderT Int QC.Gen (RoseTree a) }
 
 --Instances for Functor, Applicative and Monad for RoseGen
 instance Functor RoseGen where
@@ -42,13 +43,14 @@ instance Applicative RoseGen where
 instance Monad RoseGen where
   return = pure
 
-  (>>=) m0 k0 =
-    RoseGen $ bindGenTree (unGen m0) (unGen . k0)
+  m >>= f =
+    RoseGen $ bindGenTree (unGen m) (unGen . f)
 
 -- | Used to implement '(>>=)'
-bindGenTree :: QC.Gen (RoseTree a) -> (a -> QC.Gen (RoseTree b)) -> QC.Gen (RoseTree b)
-bindGenTree m k =
-  QC.MkGen $ \seed0 size ->
+bindGenTree :: ReaderT Int QC.Gen (RoseTree a) -> (a -> ReaderT Int QC.Gen (RoseTree b)) -> ReaderT Int QC.Gen (RoseTree b)
+bindGenTree m k = do
+  env <- ask
+  lift $ QC.MkGen $ \seed0 size ->
     let
       (seed1, seed2) = split seed0
 
@@ -56,24 +58,42 @@ bindGenTree m k =
       runGen seed gen =
         QC.unGen gen seed size
     in
-      runGen seed1 m >>= runGen seed2 . k
+      runGen seed1 (runReaderT m env) >>= runGen seed2 . (flip runReaderT env) . k
 
 choose :: Random a => (a,a) -> RoseGen a
-choose = undefined --RoseGen . QC.choose
+choose (lo, hi) = RoseGen $ do
+  a <- lift $ QC.choose (lo, hi)
+  let shrinks = []
+  return $ RoseTree a shrinks
 
+-- TODO
 listOf :: RoseGen a -> RoseGen [a]
 listOf gen = undefined {-QC.sized $ \n -> do
   k <- QC.choose (0,n)
   fmap (replicateM k ) (unGen gen)
 -}
 
-frequency ::  [(Int, RoseGen a)] -> RoseGen a
-frequency = RoseGen . QC.frequency . map unGenSnd
-  where
-    unGenSnd (i, gen) = (i, (unGen gen))
+suchThat :: RoseGen a -> (a -> Bool) -> RoseGen a
+suchThat gen p = RoseGen $ do
+  env  <- ask
+  tree <- lift $ (runReaderT (unGen gen) env) `QC.suchThat` (\(RoseTree a _) -> p a)
+  return $ filterTree tree p
 
-elements :: [RoseTree a] -> RoseGen a
-elements = RoseGen . QC.elements
+-- TODO
+frequency ::  [(Int, RoseGen a)] -> RoseGen a
+frequency = undefined {-RoseGen . (lift QC.frequency) . map unGenSnd
+  where
+    unGenSnd (i, gen) = (i, (unGen gen))-}
+
+-- TODO: Is this the way we want
+-- this generator to work, or do we want
+-- it to shrink elements based on the list
+-- we gave it as input?
+elements :: [a] -> RoseGen a
+elements = oneOf . map return
 
 oneOf :: [RoseGen a] -> RoseGen a
-oneOf = RoseGen . QC.oneof . map unGen
+oneOf gens = RoseGen $ do
+  env <- ask
+  let generators = [runReaderT (unGen g) env | g <- gens]
+  lift $ QC.oneof generators

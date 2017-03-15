@@ -48,6 +48,8 @@ library
     , CoreS.Convert
     , CoreS.Parse
     , Util.List
+    , Util.RoseGen
+    , Data.RoseTree
   build-depends:
       base >=4.8 && < 5
     , lens >= 4.14
