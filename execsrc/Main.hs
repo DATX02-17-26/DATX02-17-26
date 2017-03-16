@@ -81,11 +81,14 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
 
     let normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
 
+    -- Alert the user of what is going on
+    logMessage "Matching student solution to model solutions"
+
     -- Generate information for the teacher
-    if studentSolutionMatches (matches normalizeUAST) normalizedASTs then
-      comment "Student solution matches a model solution"
-    else
-      do 
+    match <- studentSolutionMatches (matches normalizeUAST) (zipContexts paths normalizedASTs)
+    case match of
+      Just fp -> comment $ "Student solution matches a model solution: " ++ fp
+      _       ->  do 
         issue "Student solution does not match a model solution"
         case compilationStatus of
           Succeeded -> runPBT compDir gen
