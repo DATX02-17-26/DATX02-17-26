@@ -97,13 +97,26 @@ makeDependencyStrategy = \case
 --
 -- (generics?)
 genStrat :: Generator
-genStrat loc (Block xs)                   = refList loc Block xs
-genStrat loc (MethodDecl t i params body) = refList loc (MethodDecl t i params) body
-genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc
-genStrat loc (ClassBody body)             = refList loc ClassBody body
-genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
-genStrat loc (CompilationUnit body)       = refList loc CompilationUnit body
-genStrat loc (MemberDecl body)            = (MemberDecl $$ body) loc
+genStrat loc (Block xs)                     = refList loc Block xs
+genStrat loc (MethodDecl t i params body)   = refList loc (MethodDecl t i params) body
+genStrat loc (ClassDecl i body)             = (ClassDecl i $$ body) loc
+genStrat loc (ClassBody body)               = refList loc ClassBody body
+genStrat loc (ClassTypeDecl body)           = (ClassTypeDecl $$ body) loc
+genStrat loc (CompilationUnit body)         = refList loc CompilationUnit body
+genStrat loc (MemberDecl body)              = (MemberDecl $$ body) loc
+genStrat loc (SForB mAST0 mAST1 mASTs body) = (SForB mAST0 mAST1 mASTs $$ body) loc
+genStrat loc (SForE vmt ident ast0 body)    = (SForE vmt ident ast0 $$ body) loc 
+genStrat loc (SIf cond body)                = (SIf cond $$ body) loc
+genStrat loc (SIfElse cond onTrue onFalse)  = do
+  (trueLoc, trueStrat) <- locGen onTrue
+  (falseLoc, falseStrat) <- locGen onFalse
+  return $ refine (SIfElse cond (Hole trueLoc) (Hole falseLoc)) loc .*. trueStrat .*. falseStrat
+genStrat loc (SWhile cond body)             = (SWhile cond $$ body) loc
+genStrat loc (SDo cond body)                = (SDo cond $$ body) loc
+genStrat loc (SwitchCase body)              = (SwitchCase $$ body) loc
+genStrat loc (SwitchBlock lab asts)         = do
+  (locs, strats) <- unzip <$> mapM locGen asts
+  return $ refine (SwitchBlock lab [Hole l | l <- locs]) loc .*. sequenceS strats
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
 
