@@ -51,6 +51,8 @@ library
     , CoreS.ASTUnitype
     , CoreS.ASTUnitypeUtils
     , Util.List
+    , Util.RoseGen
+    , Data.RoseTree
     , Util.TH
     , AlphaR
   build-depends:
@@ -67,9 +69,11 @@ library
     , language-java == 0.2.8
     , QuickCheck >= 2.8
     , loch-th == 0.2.1
+    , random == 1.1
     , containers == 0.5.7.1
     , uniplate >= 1.6
-    , template-haskell == 2.11.1.0
+    , pretty >= 1.1.3.3
+    , template-haskell >= 2.11.0.0
     , comonad == 5
   hs-source-dirs:   libsrc
   default-language: Haskell2010
@@ -92,6 +96,7 @@ executable JAA
     , DATX021726
     , QuickCheck
     , hint == 0.6.0
+    , random == 1.1
   hs-source-dirs:   execsrc 
   default-language: Haskell2010
 
