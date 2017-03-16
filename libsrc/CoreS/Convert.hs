@@ -74,7 +74,7 @@ convRTyp = \case
 
 convTyp :: S.Type -> CConv Type
 convTyp = \case
-  S.PrimType t -> pure $ PrimType $ convPTyp t
+  S.PrimType t -> pure $ PrimT $ convPTyp t
   S.RefType  t -> convRTyp t
 
 convId :: S.Ident -> Ident
