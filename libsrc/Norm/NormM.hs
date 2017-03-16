@@ -32,6 +32,8 @@ import Control.Monad.Writer.Class (MonadWriter, writer, tell, listen, pass)
 import Control.Lens (transformMOf, transformMOnOf, traverseOf)
 import Data.Data.Lens (uniplate, biplate)
 
+import Test.QuickCheck (Arbitrary, CoArbitrary, variant, arbitrary, coarbitrary)
+
 import Util.TH (deriveLens)
 
 --------------------------------------------------------------------------------
@@ -60,6 +62,17 @@ isChange = (== Change)
 -- | Convert to Any. It is "true" with isChange semantics.
 toAny :: Unique -> Any
 toAny = Any . isChange
+
+-- | Convert from Bool. True ==> Change. Preserves monoidal properties.
+fromBool :: Bool -> Unique
+fromBool u = if u then Change else Unique
+
+-- | Convert from Any. See fromBool.
+fromAny :: Any -> Unique
+fromAny = fromBool . getAny
+
+instance Arbitrary Unique where
+  arbitrary = fromBool <$> arbitrary
 
 --------------------------------------------------------------------------------
 -- Norm-alizer monad:
@@ -114,6 +127,9 @@ instance MonadWriter Unique Norm where
   tell   = writer . ((),)
   listen = norm $ \u a      -> Norm u (a, u)
   pass   = norm $ \u (a, f) -> Norm (f u) a
+
+instance Arbitrary a => Arbitrary (Norm a) where
+  arbitrary = Norm <$> arbitrary <*> arbitrary
 
 --------------------------------------------------------------------------------
 -- Isomorphisms:

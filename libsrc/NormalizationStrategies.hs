@@ -71,12 +71,16 @@ type Normalizer a = [NormalizationRule a]
 -- | A normalization strategy is a way of discriminating rules
 type NormalizationStrategy a = Normalizer a -> Normalizer a
 
+-- | A binary operator on NormalizationStrategy:s.
+type BinNS a = NormalizationStrategy a -> NormalizationStrategy a
+            -> NormalizationStrategy a
+
 -- | Take the intersection of two strategies
-(><) :: NormalizationStrategy a -> NormalizationStrategy a -> NormalizationStrategy a
+(><) :: BinNS a
 f >< g = \a -> nub $ f a `intersect` g a
 
 -- | Take the union of two strategies
-(<>) :: NormalizationStrategy a -> NormalizationStrategy a -> NormalizationStrategy a
+(<>) :: BinNS a
 f <> g = \a -> nub $ f a `union` g a
 
 -- | A strategy which includes a list of rules
