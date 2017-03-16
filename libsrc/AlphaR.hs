@@ -10,13 +10,15 @@ import NormalizationStrategies (makeRule, NormalizationRule)
 
 --A Context
 type Cxt = [Map Ident Ident]
+type MCxt = [Map Ident Ident]
 
 --Environment
 data Env = Env {
   mName :: Int,
   cName :: Int,
   vName :: Int,
-  names :: Cxt
+  varNames :: Cxt,
+  metNames :: MCxt
   }
      deriving (Eq, Show)
 
@@ -26,17 +28,26 @@ newEnv = Env {
   mName = 0,
   cName = 0,
   vName = 0,
-  names = [Map.empty]
+  varNames = [Map.empty],
+  metNames = [Map.empty]
 }
 
 
 --create a new Context
 newContext :: State Env ()
-newContext = modify (\s -> s{names = Map.empty : names s})
+newContext = modify (\s -> s{varNames = Map.empty : varNames s})
+
+--new method context
+newMethodCxt :: State Env ()
+newMethodCxt = modify (\s -> s{metNames = Map.empty : metNames s})
 
 --exit a Context
 exitContext :: State Env ()
-exitContext = modify (\s -> s{names = tail(names s)})
+exitContext = modify (\s -> s{varNames = tail(varNames s)})
+
+--exit a method context
+exitMethodCxt :: State Env ()
+exitMethodCxt = modify (\s -> s{metNames = tail(metNames s)})
 
 --create new label
 newClassName :: Ident -> State Env Ident
@@ -47,14 +58,7 @@ newClassName old = do
    let new = (Ident $ "Class" ++ show name)
    addIdent new old
 
---create new method name
-newMethodName :: Ident -> State Env Ident
-newMethodName old = do
-   modify (\s -> s{mName = (mName s) + 1})
-   st <- get
-   name  <- return (mName st)
-   let new = (Ident $ "method" ++ show name)
-   addIdent new old
+
 
 --create new variable name if an old does not exist
 newVarName :: Ident -> State Env Ident
@@ -69,28 +73,70 @@ newVarName old = do
       let new =  (Ident $ "var" ++ show name)
       addIdent new old
 
---add a Ident to Env return the new ident
+--add a var Ident to Env return the new var ident
 addIdent :: Ident -> Ident -> State Env Ident
 addIdent new old = do
   st <- get
-  let (n:ns) = (names st)
-  modify(\s -> s{names = (Map.insert old new n):ns})
+  let (n:ns) = (varNames st)
+  modify(\s -> s{varNames = (Map.insert old new n):ns})
   return new
 
 --lookup address for var
 lookupIdent :: Ident -> State Env (Maybe Ident)
-lookupIdent id = do
+lookupIdent i = do
   st <- get
-  let cxt = (names st) in
-    return $ getIdent id cxt
+  let cxt = (varNames st) in
+    return $ getIdent i cxt
 
 --helper to lookupIdent
 getIdent :: Ident -> Cxt -> Maybe Ident
-getIdent id [] = Nothing
-getIdent id (n:ns) =
-       case Map.lookup id n of
-          Nothing -> getIdent id ns
+getIdent i [] = Nothing
+getIdent i (n:ns) =
+       case Map.lookup i n of
+          Nothing -> getIdent i ns
           ident -> ident
+
+--create new method name
+newMethodName :: Ident -> State Env Ident
+newMethodName old = do
+   modify (\s -> s{mName = (mName s) + 1})
+   st <- get
+   name  <- return (mName st)
+   let new = (Ident $ "method" ++ show name)
+   addMethod new old
+
+--add method ident to env and return new method ident
+addMethod :: Ident -> Ident -> State Env Ident
+addMethod new old = do
+  st <- get
+  let (m:ms) = (metNames st)
+  modify(\s -> s{metNames = (Map.insert old new m):ms})
+  return new
+
+--lookup address for method
+lookupMethod :: Ident -> State Env (Maybe Ident)
+lookupMethod i = do
+  st <- get
+  let mcxt = (metNames st) in
+    return $ getIdent i mcxt
+
+--helper to lookupMethod
+getMethod :: Ident -> Cxt -> Maybe Ident
+getMethod i [] = Nothing
+getMethod i (n:ns) =
+       case Map.lookup i n of
+          Nothing -> getMethod i ns
+          ident -> ident
+
+lookupMetInScope :: Ident -> [Map Ident Ident] -> Maybe Ident
+lookupMetInScope i [] = Just i
+lookupMetInScope i (m:ms) = do
+  --st <- get
+  --let (m:ms) = (metNames st)
+  case Map.lookup i m of
+    Nothing -> lookupMetInScope i ms
+    name -> name
+
 
 alphaRenaming :: NormalizationRule CompilationUnit
 alphaRenaming = makeRule execute name stages
@@ -129,8 +175,10 @@ renameClass (ClassTypeDecl ctd) =
   case ctd of
     (ClassDecl ident(ClassBody decls)) -> do
       newContext
+      newMethodCxt
       decls' <- mapM renameMethod decls
       exitContext
+      --exitMethodCxt
       return (ClassTypeDecl (ClassDecl ident (ClassBody decls')))
     holeClassDecl -> return $ ClassTypeDecl holeClassDecl
 
@@ -286,9 +334,19 @@ renameExpression expression =
     (EMinus   expr)->
       EMinus <$> renameExpression expr
       --Gör om så att om det inte finns i mapen så ska inte namnet ändras
-    (EMApp (Name names) exprs) ->
-      EMApp . Name <$> mapM newVarName names
-      <*> mapM renameExpression exprs
+      --right now works if there is only one method of that name in all classes
+      --and not called with an object prefix. May need a map that maps class
+      --names to a map of the classes methods.
+    (EMApp (Name names) exprs) -> do
+      st <- get
+      let mcxs = (metNames st)
+      case names of
+        [x] -> do
+          meth <- return[(fromJust(lookupMetInScope x mcxs))]
+          (mapM renameExpression exprs >>= \es ->
+            return (EMApp (Name meth) es))
+        _   -> EMApp . Name <$> mapM newVarName names
+                 <*> mapM renameExpression exprs
       {-
       --would work if key and val places were swapped
 
@@ -303,12 +361,13 @@ renameExpression expression =
       findMethod :: Ident -> Int -> State Env Bool
       findMethod i index = do
         st <- get
-        metIndex <- (mName st)
-        case index > metIndex of
-          True -> False
-          _ -> case lookupIdent (Ident "method" ++ index) of
-                Just i -> True
-                Nothing -> findMethod i (index+1)
+        metIndex
+        case index >
+        case lookupIdent (Ident "method" ++ index) of
+          Just i -> True
+          Nothing -> findMethod i (index+1)
+
+
 
       lookAtValues cxt
       elems c
@@ -329,9 +388,6 @@ renameExpression expression =
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
     holeExpr -> return holeExpr
 
---memberOf :: Ident -> State Env Bool
---memberOf i = do
---  st <-
 --Renames a Literal Value
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = case lValue of
