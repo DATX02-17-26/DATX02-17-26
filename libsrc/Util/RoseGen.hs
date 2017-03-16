@@ -89,17 +89,9 @@ choose (lo, hi) = RoseGen $ do
 
 -- TODO: Test this
 listOf :: RoseGen a -> RoseGen [a]
-listOf gen = RoseGen $ do
-  env <- ask
-  lift $ QC.sized $ \n -> do
-    k <- QC.choose (0,n)
-    trees <- replicateM k $ runReaderT (unGen gen) env
-    return $ diagonalizeAndShrink env trees
-
-diagonalizeAndShrink :: Env -> [RoseTree a] -> RoseTree [a]
-diagonalizeAndShrink env trees = RoseTree (map root trees) brs
-  where
-    brs = []
+listOf gen = do
+  n <- abs <$> anything
+  replicateM n gen
 
 -- | Generate a value such that a predicate holds for that value
 suchThat :: RoseGen a -> (a -> Bool) -> RoseGen a
