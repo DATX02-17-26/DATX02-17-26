@@ -77,6 +77,9 @@ data Norm a = Norm
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, Functor)
 
+-- | NormArr: kleisli arrow for normalizers.
+type NormArr a = a -> Norm a
+
 -- | A normalization that was already unique (no change).
 -- Equivalent to pure.
 unique :: a -> Norm a
@@ -89,6 +92,10 @@ change = Norm Change
 -- | Match on Norm.
 norm :: (Unique -> a -> b) -> Norm a -> b
 norm f (Norm u a) = f u a
+
+-- | Runs a normalizer on a term until it is in unique normal form.
+normLoop :: NormArr a -> a -> a
+normLoop f = norm (\u -> if isUnique u then id else normLoop f) . f
 
 instance Applicative Norm where
   pure  = unique
