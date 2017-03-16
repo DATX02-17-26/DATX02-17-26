@@ -296,6 +296,19 @@ renameExpression expression =
       cxt <- (names st)
       concat $ map elems cxt
 
+      lookupMethod :: Ident -> State Env Bool
+      lookupMethod i = do
+        findMethod i 0
+
+      findMethod :: Ident -> Int -> State Env Bool
+      findMethod i index = do
+        st <- get
+        metIndex <- (mName st)
+        case index > metIndex of
+          True -> False
+          _ -> case lookupIdent (Ident "method" ++ index) of
+                Just i -> True
+                Nothing -> findMethod i (index+1)
 
       lookAtValues cxt
       elems c
