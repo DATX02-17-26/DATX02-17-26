@@ -68,6 +68,7 @@ library
     , loch-th == 0.2.1
     , containers == 0.5.7.1
     , uniplate >= 1.6
+    , template-haskell == 2.11.1.0
   hs-source-dirs:   libsrc
   default-language: Haskell2010
 
