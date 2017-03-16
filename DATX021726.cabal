@@ -53,6 +53,7 @@ library
     , Util.List
     , Util.RoseGen
     , Data.RoseTree
+    , Util.TH
     , AlphaR
   build-depends:
       base >=4.8 && < 5
@@ -72,6 +73,8 @@ library
     , containers == 0.5.7.1
     , uniplate >= 1.6
     , pretty >= 1.1.3.3
+    , template-haskell >= 2.11.0.0
+    , comonad == 5
   hs-source-dirs:   libsrc
   default-language: Haskell2010
 
@@ -101,7 +104,7 @@ Test-Suite tests
   type:            exitcode-stdio-1.0
   hs-source-dirs:  Test 
   main-is:         TastyTests.hs
-  other-modules:   NormalizationTests
+  other-modules:   NormalizationTests, Util.ListTests
   default-language: Haskell2010
   build-depends:
       tasty
