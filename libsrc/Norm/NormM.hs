@@ -17,7 +17,7 @@
  -}
 
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveFunctor
-  , TemplateHaskell #-}
+  , TemplateHaskell, MultiParamTypeClasses, TupleSections #-}
 
 -- | Normalizer monad and utilities.
 module Norm.NormM where
@@ -27,8 +27,14 @@ import GHC.Generics (Generic)
 import Data.Monoid ((<>), Any (..))
 import Control.Monad (ap)
 import Control.Comonad (Comonad, extract, duplicate)
+import Control.Monad.Writer.Class (MonadWriter, writer, tell, listen, pass)
 
-import Util.TH
+import Control.Lens (transformMOf, transformMOnOf, traverseOf)
+import Data.Data.Lens (uniplate, biplate)
+
+import Test.QuickCheck (Arbitrary, CoArbitrary, variant, arbitrary, coarbitrary)
+
+import Util.TH (deriveLens)
 
 --------------------------------------------------------------------------------
 -- Unique(ness):
@@ -57,6 +63,17 @@ isChange = (== Change)
 toAny :: Unique -> Any
 toAny = Any . isChange
 
+-- | Convert from Bool. True ==> Change. Preserves monoidal properties.
+fromBool :: Bool -> Unique
+fromBool u = if u then Change else Unique
+
+-- | Convert from Any. See fromBool.
+fromAny :: Any -> Unique
+fromAny = fromBool . getAny
+
+instance Arbitrary Unique where
+  arbitrary = fromBool <$> arbitrary
+
 --------------------------------------------------------------------------------
 -- Norm-alizer monad:
 --------------------------------------------------------------------------------
@@ -73,6 +90,9 @@ data Norm a = Norm
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, Functor)
 
+-- | NormArr: kleisli arrow for normalizers.
+type NormArr a = a -> Norm a
+
 -- | A normalization that was already unique (no change).
 -- Equivalent to pure.
 unique :: a -> Norm a
@@ -81,6 +101,14 @@ unique = Norm Unique
 -- | A normalization that changed something.
 change :: a -> Norm a
 change = Norm Change
+
+-- | Match on Norm.
+norm :: (Unique -> a -> b) -> Norm a -> b
+norm f (Norm u a) = f u a
+
+-- | Runs a normalizer on a term until it is in unique normal form.
+normLoop :: NormArr a -> a -> a
+normLoop f = norm (\u -> if isUnique u then id else normLoop f) . f
 
 instance Applicative Norm where
   pure  = unique
@@ -94,9 +122,14 @@ instance Comonad Norm where
   extract = _normResult
   duplicate n = Norm (_normUnique n) n
 
--- | Match on Norm.
-norm :: Norm a -> (Unique -> a -> b) -> b
-norm (Norm u a) f = f u a
+instance MonadWriter Unique Norm where
+  writer = uncurry $ flip Norm
+  tell   = writer . ((),)
+  listen = norm $ \u a      -> Norm u (a, u)
+  pass   = norm $ \u (a, f) -> Norm (f u) a
+
+instance Arbitrary a => Arbitrary (Norm a) where
+  arbitrary = Norm <$> arbitrary <*> arbitrary
 
 --------------------------------------------------------------------------------
 -- Isomorphisms:
@@ -109,7 +142,7 @@ convEqN :: Eq a => (a -> a) -> a -> Norm a
 convEqN f a = let a' = f a in (if a == a' then unique else change) a'
 
 convNMay :: (a -> Norm a) -> a -> Maybe a
-convNMay f a = norm (f a) $ \u -> if isChange u then Just else const Nothing
+convNMay f a = norm (\u -> if isChange u then Just else const Nothing) (f a)
 
 convNEq :: (a -> Norm a) -> a -> a
 convNEq f = _normResult . f
@@ -119,6 +152,59 @@ convMayEq = convNEq . convMayN
 
 convEqMay :: Eq a => (a -> a) -> a -> Maybe a
 convEqMay = convNMay . convEqN
+
+--------------------------------------------------------------------------------
+-- "Uniplate":
+--------------------------------------------------------------------------------
+
+-- | Recursively transforms all self similar decendants.
+-- NOTE: this will pass type boundaries.
+--
+-- Imagine a toy language:
+-- @
+--   data B = B E
+--     deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+--   
+--   data E = V String | I Int | E :+: E | E :*: E | EB B
+--     deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+--   
+--   infixl 7 :*:
+--   infixl 6 :+:
+--   
+--   instance Plated B where plate = uniplate
+--   instance Plated E where plate = uniplate
+--   
+--   n1 = \e -> case e of
+--     V "x" :+: V "x" -> change $ I 2 :*: V "x"
+--     x               -> unique x
+-- @
+--
+-- In this language,
+-- > normEveryT n1 $ (EB $ B $ (V "x" :+: V "x")) :*: I 3
+-- yields:
+-- > Norm Change $ EB (B (I 2 :*: V "x")) :*: I 3
+normEveryT :: Data a => (a -> Norm a) -> a -> Norm a
+normEveryT = transformMOf uniplate
+
+-- | Recursively transforms all self similar decendants of type a in a given s,
+-- crossing type boundaries while doing so.
+--
+-- For the language above,
+-- > normEvery n1 $ B $ (EB $ B $ (V "x" :+: V "x")) :*: I 3
+-- yields:
+-- > Norm Change $ B (EB (B (I 2 :*: V "x")) :*: I 3)
+normEvery :: (Data s, Typeable a, Data a) => (a -> Norm a) -> s -> Norm s
+normEvery = transformMOnOf biplate uniplate
+
+-- | Recursively transforms all self similar immediate children of type a,
+-- crossing type boundaries while doing so.
+--
+-- For the language above,
+-- > normImm n1 $ (V "x" :+: V "x") :*: (I 1 :+: (V "x" :+: V "x"))
+-- yields:
+-- > Norm Change $ (I 2 :*: V "x") :*: (I 1 :+: (V "x" :+: V "x"))
+normImm :: (Data a) => (a -> Norm a) -> a -> Norm a
+normImm = traverseOf uniplate
 
 --------------------------------------------------------------------------------
 -- Lens:

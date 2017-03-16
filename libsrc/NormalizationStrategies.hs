@@ -17,42 +17,49 @@
  -}
 
 {-# LANGUAGE TemplateHaskell #-}
-module NormalizationStrategies
-       ( NormalizationStrategy
-       , NormalizationRule
-       , Normalizer
-       , execute
-       , name
-       , stages
-       , makeRule
-       , (><)
-       , (<>)
-       , include
-       , ignore
-       , ignoreStages
-       , allStages
-       , onlyStages
-       , executeNormalizer
-       )
-where
-import Control.Lens
-import Data.List
+
+module NormalizationStrategies (
+   NormalizationStrategy
+ , NormalizationRule
+ , Normalizer
+ , execute
+ , name
+ , stages
+ , makeRule
+ , (><)
+ , (<>)
+ , include
+ , ignore
+ , ignoreStages
+ , allStages
+ , onlyStages
+ , executeNormalizer
+ ) where
+
+import Data.List (nub, intersect, union, (\\), sort)
+import Control.Monad (foldM)
+import Control.Lens (each, (%~))
+
+import Util.TH (deriveLens)
+
+import Norm.NormM
 
 -- | In what stage(es) does a normalization rule execute
 type NormalizationStages = [Int]
 
 -- | A rule for how to normalize an expression of type a
-data NormalizationRule a = Norm { _execute :: a -> Maybe a
-                                , _name    :: String
-                                , _stages  :: NormalizationStages
-                                }
+data NormalizationRule a = NormR
+  { _execute :: NormArr a
+  , _name    :: String
+  , _stages  :: NormalizationStages
+  }
 
 -- | Construct a normalization rule
-makeRule :: (a -> Maybe a) -> String -> NormalizationStages -> NormalizationRule a
-makeRule = Norm
+makeRule :: NormArr a -> String -> NormalizationStages -> NormalizationRule a
+makeRule = NormR
 
 -- | Make obligatory lenses
-$(makeLenses ''NormalizationRule)
+$(deriveLens [''NormalizationRule])
 
 -- | Two rules are equal if they have the same name
 instance Eq (NormalizationRule a) where
@@ -64,13 +71,17 @@ type Normalizer a = [NormalizationRule a]
 -- | A normalization strategy is a way of discriminating rules
 type NormalizationStrategy a = Normalizer a -> Normalizer a
 
+-- | A binary operator on NormalizationStrategy:s.
+type BinNS a = NormalizationStrategy a -> NormalizationStrategy a
+            -> NormalizationStrategy a
+
 -- | Take the intersection of two strategies
-(><) :: NormalizationStrategy a -> NormalizationStrategy a -> NormalizationStrategy a
-f >< g = \a -> nub $ (f a) `intersect` (g a)
+(><) :: BinNS a
+f >< g = \a -> nub $ f a `intersect` g a
 
 -- | Take the union of two strategies
-(<>) :: NormalizationStrategy a -> NormalizationStrategy a -> NormalizationStrategy a
-f <> g = \a -> nub $ (f a) `union` (g a)
+(<>) :: BinNS a
+f <> g = \a -> nub $ f a `union` g a
 
 -- | A strategy which includes a list of rules
 include :: [NormalizationRule a] -> NormalizationStrategy a
@@ -78,42 +89,37 @@ include rules = nub . (++ rules)
 
 -- | A strategy which ignores a list of rules
 ignore :: [NormalizationRule a] -> NormalizationStrategy a
-ignore rules = filter (flip elem rules)
+ignore rules = filter (`elem` rules)
 
--- | Ignore a list of stages
+-- | Ignore a list of stages.
 ignoreStages :: [Int] -> NormalizationStrategy a
-ignoreStages xs = (each . stages) %~ (flip (\\) xs)
+ignoreStages xs = (each . stages) %~ (\\ xs)
 
--- | Execute only a list of stages
+-- | Execute only a list of stages.
 onlyStages :: [Int] -> NormalizationStrategy a
-onlyStages xs = (each . stages) %~ (intersect xs)
+onlyStages xs = (each . stages) %~ intersect xs
+
+-- | Execute only a specific stage.
+pickStage :: Int -> NormalizationStrategy a
+pickStage stage = filter ((stage `elem`) . _stages)
 
 -- | Execute a stage of a normalizer
 executeNormalizerStage :: Normalizer a -> Int -> a -> a
-executeNormalizerStage inputRules stage a = loop a
-  where
-    rules = filter (\r -> stage `elem` (_stages r)) inputRules 
+executeNormalizerStage inputRules stage =
+    normLoop $ thread $ pickStage stage inputRules
 
-    -- Loop until no rules apply
-    loop a = case thread a rules of
-      Nothing -> a
-      Just a' -> loop a'
-
--- | Thread an `a` through a normalizer, returns `Just a'` if `a` normalized to `a'` and
---   `Nothing` if no rules in the normalizer applied to `a`
-thread :: a -> Normalizer a -> Maybe a
-thread = thread' False
-  where
-    thread' True a []            = Just a
-    thread' False a []           = Nothing
-    thread' hasChanged a (r:rls) = case _execute r a of
-      Nothing -> thread' hasChanged a rls
-      Just a' -> thread' True a' rls -- A normalization succeded
+-- | Thread an `a` through a normalizer,
+-- returns `(Change, a)'` if `a` normalized to `a'` and
+-- `(Unique, a)` if no rules in the normalizer applied to `a`.
+thread :: Normalizer a -> NormArr a
+thread = flip $ foldM $ flip _execute
 
 -- | Execute a normalizer on an `a`
 executeNormalizer :: Normalizer a -> a -> a
-executeNormalizer norm a = foldl (flip $ executeNormalizerStage norm) a (allStages norm)
+executeNormalizer norm a = foldl (flip $ executeNormalizerStage norm)
+                                 a
+                                 (allStages norm)
 
--- | Obtain all stages present in a normalizer
+-- | Obtain all stages present in a normalizer.
 allStages :: Normalizer a -> [Int]
-allStages = sort . nub . concat . map _stages
+allStages = sort . nub . concatMap _stages
