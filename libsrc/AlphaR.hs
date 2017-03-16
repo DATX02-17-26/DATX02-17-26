@@ -5,6 +5,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.State
 import CoreS.AST
+import Data.Maybe
 import NormalizationStrategies (makeRule, NormalizationRule)
 
 --A Context
@@ -285,8 +286,28 @@ renameExpression expression =
     (EMinus   expr)->
       EMinus <$> renameExpression expr
       --Gör om så att om det inte finns i mapen så ska inte namnet ändras
-    (EMApp (Name name) exprs) ->
-      EMApp . Name <$> mapM newVarName name <*> mapM renameExpression exprs
+    (EMApp (Name names) exprs) ->
+      EMApp . Name <$> mapM newVarName names
+      <*> mapM renameExpression exprs
+      {-
+      --would work if key and val places were swapped
+
+      st <- get
+      cxt <- (names st)
+      concat $ map elems cxt
+
+
+      lookAtValues cxt
+      elems c
+      elems
+      EMApp . Name <$> mapM (\n -> if isJust(return(lookupIdent n))
+        then return n
+        else newVarName n) name
+      <*> mapM renameExpression exprs
+
+      lookAtValues :: Cxt -> State Env Bool
+      lookAtValues (x:[]) ->
+    -}
     (EArrNew  t exprs i) ->
       mapM renameExpression exprs >>= \es -> return (EArrNew t es i)
     (EArrNewI t i (ArrayInit arrayInit)) ->
@@ -295,6 +316,9 @@ renameExpression expression =
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
     holeExpr -> return holeExpr
 
+--memberOf :: Ident -> State Env Bool
+--memberOf i = do
+--  st <-
 --Renames a Literal Value
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = case lValue of
