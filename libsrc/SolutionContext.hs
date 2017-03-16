@@ -84,7 +84,6 @@ studentSolutionMatches eqCheck ctx = go (modelSolutions ctx)
       if eqCheck studSol modSol
       then return (Just fp)
       else go sols
-        
 
 -- | Zip together two SolutionContext's
 zipContexts :: SolutionContext a -> SolutionContext b -> SolutionContext (a, b)

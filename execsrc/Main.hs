@@ -60,8 +60,9 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
 
     compilationStatus <- compileContext paths compDir
     case compilationStatus of
-      Succeeded -> return ()
-      _         -> issue  "Student solution does not compile!"
+      Succeeded                -> return ()
+      FailedWith stdin stderr  -> issue $ "Student solution does not compile:\nSTDIN:\n"
+                                          ++ stdin ++ "\n\nSTDERR:\n" ++ stderr
 
     -- Get the contents from the arguments supplied
     convASTs <- (fmap (fmap parseConvUnit)) . (zipContexts paths) <$> readRawContents paths
