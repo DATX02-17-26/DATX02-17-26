@@ -51,9 +51,10 @@ library
     , CoreS.ASTUnitype
     , CoreS.ASTUnitypeUtils
     , Util.List
+    , Util.TH
     , Util.RoseGen
     , Data.RoseTree
-    , Util.TH
+    , Norm.NormM
     , AlphaR
   build-depends:
       base >=4.8 && < 5
