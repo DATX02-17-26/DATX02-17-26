@@ -24,7 +24,7 @@
 module Class.HasError (
   -- * Class
     HasError
-  , extractError
+  , toEither
   ) where
 
 import Control.Comonad (Comonad, extract)
@@ -35,23 +35,24 @@ import Control.Monad.Trans.Except (ExceptT, runExceptT)
 -- Class:
 --------------------------------------------------------------------------------
 
--- | A class of things with potential error, which is extractable
+-- | A class of things with potential error, which is extractable.
+-- Is is a failible Comonad of sorts.
 class HasError (e :: *) (m :: * -> *) | m -> e where
-  -- | 'extractError' extracts the error from some structure.
-  extractError :: m a -> Maybe e
+  -- | 'toEither' extracts the error from some structure.
+  toEither :: m a -> Either e a
 
 --------------------------------------------------------------------------------
 -- Instances:
 --------------------------------------------------------------------------------
 
 instance HasError () Maybe where
-  extractError = maybe (pure ()) (const Nothing)
+  toEither = maybe (Left ()) Right
 
 instance HasError e (Either e) where
-  extractError = either pure (const Nothing)
+  toEither = id
 
 instance Comonad m => HasError () (MaybeT m) where
-  extractError = extractError . extract . runMaybeT
+  toEither = toEither . extract . runMaybeT
 
 instance Comonad m => HasError e (ExceptT e m) where
-  extractError = extractError . extract . runExceptT
+  toEither = toEither . extract . runExceptT
