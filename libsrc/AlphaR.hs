@@ -9,6 +9,9 @@ import Data.Maybe
 import NormalizationStrategies (makeRule, NormalizationRule)
 
 --A Context
+--might need a [Map Ident (Map Ident Ident)] where first ident is class
+--also for objects, need to decide what type they are, in order to search
+--correct class for them
 type Cxt = [Map Ident Ident]
 type MCxt = [Map Ident Ident]
 
@@ -178,7 +181,7 @@ renameClass (ClassTypeDecl ctd) =
       newMethodCxt
       decls' <- mapM renameMethod decls
       exitContext
-      --exitMethodCxt
+      exitMethodCxt
       return (ClassTypeDecl (ClassDecl ident (ClassBody decls')))
     holeClassDecl -> return $ ClassTypeDecl holeClassDecl
 
@@ -341,12 +344,18 @@ renameExpression expression =
       st <- get
       let mcxs = (metNames st)
       case names of
-        [x] -> do
-          meth <- return[(fromJust(lookupMetInScope x mcxs))]
-          (mapM renameExpression exprs >>= \es ->
-            return (EMApp (Name meth) es))
-        _   -> EMApp . Name <$> mapM newVarName names
-                 <*> mapM renameExpression exprs
+        [x] ->
+           return[(fromJust(lookupMetInScope x mcxs))] >>= \meth ->
+           mapM renameExpression exprs >>= \es ->
+           return $ EMApp (Name meth) es
+        (x:xs)   -> return(last names) >>= \metName ->
+               mapM newVarName (init names) >>= \vars ->
+               return (fromJust(lookupMetInScope metName mcxs)) >>= \met ->
+               mapM renameExpression exprs >>= \es ->
+               return (Name (vars ++ [met])) >>= \rNames ->
+               return (EMApp rNames es)
+    --    EMApp . Name <$> mapM newVarName (init names)
+      --           <*> mapM renameExpression exprs
       {-
       --would work if key and val places were swapped
 
