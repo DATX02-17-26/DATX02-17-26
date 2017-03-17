@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances #-}
 module EvaluationMonad (
   liftIO,
   throw,
@@ -37,6 +37,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except as E
 import Control.Monad.Writer.Lazy hiding ((<>))
 import Control.Monad.Reader
+import Control.Monad.Morph
 import qualified Control.Exception as Exc
 import System.Exit
 import System.Directory
@@ -44,8 +45,19 @@ import Options.Applicative
 import Data.Semigroup hiding (option)
 
 -- | A monad for evaluating student solutions
-newtype EvalM a = EvalM { unEvalM :: ExceptT EvalError (ReaderT Env (WriterT Feedback (WriterT Log IO))) a }
+newtype EvalT m a = EvalT { unEvalT :: ExceptT EvalError (ReaderT Env (WriterT Feedback (WriterT Log m))) a }
   deriving (Monad, Applicative, Functor, MonadReader Env)
+
+-- | Type-alias, in order to not break existing code
+type EvalM a = EvalT IO a
+
+-- | Very annoying monad transformer instance
+instance MonadTrans EvalT where
+  lift = EvalT . lift . lift . lift . lift
+
+-- | Even more annoying MFunctor instance
+instance MFunctor EvalT where
+  hoist f = EvalT . (hoist (hoist (hoist (hoist f)))) . unEvalT
 
 -- | For now we just log strings
 type LogMessage = String
@@ -123,7 +135,7 @@ printLog = unlines
 -- | Log a message
 logMessage :: LogMessage -> EvalM ()
 logMessage l = do
-  EvalM $ (lift . lift . lift) $ tell [l]
+  EvalT $ (lift . lift . lift) $ tell [l]
   verb <- verbose <$> ask
   if verb then
     liftIO $ putStrLn l
@@ -131,25 +143,25 @@ logMessage l = do
     return ()
 
 -- | Generate a comment
-comment :: String -> EvalM ()
-comment c = EvalM $ (lift . lift) $ tell (Feedback [c] [])
+comment :: (Monad m) => String -> EvalT m ()
+comment c = EvalT $ (lift . lift) $ tell (Feedback [c] [])
 
 -- | Generate an issue
-issue :: String -> EvalM ()
-issue i = EvalM $ (lift . lift) $ tell (Feedback [] [i])
+issue :: (Monad m) => String -> EvalT m ()
+issue i = EvalT $ (lift . lift) $ tell (Feedback [] [i])
 
 -- | Throw an error
-throw :: EvalError -> EvalM a
-throw = EvalM . throwE
+throw :: (Monad m) => EvalError -> EvalT m a
+throw = EvalT . throwE
 
 -- | Catch an error
-catch :: EvalM a -> (EvalError -> EvalM a) -> EvalM a
-catch action handler = EvalM $ catchE (unEvalM action) (unEvalM . handler)
+catch :: (Monad m) => EvalT m a -> (EvalError -> EvalT m a) -> EvalT m a
+catch action handler = EvalT $ catchE (unEvalT action) (unEvalT . handler)
 
 -- | Lift an IO action and throw an exception if the
 -- IO action throws an exception
 performIO :: IO a -> EvalM a
-performIO io = EvalM $ do
+performIO io = EvalT $ do
   result <- liftIO $ Exc.catch (Right <$> io) (\e -> return $ Left $ show (e :: Exc.SomeException))
   case result of
     Left err -> throwE err
@@ -157,12 +169,12 @@ performIO io = EvalM $ do
 
 -- | A `MonadIO` instance where
 -- lifting means catching and rethrowing exceptions
-instance MonadIO EvalM where
+instance MonadIO (EvalT IO) where
   liftIO = performIO
 
 -- | Run an `EvalM` computation
-runEvalM :: Env -> EvalM a -> IO ((Either EvalError a, Feedback), Log)
-runEvalM env = runWriterT . runWriterT . flip runReaderT env . runExceptT . unEvalM
+runEvalM :: (Monad m) => Env -> EvalT m a -> m ((Either EvalError a, Feedback), Log)
+runEvalM env = runWriterT . runWriterT . flip runReaderT env . runExceptT . unEvalT
 
 -- | Execute an `EvalM logfile` computation, reporting
 -- errors to the user and dumping the log to file
