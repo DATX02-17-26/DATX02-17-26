@@ -16,25 +16,41 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveFunctor
-  , TemplateHaskell, MultiParamTypeClasses, TupleSections #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving
+  , TemplateHaskell, TupleSections, StandaloneDeriving
+  , MultiParamTypeClasses, KindSignatures #-}
 
 -- | Normalizer monad and utilities.
-module Norm.NormM where
+module Norm.NormM (
+    module Norm.NormM
+  , module RE
+  ) where
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 import Data.Monoid ((<>), Any (..))
+import Control.Arrow ((&&&))
 import Control.Monad (ap)
-import Control.Comonad (Comonad, extract, duplicate)
-import Control.Monad.Writer.Class (MonadWriter, writer, tell, listen, pass)
+import Control.Applicative (Alternative)
 
+-- Re-Exports:
+import Control.Comonad            as RE
+import Control.Monad.Identity     as RE
+import Control.Monad.Writer.Class as RE
+import Control.Monad.Fix          as RE
+import Control.Monad.IO.Class     as RE
+
+import Control.Monad.Trans.Class (MonadTrans)
+import Control.Monad.Zip (MonadZip)
+import Control.Monad.Writer (WriterT (..), runWriterT)
 import Control.Lens (transformMOf, transformMOnOf, traverseOf)
 import Data.Data.Lens (uniplate, biplate)
 
-import Test.QuickCheck (Arbitrary, CoArbitrary, variant, arbitrary, coarbitrary)
+import Test.QuickCheck (Arbitrary, CoArbitrary, arbitrary)
 
 import Util.TH (deriveLens)
+
+u = undefined
 
 --------------------------------------------------------------------------------
 -- Unique(ness):
@@ -84,52 +100,98 @@ instance Arbitrary Unique where
 -- Isomorphic to (Any, a).
 -- The kleisli arrow (a -> Norm a) is isomorphic to (a -> Maybe a).
 -- Eq a => (a -> Norm a) is also isomorphic to (a -> a).
-data Norm a = Norm
-  { _normUnique :: Unique  -- ^ Was the computation normalizing?
-  , _normResult :: a       -- ^ The result of the computation.
-  }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, Functor)
+newtype NormT m (a :: *) = NormT { _runNormT :: WriterT Unique m a }
+  deriving ( Eq, Ord, Show, Read, Generic, Typeable -- TOOD: , Data
+           , Functor, Applicative, Monad, MonadFix, MonadIO, MonadZip
+           , Alternative, MonadPlus, MonadTrans
+           , MonadWriter Unique )
 
--- | NormArr: kleisli arrow for normalizers.
+-- | Standard normalizer, using 'Identity' as base monad.
+type Norm = NormT Identity
+
+--------------------------------------------------------------------------------
+-- Kleisli arrows:
+--------------------------------------------------------------------------------
+
+-- | NormArrT: kleisli arrow for NormT.
+type NormArrT m a = a -> NormT m a
+
+-- | NormArr: kleisli arrow for Norm.
 type NormArr a = a -> Norm a
+
+--------------------------------------------------------------------------------
+-- Runners:
+--------------------------------------------------------------------------------
+
+-- | Run the normalizing computation yielding the base monad containing a pair
+-- consisting of the resulting term and the uniqueness.
+runNT :: NormT m a -> m (a, Unique)
+runNT = runWriterT . _runNormT
+
+-- | Run the normalizing computation yielding the base monad containing
+-- the resulting term.
+runTerm :: Functor m => NormT m a -> m a
+runTerm = fmap fst . runNT
+
+-- | Run the normalizing computation yielding the base monad containing
+-- the uniqueness.
+execUnique :: Functor m => NormT m a -> m Unique
+execUnique = fmap snd . runNT
+
+-- | Run the normalizing computation yielding a pair consisting
+-- of the resulting term and the uniqueness.
+-- Only works for Comonad m.
+extNT :: Comonad m => NormT m a -> (a, Unique)
+extNT = extract . runNT
+
+-- | Run the normalizing computation yielding the resulting term.
+-- Only works for Comonad m.
+extTerm :: Comonad m => NormT m a -> a
+extTerm = extract . runTerm
+
+-- | Run the normalizing computation yielding the uniqueness.
+-- Only works for Comonad m.
+extUnique :: Comonad m => NormT m a -> Unique
+extUnique = extract . execUnique
+
+--------------------------------------------------------------------------------
+-- Construction:
+--------------------------------------------------------------------------------
 
 -- | A normalization that was already unique (no change).
 -- Equivalent to pure.
-unique :: a -> Norm a
-unique = Norm Unique
+unique :: Applicative m => a -> NormT m a
+unique = pure
 
 -- | A normalization that changed something.
-change :: a -> Norm a
-change = Norm Change
+change :: Monad m => a -> NormT m a
+change = normMake . (,Change)
 
--- | Match on Norm.
-norm :: (Unique -> a -> b) -> Norm a -> b
-norm f (Norm u a) = f u a
+normMake :: Applicative m => (a, Unique) -> NormT m a
+normMake (a, w) = NormT $ WriterT $ pure (a, w)
+
+--------------------------------------------------------------------------------
+-- Instances:
+--------------------------------------------------------------------------------
+
+instance (Comonad m, Applicative m) => Comonad (NormT m) where
+  extract   = extTerm
+  duplicate = normMake . (id &&& extUnique)
+
+-- | Match on NormT.
+normT :: Monad m => (Unique -> a -> m b) -> NormT m a -> m b
+normT f n = runNT n >>= \(a, w) -> f w a
+
+-- | Match on NormT.
+norm :: Comonad m => (Unique -> a -> b) -> NormT m a -> b
+norm f = uncurry (flip f) . extNT
 
 -- | Runs a normalizer on a term until it is in unique normal form.
-normLoop :: NormArr a -> a -> a
-normLoop f = norm (\u -> if isUnique u then id else normLoop f) . f
+normLoop :: Monad m => NormArrT m a -> a -> m a
+normLoop f = normT (\u -> if isUnique u then pure else normLoop f) . f
 
-instance Applicative Norm where
-  pure  = unique
-  (<*>) = ap
-
-instance Monad Norm where
-  return         = unique
-  Norm u a >>= f = let Norm v b = f a in Norm (u <> v) b
-
-instance Comonad Norm where
-  extract = _normResult
-  duplicate n = Norm (_normUnique n) n
-
-instance MonadWriter Unique Norm where
-  writer = uncurry $ flip Norm
-  tell   = writer . ((),)
-  listen = norm $ \u a      -> Norm u (a, u)
-  pass   = norm $ \u (a, f) -> Norm (f u) a
-
-instance Arbitrary a => Arbitrary (Norm a) where
-  arbitrary = Norm <$> arbitrary <*> arbitrary
+instance (Monad m, Arbitrary a) => Arbitrary (NormT m a) where
+  arbitrary = NormT . WriterT . pure <$> ((,) <$> arbitrary <*> arbitrary)
 
 --------------------------------------------------------------------------------
 -- Isomorphisms:
@@ -145,7 +207,7 @@ convNMay :: (a -> Norm a) -> a -> Maybe a
 convNMay f a = norm (\u -> if isChange u then Just else const Nothing) (f a)
 
 convNEq :: (a -> Norm a) -> a -> a
-convNEq f = _normResult . f
+convNEq = (extTerm .)
 
 convMayEq :: (a -> Maybe a) -> a -> a
 convMayEq = convNEq . convMayN
@@ -183,7 +245,7 @@ convEqMay = convNMay . convEqN
 -- > normEveryT n1 $ (EB $ B $ (V "x" :+: V "x")) :*: I 3
 -- yields:
 -- > Norm Change $ EB (B (I 2 :*: V "x")) :*: I 3
-normEveryT :: Data a => (a -> Norm a) -> a -> Norm a
+normEveryT :: (Monad m, Data a) => (a -> NormT m a) -> a -> NormT m a
 normEveryT = transformMOf uniplate
 
 -- | Recursively transforms all self similar decendants of type a in a given s,
@@ -203,11 +265,11 @@ normEvery = transformMOnOf biplate uniplate
 -- > normImm n1 $ (V "x" :+: V "x") :*: (I 1 :+: (V "x" :+: V "x"))
 -- yields:
 -- > Norm Change $ (I 2 :*: V "x") :*: (I 1 :+: (V "x" :+: V "x"))
-normImm :: (Data a) => (a -> Norm a) -> a -> Norm a
+normImm :: (Monad m, Data a) => (a -> NormT m a) -> a -> NormT m a
 normImm = traverseOf uniplate
 
 --------------------------------------------------------------------------------
 -- Lens:
 --------------------------------------------------------------------------------
 
-$(deriveLens [''Unique, ''Norm])
+$(deriveLens [''Unique, ''NormT])
