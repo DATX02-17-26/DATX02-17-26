@@ -24,6 +24,7 @@
 module Class.HasError (
   -- * Class
     HasError
+  , extractError
   ) where
 
 import Control.Comonad (Comonad, extract)
