@@ -132,13 +132,20 @@ instance Shrinkable Type where
   shrink = \case ArrayT t -> t
                  x        -> x
 
+-- Fold a type into something else recursively until it reaches a base type.
+-- Tail recursive fold.
+typeFold :: (b -> Type -> b) -> b -> Type -> b
+typeFold f z = \case
+  ArrayT t -> typeFold f (f z t) t
+  t        -> z
+
 -- | Dimensionality of a type, an array adds +1 dimensionality.
-dimens :: Type -> Integer
-dimens = \case
-  PrimT _  -> 0
-  StringT  -> 0
-  ArrayT t -> 1 + dimens t
-  NullT    -> 0
+typeDimens :: Type -> Integer
+typeDimens = typeFold (\z _ -> z + 1) 0
+
+-- | Base type of type - given a base type, this is id.
+typeBase :: Type -> Type
+typeBase t = typeFold const t t
 
 --------------------------------------------------------------------------------
 -- Operators:
@@ -498,10 +505,6 @@ data Stmt
       _sHole :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
---------------------------------------------------------------------------------
--- Method:
---------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- Method:
