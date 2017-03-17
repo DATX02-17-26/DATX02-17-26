@@ -3,11 +3,9 @@
 public class equals{
     public static void main(String[] args) {
       int lol;
-      int kuk;
-      lol.kuk.btoString();
-      bajs();
+      lol();
     }
-    public static boolean bajs(){
+    public static boolean lol(){
         return true;
     }
 }
