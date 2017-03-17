@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell, LambdaCase #-}
 
 module CoreS.AST where
 
@@ -25,6 +25,7 @@ import GHC.Generics (Generic)
 import Data.Maybe (fromMaybe)
 import Control.Lens ((^?), isn't)
 
+import Class.Sizeables
 import Util.TH
 
 --------------------------------------------------------------------------------
@@ -119,6 +120,25 @@ isTNum t = fromMaybe False $ isn't _BoolT <$> (t ^? tPrim)
 -- | Yields True if the type is primitive integral.
 isTInt :: Type -> Bool
 isTInt = (`elem` [byT, chT, shT, inT, loT])
+
+--------------------------------------------------------------------------------
+-- Sizability of types:
+--------------------------------------------------------------------------------
+
+instance Growable   Type where
+  grow = ArrayT
+
+instance Shrinkable Type where
+  shrink = \case ArrayT t -> t
+                 x        -> x
+
+-- | Dimensionality of a type, an array adds +1 dimensionality.
+dimens :: Type -> Integer
+dimens = \case
+  PrimT _  -> 0
+  StringT  -> 0
+  ArrayT t -> 1 + dimens t
+  NullT    -> 0
 
 --------------------------------------------------------------------------------
 -- Operators:
