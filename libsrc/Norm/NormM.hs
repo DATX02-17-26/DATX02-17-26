@@ -50,8 +50,6 @@ import Test.QuickCheck (Arbitrary, CoArbitrary, arbitrary)
 
 import Util.TH (deriveLens)
 
-u = undefined
-
 --------------------------------------------------------------------------------
 -- Unique(ness):
 --------------------------------------------------------------------------------
@@ -97,7 +95,7 @@ instance Arbitrary Unique where
 -- | Norm: The normalizer monad.
 -- This provides an efficient and ergonomic interface to writing normalizers.
 --
--- Isomorphic to (Any, a).
+-- Isomorphic to m (Any, a).
 -- The kleisli arrow (a -> Norm a) is isomorphic to (a -> Maybe a).
 -- Eq a => (a -> Norm a) is also isomorphic to (a -> a).
 newtype NormT m (a :: *) = NormT { _runNormT :: WriterT Unique m a }
@@ -194,26 +192,26 @@ instance (Monad m, Arbitrary a) => Arbitrary (NormT m a) where
   arbitrary = NormT . WriterT . pure <$> ((,) <$> arbitrary <*> arbitrary)
 
 --------------------------------------------------------------------------------
--- Isomorphisms:
+-- "Isomorphisms":
 --------------------------------------------------------------------------------
 
-convMayN :: (a -> Maybe a) -> a -> Norm a
+convMayN :: Monad m => (a -> Maybe a) -> a -> NormT m a
 convMayN f a = maybe (unique a) change (f a)
 
-convEqN :: Eq a => (a -> a) -> a -> Norm a
+convEqN :: (Monad m, Eq a) => (a -> a) -> a -> NormT m a
 convEqN f a = let a' = f a in (if a == a' then unique else change) a'
 
-convNMay :: (a -> Norm a) -> a -> Maybe a
+convNMay :: Comonad m => (a -> NormT m a) -> a -> Maybe a
 convNMay f a = norm (\u -> if isChange u then Just else const Nothing) (f a)
 
-convNEq :: (a -> Norm a) -> a -> a
+convNEq :: Comonad m => (a -> NormT m a) -> a -> a
 convNEq = (extTerm .)
 
 convMayEq :: (a -> Maybe a) -> a -> a
-convMayEq = convNEq . convMayN
+convMayEq = convNEq . (convMayN :: (a -> Maybe a) -> a -> Norm a)
 
 convEqMay :: Eq a => (a -> a) -> a -> Maybe a
-convEqMay = convNMay . convEqN
+convEqMay = convNMay . (convEqN :: Eq a => (a -> a) -> a -> Norm a)
 
 --------------------------------------------------------------------------------
 -- "Uniplate":
@@ -255,7 +253,8 @@ normEveryT = transformMOf uniplate
 -- > normEvery n1 $ B $ (EB $ B $ (V "x" :+: V "x")) :*: I 3
 -- yields:
 -- > Norm Change $ B (EB (B (I 2 :*: V "x")) :*: I 3)
-normEvery :: (Data s, Typeable a, Data a) => (a -> Norm a) -> s -> Norm s
+normEvery :: (Monad m, Data s, Typeable a, Data a)
+          => (a -> NormT m a) -> s -> NormT m s
 normEvery = transformMOnOf biplate uniplate
 
 -- | Recursively transforms all self similar immediate children of type a,
