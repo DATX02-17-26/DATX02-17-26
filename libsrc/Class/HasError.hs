@@ -36,7 +36,8 @@ import Control.Monad.Trans.Except (ExceptT, runExceptT)
 --------------------------------------------------------------------------------
 
 -- | A class of things with potential error, which is extractable.
--- Is is a failible Comonad of sorts.
+-- Is is a failible Comonad of sorts. It is reasonable for the implementing
+-- class to also be an instance of MonadError.
 class HasError (e :: *) (m :: * -> *) | m -> e where
   -- | 'toEither' extracts the error from some structure.
   toEither :: m a -> Either e a
