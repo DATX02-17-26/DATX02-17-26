@@ -133,14 +133,5 @@ main = do
       dirOfModelSolutions = modelSolutionsPath  args
       gp                  = generatorPair args
 
-  g <- case gp of
-        Nothing         -> return genLCAlpha
-        Just (mod, fun) -> do
-          Right g <- runInterpreter $ do
-            loadModules [mod ++ ".hs"]
-            setTopLevelModules [mod]
-            interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
-          return g
-
   -- Run the actual application
   executeEvalM env $ application gp studentSolution dirOfModelSolutions
