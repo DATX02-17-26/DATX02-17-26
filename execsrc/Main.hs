@@ -32,7 +32,6 @@ import System.Environment
 import System.Exit
 import Control.Monad
 import Options.Applicative
-import Test.QuickCheck
 import Language.Haskell.Interpreter
 
 import CoreS.Parse
@@ -44,6 +43,7 @@ import RunJavac
 import PropertyBasedTesting
 import NormalizationStrategies hiding ((<>))
 import InputMonad
+import Util.RoseGen
 
 import Normalizations
 import ParseArguments
@@ -105,11 +105,11 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
     compileAndContinue compDir gp ss dirOfModelSolutions tryMatchAndFallBack
 
 -- | A generator for alphanumeric strings of lower case letters
-genLCAlpha :: Gen String
+genLCAlpha :: RoseGen String
 genLCAlpha = listOf $ choose ('a','z')
 
 -- | Create a generator from a module-function pair
-makeGen :: Maybe (String, String) -> EvalM (Gen String)
+makeGen :: Maybe (String, String) -> EvalM (RoseGen String)
 makeGen Nothing = do
   logMessage "Using arbitrary generator"
   return genLCAlpha
@@ -117,7 +117,7 @@ makeGen (Just (mod, fun)) = do
   eg <- liftIO $ runInterpreter $ do
     loadModules [mod ++ ".hs"]
     setTopLevelModules [mod]
-    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: Gen String)
+    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: RoseGen String)
   case eg of
     Right g    -> return g
     Left error -> throw $ "Failed to load generator: " ++ show error

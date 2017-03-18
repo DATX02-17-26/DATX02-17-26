@@ -22,10 +22,10 @@ import System.Process
 import System.Directory
 import System.Timeout
 import Control.Monad.Reader
-import Test.QuickCheck
 
-import InputMonad
 import EvaluationMonad
+import Data.RoseTree
+import Util.RoseGen
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
@@ -74,21 +74,23 @@ compareOutputs student (model:ms) = do
     issue $ "Student output: " ++ student ++ "\n    Model output: " ++ model
     return False
 
-
 -- | Perform the relevant tests on all class files in the directory
-runPBT :: FilePath -> Gen String -> EvalM ()
+runPBT :: FilePath -> RoseGen String -> EvalM ()
 runPBT dir generator = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
   runNumberOfTests numTests dir generator
 
+shrink :: FilePath -> RoseTree String -> EvalM ()
+shrink dir tree = issue $ "Failed with: " ++ (root tree)
+
 --Runs the specified number of tests
-runNumberOfTests :: Int -> FilePath -> Gen String -> EvalM ()
+runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM ()
 runNumberOfTests 0 _ _ = comment "Student solution passed all tests"
 runNumberOfTests numTests dir generator = do
-  input  <- liftIO $ generate $ generator
-  passed <- testSolutions dir input
+  input  <- liftIO $ generate generator
+  passed <- testSolutions dir (root input)
   if passed then
     runNumberOfTests (numTests - 1) dir generator
   else
-    issue $ "Input was: " ++ input
+    shrink dir input
