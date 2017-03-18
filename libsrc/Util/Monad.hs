@@ -42,14 +42,18 @@ module Util.Monad (
   , fkeep
   , untilEqM
   , untilMatchM
+  -- ** Monadic folds and traversals
+  , traverseJ
   -- ** Monad stack transformations
   , rebase
   , io
   ) where
 
+import Control.Monad (join)
+import Data.Function.Pointless ((.:))
 import Control.Monad.Identity (Identity)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Morph (MFunctor, hoist, generalize)
+import Control.Monad.Morph (MFunctor, hoist, generalize)  
 
 --------------------------------------------------------------------------------
 -- General utilities:
@@ -78,6 +82,15 @@ untilEqM = untilMatchM (==)
 -- | 'untilMatchM': same as 'untilMatch' but in a monadic context.
 untilMatchM :: Monad m => (a -> a -> Bool) -> (a -> m a) -> m a -> m a
 untilMatchM p f = (>>= \x -> unless' (f x) (p x) (untilMatchM p f . return))
+
+--------------------------------------------------------------------------------
+-- Monadic folds:
+--------------------------------------------------------------------------------
+
+-- | 'traverseJ': traverse and then join on the result.
+traverseJ :: (Applicative f, Traversable t, Monad t)
+             => (a -> f (t b)) -> t a -> f (t b)
+traverseJ = fmap join .: traverse
 
 --------------------------------------------------------------------------------
 -- Transformers:
