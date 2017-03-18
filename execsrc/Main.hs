@@ -52,7 +52,7 @@ compileAndContinue :: FilePath
                    -> Maybe (String, String)
                    -> FilePath
                    -> FilePath
-                   -> (FilePath -> SolutionContext FilePath -> Gen String -> EvalM ())
+                   -> (FilePath -> SolutionContext FilePath -> RoseGen String -> EvalM ())
                    -> EvalM ()
 compileAndContinue compDir gp ss dirOfModelSolutions cont = do
   -- Get the filepaths of the student and model solutions
@@ -67,7 +67,7 @@ compileAndContinue compDir gp ss dirOfModelSolutions cont = do
     FailedWith stdin stderr  -> issue $ "Student solution does not compile:\nSTDIN:\n"
                                           ++ stdin ++ "\n\nSTDERR:\n" ++ stderr
 
-tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> Gen String -> EvalM ()
+tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> RoseGen String -> EvalM ()
 tryMatchAndFallBack compDir paths gen = do
   -- Get the contents from the arguments supplied
   convASTs <- (fmap (fmap parseConvUnit)) . (zipContexts paths) <$> readRawContents paths
