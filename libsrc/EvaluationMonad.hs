@@ -79,17 +79,19 @@ printFeedback f = init
     number xs = [show i ++ ". " ++ x | (x, i) <- zip xs [0..]]
 
 -- | The environment of the program
-data Env = Env { verbose       :: Bool
-               , logfile       :: FilePath
-               , numberOfTests :: Int
+data Env = Env { verbose            :: Bool
+               , logfile            :: FilePath
+               , numberOfTests      :: Int
+               , ignoreFailingParse :: Bool
                }
   deriving Show
 
 -- | The default environment
 defaultEnv :: Env
-defaultEnv = Env { verbose       = False
-                 , logfile       = "logfile.log"
-                 , numberOfTests = 100
+defaultEnv = Env { verbose            = False
+                 , logfile            = "logfile.log"
+                 , numberOfTests      = 100
+                 , ignoreFailingParse = False
                  }
 
 -- | A parser for environments
@@ -113,6 +115,12 @@ parseEnv =  Env
               <> value   100
               <> metavar "NUM_TESTS"
               <> help    "Number of tests during property based testing"
+              )
+        <*> switch
+              (  long    "ignoreFailingParse"
+              <> short   'i'
+              <> value   False
+              <> help    "Ignore the JAA parser failing if javac was OK, proceed with testing only"
               )
 
 -- | `printLog log` converts the log to a format suitable
