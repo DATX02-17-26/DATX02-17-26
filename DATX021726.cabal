@@ -50,11 +50,16 @@ library
     , CoreS.Parse
     , CoreS.ASTUnitype
     , CoreS.ASTUnitypeUtils
+    , Util.Function
+    , Util.Monad
     , Util.List
     , Util.TH
+    , Class.HasError
+    , Class.Sizeables
     , Util.RoseGen
     , Data.RoseTree
     , Norm.NormM
+    , Norm.VarDecl
     , AlphaR
   build-depends:
       base >=4.8 && < 5
