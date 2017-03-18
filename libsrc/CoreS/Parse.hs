@@ -18,6 +18,7 @@
 
 {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
 
+-- | Parser language-java and conversion to CoreS.AST.
 module CoreS.Parse (
   -- * Classes
     LJParser
