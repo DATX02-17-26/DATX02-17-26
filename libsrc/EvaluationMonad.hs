@@ -119,7 +119,6 @@ parseEnv =  Env
         <*> switch
               (  long    "ignoreFailingParse"
               <> short   'i'
-              <> value   False
               <> help    "Ignore the JAA parser failing if javac was OK, proceed with testing only"
               )
 
