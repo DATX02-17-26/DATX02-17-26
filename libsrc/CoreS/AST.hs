@@ -141,11 +141,11 @@ typeFold f z = \case
 
 -- | Dimensionality of a type, an array adds +1 dimensionality.
 typeDimens :: Type -> Integer
-typeDimens = typeFold (\z _ -> z + 1) 0
+typeDimens = typeFold (const . (+1)) 0
 
 -- | Base type of type - given a base type, this is id.
 typeBase :: Type -> Type
-typeBase t = typeFold const t t
+typeBase t = typeFold (flip const) t t
 
 --------------------------------------------------------------------------------
 -- Operators:
