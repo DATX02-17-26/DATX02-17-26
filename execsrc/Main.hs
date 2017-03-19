@@ -31,8 +31,10 @@ module Main where
 import System.Environment
 import System.Exit
 import Control.Monad
+import Control.Monad.Reader
 import Options.Applicative
 import Language.Haskell.Interpreter
+import Data.Maybe
 
 import CoreS.Parse
 import qualified CoreS.ASTUnitype as AST
@@ -69,34 +71,55 @@ compileAndContinue compDir gp ss dirOfModelSolutions cont = do
 
 tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> RoseGen String -> EvalM ()
 tryMatchAndFallBack compDir paths gen = do
-  -- Get the contents from the arguments supplied
+  goingToPBT <- tryParseAndMatch paths 
+  if goingToPBT then
+    runPBT compDir gen
+  else
+    return ()
+  
+tryParseAndMatch :: SolutionContext FilePath -> EvalM Bool
+tryParseAndMatch paths = do
+  fallback <- ignoreFailingParse <$> ask 
+
+  -- Get the file contents from the arguments supplied
   convASTs <- (fmap (fmap parseConvUnit)) . (zipContexts paths) <$> readRawContents paths
 
   -- Convert `(FilePath, Either String AST)` in to an `EvalM AST` by throwing the parse error
   -- and alerting the user of what file threw the parse error on failure
-  let convert (f, e) = either (\parseError -> throw $ "Parse error in " ++ f ++ ": " ++ parseError) return e
+  let convert (f, e) = either (\parseError ->
+                                  if fallback then do
+                                    logMessage $ "Parse error in " ++ f ++ ": " ++ parseError
+                                    logMessage $ "Going to fall back on testing"
+                                    return Nothing
+                                  else
+                                    throw $ "Parse error in " ++ f ++ ": " ++ parseError
+                              ) (return . Just) e
 
   -- Get the student and model solutions
-  astContext <- Ctx <$>
-                (logMessage "Parsing student solution" >> convert (studentSolution convASTs)) <*>
-                sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
+  m_astContext <- Ctx <$> (logMessage "Parsing student solution" >> convert (studentSolution convASTs)) <*>
+                          sequence [logMessage ("Parsing model solution: " ++ (fst m)) >> convert m | m <- modelSolutions convASTs]
 
-  -- The normalized ASTs
-  let normalize = executeNormalizer normalizations
-  let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
+  if isJust (studentSolution m_astContext) && all isJust (modelSolutions m_astContext) then do
+    -- The normalized ASTs
+    let astContext     = fromJust <$> m_astContext
+        normalize      = executeNormalizer normalizations
+        normalizedASTs = (AST.convertCompilationUnit . normalize) <$> astContext
+        normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
 
-  let normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
+    -- Alert the user of what is going on
+    logMessage "Matching student solution to model solutions"
 
-  -- Alert the user of what is going on
-  logMessage "Matching student solution to model solutions"
-
-  -- Generate information for the teacher
-  match <- studentSolutionMatches (matches normalizeUAST) (zipContexts paths normalizedASTs)
-  case match of
-    Just fp -> comment $ "Student solution matches a model solution: " ++ fp
-    _       -> do
-      issue "Student solution does not match a model solution"
-      runPBT compDir gen
+    -- Generate information for the teacher
+    match <- studentSolutionMatches (matches normalizeUAST) (zipContexts paths normalizedASTs)
+    case match of
+      Just fp -> do
+        comment $ "Student solution matches a model solution: " ++ fp
+        return False
+      _       -> do
+        issue "Student solution does not match a model solution"
+        return True
+  else
+    return True
   
 -- | The actual entry point of the application
 application :: Maybe (String, String) -> FilePath -> FilePath -> EvalM ()
