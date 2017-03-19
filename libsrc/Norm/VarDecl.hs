@@ -71,9 +71,9 @@ normVDTop = makeRule' "vardecl.stmt.move_to_top" [stage + 3] execVDTop
 
 execSingleTVDs :: NormCUA
 execSingleTVDs = normEvery $ traverseJ $ \case
-  SVars (TypedVVDecl t (vd : vds)) ->
-    change $ SVars . TypedVVDecl t . pure <$> (vd : vds)
-  x                                -> unique [x]
+  SVars (TypedVVDecl t vds) | length vds > 1 ->
+    change $ SVars . TypedVVDecl t . pure <$> vds
+  x -> unique [x]
 
 --------------------------------------------------------------------------------
 -- vardecl.stmt.init_split:
@@ -82,7 +82,7 @@ execSingleTVDs = normEvery $ traverseJ $ \case
 execSplitInit :: NormCUA
 execSplitInit = normEvery $ traverseJ $ \case
     s@(SVars (TypedVVDecl t [vd])) -> splitVD' t vd [s]
-    x                              -> unique [x]
+    x -> unique [x]
 
 -- | VarInit to an Expr.
 viToExpr :: VMType -> VarInit -> NormE Expr
