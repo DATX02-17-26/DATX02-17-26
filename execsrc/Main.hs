@@ -70,7 +70,7 @@ compileAndContinue compDir gp ss dirOfModelSolutions cont = do
 tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> Gen String -> EvalM ()
 tryMatchAndFallBack compDir paths gen = do
   -- Get the contents from the arguments supplied
-  convASTs <- (fmap (fmap parseConv)) . (zipContexts paths) <$> readRawContents paths
+  convASTs <- fmap (fmap parseConv) . zipContexts paths <$> readRawContents paths
 
   -- Convert `(FilePath, Either String AST)` in to an `EvalM AST` by throwing the parse error
   -- and alerting the user of what file threw the parse error on failure
@@ -83,9 +83,8 @@ tryMatchAndFallBack compDir paths gen = do
 
   -- The normalized ASTs
   let normalize = executeNormalizer normalizations
-  let normalizedASTs = (AST.convertCompilationUnit . executeNormalizer normalizations) <$> astContext
-
-  let normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
+  let normalizedASTs = (AST.toUnitype . executeNormalizer normalizations) <$> astContext
+  let normalizeUAST  = AST.inCore normalize
 
   -- Alert the user of what is going on
   logMessage "Matching student solution to model solutions"

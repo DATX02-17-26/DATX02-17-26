@@ -16,15 +16,34 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase #-}
 
-module CoreS.ASTUnitype where
+-- | The unitype AST corresponding to CoreS.AST.
+module CoreS.ASTUnitype (
+  -- ** Types
+    AST (..)
+  -- ** Conversions
+  , UnitypeIso
+  , toUnitype
+  , fromUnitype
+  , inUnitype
+  , inCore
+  -- ** Matching
+  , canMatch
+  ) where
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
+import Data.Maybe (fromMaybe)
 
-import qualified CoreS.AST as CAST
+import qualified CoreS.AST as C
 
+--------------------------------------------------------------------------------
+-- Unitype AST:
+--------------------------------------------------------------------------------
+
+-- | The unitype AST, it corresponds to constructors in CoreS.AST,
+-- see that module for documentation.
 data AST =
     Int Integer
   | Word Integer
@@ -34,32 +53,32 @@ data AST =
   | Char Char
   | String String
   | Null
-  | LVName CAST.Ident
+  | LVName C.Ident
   | LVArray AST [AST]
   | InitExpr AST 
   | InitArr  [AST]
   | ELit AST
   | EVar AST 
-  | ECast CAST.Type AST 
+  | ECast C.Type AST 
   | ECond AST AST AST
   | EAssign AST AST
-  | EOAssign AST CAST.NumOp AST 
-  | ENum CAST.NumOp AST AST 
-  | ECmp CAST.CmpOp AST AST 
-  | ELog CAST.LogOp AST AST 
+  | EOAssign AST C.NumOp AST 
+  | ENum C.NumOp AST AST 
+  | ECmp C.CmpOp AST AST 
+  | ELog C.LogOp AST AST 
   | ENot AST 
-  | EStep CAST.StepOp AST 
+  | EStep C.StepOp AST 
   | EBCompl AST 
   | EPlus   AST 
   | EMinus  AST 
-  | EMApp CAST.Name [AST]
-  | EArrNew  CAST.Type [AST] Integer
-  | EArrNewI CAST.Type Integer [AST] 
+  | EMApp C.Name [AST]
+  | EArrNew  C.Type [AST] Integer
+  | EArrNewI C.Type Integer [AST] 
   | ESysOut  AST 
   | SEmpty
   | Block [AST]
   | SExpr AST 
-  | SVars CAST.TypedVVDecl
+  | SVars C.TypedVVDecl
   | SReturn AST 
   | SVReturn
   | SIf AST AST 
@@ -67,284 +86,371 @@ data AST =
   | SWhile AST AST
   | SDo AST AST
   | SForB (Maybe AST) (Maybe AST) (Maybe [AST]) AST
-  | SForE CAST.VMType CAST.Ident AST AST
+  | SForE C.VMType C.Ident AST AST
   | SContinue
   | SBreak
   | SSwitch AST [AST]
-  | SwitchBlock CAST.SwitchLabel [AST]
+  | SwitchBlock C.SwitchLabel [AST]
   | SwitchCase AST
   | Default
-  | FIVars CAST.TypedVVDecl
+  | FIVars C.TypedVVDecl
   | FIExprs [AST]
-  | MethodDecl (Maybe CAST.Type) CAST.Ident [CAST.FormalParam] [AST]
+  | MethodDecl (Maybe C.Type) C.Ident [C.FormalParam] [AST]
   | CompilationUnit [AST]
   | ClassTypeDecl AST
-  | ClassDecl CAST.Ident AST
+  | ClassDecl C.Ident AST
   | ClassBody [AST]
   | MemberDecl AST
   | Hole Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-convertCompilationUnit :: CAST.CompilationUnit -> AST
-convertCompilationUnit (CAST.CompilationUnit tds) = CompilationUnit (map convertTypeDecl tds)
-convertCompilationUnit (CAST.HoleCompilationUnit i) = Hole i
+--------------------------------------------------------------------------------
+-- Conversion class:
+--------------------------------------------------------------------------------
 
-convertCompilationUnitI :: AST -> CAST.CompilationUnit
-convertCompilationUnitI (CompilationUnit tds) = CAST.CompilationUnit (map convertTypeDeclI tds)
-convertCompilationUnitI (Hole i) = CAST.HoleCompilationUnit i 
+-- | Models conversions from and to the unitype 'AST'.
+--
+-- Laws:
+-- > fromUnitype . toUnitype = id
+--
+-- Inverse identity does not apply since fromUnitype is partial in nature.
+-- Thus, this is not a true isomorphism, but it is for our intents and purposes.
+class UnitypeIso t where
+  -- | Converts a term representable in the unitype AST to the unitype AST.
+  toUnitype   :: t -> AST
 
-convertTypeDecl :: CAST.TypeDecl -> AST
-convertTypeDecl (CAST.ClassTypeDecl cls) = ClassTypeDecl (convertClassDecl cls) 
-convertTypeDecl (CAST.HoleTypeDecl i) = Hole i
+  -- | Converts a term in the unitype AST to one representable in it.
+  -- A partial function!
+  fromUnitype :: AST -> t
 
-convertTypeDeclI :: AST -> CAST.TypeDecl
-convertTypeDeclI (ClassTypeDecl cls) = CAST.ClassTypeDecl (convertClassDeclI cls)
-convertTypeDeclI (Hole i) = CAST.HoleTypeDecl i
+-- | Lifts a transformation in the unitype AST into the CoreS.AST.
+inUnitype :: UnitypeIso t => (AST -> AST) -> t -> t
+inUnitype f = fromUnitype . f . toUnitype
 
-convertClassDecl :: CAST.ClassDecl -> AST
-convertClassDecl (CAST.ClassDecl i body) = ClassDecl i (convertClassBody body)
-convertClassDecl (CAST.HoleClassDecl i) = Hole i
+-- | Lifts a transformation in the CoreS.AST into the unitype AST.
+inCore :: UnitypeIso t => (t -> t) -> AST -> AST
+inCore f = toUnitype . f . fromUnitype
 
-convertClassDeclI :: AST -> CAST.ClassDecl
-convertClassDeclI (ClassDecl i body) = CAST.ClassDecl i (convertClassBodyI body)
-convertClassDeclI (Hole i) = CAST.HoleClassDecl i
+--------------------------------------------------------------------------------
+-- Conversion DSL:
+--------------------------------------------------------------------------------
 
-convertClassBody :: CAST.ClassBody -> AST
-convertClassBody (CAST.ClassBody decls) = ClassBody (map convertDecl decls)
-convertClassBody (CAST.HoleClassBody i) = Hole i
+(<-$) :: UnitypeIso a => (AST -> b) -> a -> b
+(<-$) f x = f $ toUnitype x
 
-convertClassBodyI :: AST -> CAST.ClassBody
-convertClassBodyI (ClassBody decls) = CAST.ClassBody (map convertDeclI decls)
-convertClassBodyI (Hole i) = CAST.HoleClassBody i
+(<=$) :: (Functor f, UnitypeIso a) => (f AST -> b) -> f a -> b
+(<=$) f x = f $ toUnitype <$> x
 
-convertDecl :: CAST.Decl -> AST
-convertDecl (CAST.MemberDecl m) = MemberDecl (convertMemberDecl m)
-convertDecl (CAST.HoleDecl i)   = Hole i
+(<~$) :: (Functor g, Functor f, UnitypeIso a)
+      => (g (f AST) -> b) -> g (f a) -> b
+(<~$) f x = f $ fmap toUnitype <$> x
 
-convertDeclI :: AST -> CAST.Decl  
-convertDeclI (MemberDecl m) = CAST.MemberDecl (convertMemberDeclI m)
-convertDeclI (Hole i)       = CAST.HoleDecl i
+($->) :: UnitypeIso a => (a -> b) -> AST -> b
+($->) f x = f $ fromUnitype x
 
-convertMemberDecl :: CAST.MemberDecl -> AST
-convertMemberDecl (CAST.MethodDecl m i fmparms (CAST.Block bs)) =
-  MethodDecl m i fmparms (map convertStmt bs)
-convertMemberDecl (CAST.HoleMemberDecl i) = Hole i
+($=>) :: (Functor f, UnitypeIso b) => (f b -> a) -> f AST -> a
+($=>) f x = f $ fromUnitype <$> x
 
-convertMemberDeclI :: AST -> CAST.MemberDecl
-convertMemberDeclI (MethodDecl m i fmparms bs) =
-  CAST.MethodDecl m i fmparms (CAST.Block (map convertStmtI bs))
-convertMemberDeclI (Hole i) = CAST.HoleMemberDecl i
+($~>) :: (Functor g, Functor f, UnitypeIso b)
+      => (g (f b) -> a) -> g (f AST) -> a
+($~>) f x = f $ fmap fromUnitype <$> x
 
-convertStmt :: CAST.Stmt -> AST
-convertStmt CAST.SEmpty = SEmpty
-convertStmt (CAST.SBlock (CAST.Block bs)) = Block (map convertStmt bs)
-convertStmt (CAST.SExpr expr) = SExpr (convertExpr expr)
-convertStmt (CAST.SVars t) = SVars t
-convertStmt (CAST.SReturn expr) = SReturn (convertExpr expr)
-convertStmt CAST.SVReturn = SVReturn
-convertStmt (CAST.SIf expr stmt) = SIf (convertExpr expr) (convertStmt stmt)
-convertStmt (CAST.SIfElse expr stmt stmt') = SIfElse (convertExpr expr) (convertStmt stmt) (convertStmt stmt')
-convertStmt (CAST.SWhile expr stmt) = SWhile (convertExpr expr) (convertStmt stmt)
-convertStmt (CAST.SDo expr stmt) = SDo (convertExpr expr) (convertStmt stmt)
-convertStmt (CAST.SForB mforInit mExpr mExprLst stmt) = SForB (convertForInit <$> mforInit) (convertExpr <$> mExpr) (map convertExpr <$> mExprLst) (convertStmt stmt)
-convertStmt (CAST.SForE t i expr stmt) = SForE t i (convertExpr expr) (convertStmt stmt)
-convertStmt CAST.SContinue = SContinue
-convertStmt CAST.SBreak = SBreak
-convertStmt (CAST.SSwitch expr lst) = SSwitch (convertExpr expr) (convertSwitchBlock <$> lst)
-convertStmt (CAST.HoleStmt i) = Hole i
+--------------------------------------------------------------------------------
+-- Concrete conversions:
+--------------------------------------------------------------------------------
 
-convertStmtI :: AST -> CAST.Stmt
-convertStmtI SEmpty = CAST.SEmpty
-convertStmtI (Block bs) = CAST.SBlock (CAST.Block (map convertStmtI bs))
-convertStmtI (SExpr expr) = CAST.SExpr (convertExprI expr)
-convertStmtI (SVars t) = CAST.SVars t
-convertStmtI (SReturn expr) = CAST.SReturn (convertExprI expr)
-convertStmtI SVReturn = CAST.SVReturn
-convertStmtI (SIf expr stmt) = CAST.SIf (convertExprI expr) (convertStmtI stmt)
-convertStmtI (SIfElse expr stmt stmt') = CAST.SIfElse (convertExprI expr) (convertStmtI stmt) (convertStmtI stmt')
-convertStmtI (SWhile expr stmt) = CAST.SWhile (convertExprI expr) (convertStmtI stmt)
-convertStmtI (SDo expr stmt) = CAST.SDo (convertExprI expr) (convertStmtI stmt)
-convertStmtI (SForB mforInit mExpr mExprLst stmt) = CAST.SForB (convertForInitI <$> mforInit) (convertExprI <$> mExpr) (map convertExprI <$> mExprLst) (convertStmtI stmt)
-convertStmtI (SForE t i expr stmt) = CAST.SForE t i (convertExprI expr) (convertStmtI stmt)
-convertStmtI SContinue = CAST.SContinue
-convertStmtI SBreak = CAST.SBreak
-convertStmtI (SSwitch expr lst) = CAST.SSwitch (convertExprI expr) (convertSwitchBlockI <$> lst)
-convertStmtI (Hole i) = CAST.HoleStmt i
+instance UnitypeIso C.CompilationUnit where
+  toUnitype = \case
+    C.CompilationUnit tds   -> CompilationUnit <=$ tds
+    C.HoleCompilationUnit i -> Hole i
 
-convertExpr :: CAST.Expr -> AST
-convertExpr (CAST.ELit l)                   = ELit (convertLiteral l)
-convertExpr (CAST.EVar lvalue)              = EVar (convertLValue lvalue)
-convertExpr (CAST.ECast t expr)             = ECast t (convertExpr expr)
-convertExpr (CAST.ECond e1 e2 e3)           = ECond (convertExpr e1) (convertExpr e2) (convertExpr e3)
-convertExpr (CAST.EAssign lvalue e)         = EAssign (convertLValue lvalue) (convertExpr e)
-convertExpr (CAST.EOAssign lvalue nop expr) = EOAssign (convertLValue lvalue) nop (convertExpr expr)
-convertExpr (CAST.ENum op e1 e2)            = ENum op (convertExpr e1) (convertExpr e2) 
-convertExpr (CAST.ECmp op e1 e2)            = ECmp op (convertExpr e1) (convertExpr e2) 
-convertExpr (CAST.ELog op e1 e2)            = ELog op (convertExpr e1) (convertExpr e2) 
-convertExpr (CAST.ENot e)                   = ENot (convertExpr e)
-convertExpr (CAST.EStep sop e)              = EStep sop (convertExpr e)
-convertExpr (CAST.EBCompl  e)               = EBCompl $ convertExpr e 
-convertExpr (CAST.EPlus    e)               = EPlus  $ convertExpr e 
-convertExpr (CAST.EMinus   e)               = EMinus $ convertExpr e 
-convertExpr (CAST.EMApp n es)               = EMApp n (map convertExpr es)
-convertExpr (CAST.EArrNew  t es i)          = EArrNew t (map convertExpr es) i
-convertExpr (CAST.EArrNewI t i ai)          = EArrNewI t i (convertArrInit ai)
-convertExpr (CAST.ESysOut  expr)            = ESysOut (convertExpr expr)
-convertExpr (CAST.HoleExpr i)               = Hole i
+  fromUnitype = \case
+    CompilationUnit tds -> C.CompilationUnit $=> tds
+    Hole i              -> C.HoleCompilationUnit i
 
-convertExprI :: AST -> CAST.Expr
-convertExprI (ELit l)                   = CAST.ELit (convertLiteralI l)
-convertExprI (EVar lvalue)              = CAST.EVar (convertLValueI lvalue)
-convertExprI (ECast t expr)             = CAST.ECast t (convertExprI expr)
-convertExprI (ECond e1 e2 e3)           = CAST.ECond (convertExprI e1) (convertExprI e2) (convertExprI e3)
-convertExprI (EAssign lvalue e)         = CAST.EAssign (convertLValueI lvalue) (convertExprI e)
-convertExprI (EOAssign lvalue nop expr) = CAST.EOAssign (convertLValueI lvalue) nop (convertExprI expr)
-convertExprI (ENum op e1 e2)            = CAST.ENum op (convertExprI e1) (convertExprI e2) 
-convertExprI (ECmp op e1 e2)            = CAST.ECmp op (convertExprI e1) (convertExprI e2) 
-convertExprI (ELog op e1 e2)            = CAST.ELog op (convertExprI e1) (convertExprI e2) 
-convertExprI (ENot e)                   = CAST.ENot (convertExprI e)
-convertExprI (EStep sop e)              = CAST.EStep sop (convertExprI e)
-convertExprI (EBCompl  e)               = CAST.EBCompl $ convertExprI e 
-convertExprI (EPlus    e)               = CAST.EPlus  $ convertExprI e 
-convertExprI (EMinus   e)               = CAST.EMinus $ convertExprI e 
-convertExprI (EMApp n es)               = CAST.EMApp n (map convertExprI es)
-convertExprI (EArrNew  t es i)          = CAST.EArrNew t (map convertExprI es) i
-convertExprI (EArrNewI t i ai)          = CAST.EArrNewI t i (convertArrInitI ai)
-convertExprI (ESysOut  expr)            = CAST.ESysOut (convertExprI expr)
-convertExprI (Hole i)                   = CAST.HoleExpr i
+instance UnitypeIso C.TypeDecl where
+  toUnitype = \case
+    C.ClassTypeDecl cls -> ClassTypeDecl <-$ cls
+    C.HoleTypeDecl i    -> Hole i
 
-convertLValue :: CAST.LValue -> AST
-convertLValue (CAST.LVName i)     = LVName i
-convertLValue (CAST.LVArray e es) = LVArray (convertExpr e) (map convertExpr es)
-convertLValue (CAST.HoleLValue i) = Hole i
+  fromUnitype = \case
+    ClassTypeDecl cls -> C.ClassTypeDecl $-> cls
+    Hole i            -> C.HoleTypeDecl i
 
-convertLValueI :: AST -> CAST.LValue
-convertLValueI (LVName i)     = CAST.LVName i
-convertLValueI (LVArray e es) = CAST.LVArray (convertExprI e) (map convertExprI es)
-convertLValueI (Hole i)       = CAST.HoleLValue i
+instance UnitypeIso C.ClassDecl where
+  toUnitype = \case
+    C.ClassDecl i body -> ClassDecl i <-$ body
+    C.HoleClassDecl i  -> Hole i
 
-convertLiteral :: CAST.Literal -> AST
-convertLiteral (CAST.Int i)         = Int i 
-convertLiteral (CAST.Word i)        = Word i  
-convertLiteral (CAST.Float d)       = Float d 
-convertLiteral (CAST.Double d)      = Double d 
-convertLiteral (CAST.Boolean b)     = Boolean b 
-convertLiteral (CAST.Char c)        = Char c 
-convertLiteral (CAST.String s)      = String s 
-convertLiteral CAST.Null            = Null
-convertLiteral (CAST.HoleLiteral i) = Hole i
+  fromUnitype = \case
+    ClassDecl i body -> C.ClassDecl i $-> body
+    Hole i           -> C.HoleClassDecl i
 
-convertLiteralI :: AST -> CAST.Literal
-convertLiteralI (Int i)     = CAST.Int i 
-convertLiteralI (Word i)    = CAST.Word i  
-convertLiteralI (Float d)   = CAST.Float d 
-convertLiteralI (Double d)  = CAST.Double d 
-convertLiteralI (Boolean b) = CAST.Boolean b 
-convertLiteralI (Char c)    = CAST.Char c 
-convertLiteralI (String s)  = CAST.String s 
-convertLiteralI Null        = CAST.Null
-convertLiteralI (Hole i)    = CAST.HoleLiteral i
+instance UnitypeIso C.ClassBody where
+  toUnitype = \case
+    C.ClassBody decls -> ClassBody <=$ decls
+    C.HoleClassBody i -> Hole i
+  fromUnitype = \case
+    ClassBody decls -> C.ClassBody $=> decls
+    Hole i          -> C.HoleClassBody i
 
-convertArrInit :: CAST.ArrayInit -> [AST]
-convertArrInit (CAST.ArrayInit xs) = map convertVarInit xs
+instance UnitypeIso C.Decl where
+  toUnitype = \case
+    C.MemberDecl m -> MemberDecl <-$ m
+    C.HoleDecl i   -> Hole i
 
-convertArrInitI :: [AST] -> CAST.ArrayInit
-convertArrInitI xs = CAST.ArrayInit (map convertVarInitI xs)
+  fromUnitype = \case
+    MemberDecl m -> C.MemberDecl $-> m
+    Hole i       -> C.HoleDecl i
 
-convertVarInit :: CAST.VarInit -> AST
-convertVarInit (CAST.InitExpr e)    = InitExpr (convertExpr e)
-convertVarInit (CAST.InitArr e)     = InitArr (convertArrInit e)
-convertVarInit (CAST.HoleVarInit i) = Hole i
+instance UnitypeIso C.MemberDecl where
+  toUnitype = \case
+    C.MethodDecl m i fps (C.Block bs) -> MethodDecl m i fps <=$ bs
+    C.HoleMemberDecl i                -> Hole i
 
-convertVarInitI :: AST -> CAST.VarInit
-convertVarInitI (InitExpr e) = CAST.InitExpr (convertExprI e)
-convertVarInitI (InitArr e)  = CAST.InitArr  (convertArrInitI e)
-convertVarInitI (Hole i)     = CAST.HoleVarInit i
+  fromUnitype = \case
+    MethodDecl m i fps bs -> C.MethodDecl m i fps (C.Block $=> bs)
+    Hole i                -> C.HoleMemberDecl i
 
-convertForInit :: CAST.ForInit -> AST
-convertForInit (CAST.FIVars v)      = FIVars v
-convertForInit (CAST.FIExprs es)    = FIExprs (map convertExpr es)
-convertForInit (CAST.HoleForInit i) = Hole i
+instance UnitypeIso C.Stmt where
+  toUnitype = \case
+    C.SEmpty              -> SEmpty
+    C.SBlock (C.Block bs) -> Block     <=$ bs
+    C.SExpr e             -> SExpr     <-$ e
+    C.SVars t             -> SVars t
+    C.SReturn e           -> SReturn   <-$ e
+    C.SVReturn            -> SVReturn
+    C.SIf     e si        -> SIf       <-$ e <-$ si
+    C.SIfElse e si se     -> SIfElse   <-$ e <-$ si <-$ se
+    C.SWhile  e si        -> SWhile    <-$ e <-$ si
+    C.SDo     e si        -> SDo       <-$ e <-$ si
+    C.SForE t i e si      -> SForE t i <-$ e <-$ si
+    C.SForB mfi me mes si -> SForB     <=$ mfi <=$ me <~$ mes <-$ si
+    C.SContinue           -> SContinue
+    C.SBreak              -> SBreak
+    C.SSwitch e lst       -> SSwitch   <-$ e <=$ lst
+    C.HoleStmt i          -> Hole i
 
-convertForInitI :: AST -> CAST.ForInit
-convertForInitI (FIVars v)   = CAST.FIVars v
-convertForInitI (FIExprs es) = CAST.FIExprs (map convertExprI es)
-convertForInitI (Hole i)     = CAST.HoleForInit i
+  fromUnitype = \case
+    SEmpty              -> C.SEmpty
+    Block bs            -> C.SBlock (C.Block $=> bs)
+    SExpr e             -> C.SExpr     $-> e
+    SVars t             -> C.SVars t
+    SReturn e           -> C.SReturn   $-> e
+    SVReturn            -> C.SVReturn
+    SIf     e si        -> C.SIf       $-> e $-> si
+    SIfElse e si se     -> C.SIfElse   $-> e $-> si $-> se
+    SWhile  e si        -> C.SWhile    $-> e $-> si
+    SDo     e si        -> C.SDo       $-> e $-> si
+    SForE t i e si      -> C.SForE t i $-> e $-> si
+    SForB mfi me mes si -> C.SForB     $=> mfi $=> me $~> mes $-> si
+    SContinue           -> C.SContinue
+    SBreak              -> C.SBreak
+    SSwitch e lst       -> C.SSwitch   $-> e $=> lst
+    Hole i              -> C.HoleStmt i
 
-convertSwitchBlock :: CAST.SwitchBlock -> AST
-convertSwitchBlock (CAST.SwitchBlock l (CAST.Block bs)) = SwitchBlock l (map convertStmt bs)
-convertSwitchBlock (CAST.HoleSwitchBlock i)             = Hole i
+instance UnitypeIso C.Expr where
+  toUnitype = \case
+    C.ELit lit          -> ELit      <-$ lit
+    C.EVar lv           -> EVar      <-$ lv
+    C.ECast t e         -> ECast t   <-$ e
+    C.ECond ec ei ee    -> ECond     <-$ ec      <-$ ei <-$ ee
+    C.EAssign lv e      -> EAssign   <-$ lv      <-$ e
+    C.EOAssign lv nop e -> (EOAssign <-$ lv) nop <-$ e
+    C.ENum op el er     -> ENum op   <-$ el      <-$ er
+    C.ECmp op el er     -> ECmp op   <-$ el      <-$ er
+    C.ELog op el er     -> ELog op   <-$ el      <-$ er
+    C.ENot e            -> ENot      <-$ e
+    C.EStep sop e       -> EStep sop <-$ e
+    C.EBCompl  e        -> EBCompl   <-$ e
+    C.EPlus    e        -> EPlus     <-$ e
+    C.EMinus   e        -> EMinus    <-$ e
+    C.EMApp n es        -> EMApp n   <=$ es
+    C.EArrNew  t es i   -> EArrNew t <=$ es $ i
+    C.EArrNewI t i ai   -> EArrNewI t i $ convertArrInit ai
+    C.ESysOut  e        -> ESysOut   <-$ e
+    C.HoleExpr i        -> Hole i
 
-convertSwitchBlockI :: AST -> CAST.SwitchBlock
-convertSwitchBlockI (SwitchBlock l stmts) = CAST.SwitchBlock l (CAST.Block (map convertStmtI stmts))
-convertSwitchBlockI (Hole i)              = CAST.HoleSwitchBlock i
+  fromUnitype = \case
+    ELit lit          -> C.ELit      $-> lit
+    EVar lv           -> C.EVar      $-> lv
+    ECast t e         -> C.ECast t   $-> e
+    ECond ec ei ee    -> C.ECond     $-> ec      $-> ei $-> ee
+    EAssign lv e      -> C.EAssign   $-> lv      $-> e
+    EOAssign lv nop e -> (C.EOAssign $-> lv) nop $-> e
+    ENum op el er     -> C.ENum op   $-> el      $-> er
+    ECmp op el er     -> C.ECmp op   $-> el      $-> er
+    ELog op el er     -> C.ELog op   $-> el      $-> er
+    ENot e            -> C.ENot      $-> e
+    EStep sop e       -> C.EStep sop $-> e
+    EBCompl  e        -> C.EBCompl   $-> e
+    EPlus    e        -> C.EPlus     $-> e
+    EMinus   e        -> C.EMinus    $-> e
+    EMApp n es        -> C.EMApp n   $=> es
+    EArrNew  t es i   -> C.EArrNew t $=> es $ i
+    EArrNewI t i ai   -> C.EArrNewI t i $ convertArrInitI ai
+    ESysOut  e        -> C.ESysOut   $-> e
+    Hole i            -> C.HoleExpr i
+
+instance UnitypeIso C.LValue where
+  toUnitype = \case
+    C.LVName i     -> LVName i
+    C.LVArray e es -> LVArray <-$ e <=$ es
+    C.HoleLValue i -> Hole i
+
+  fromUnitype = \case
+    LVName i     -> C.LVName i
+    LVArray e es -> C.LVArray $-> e $=> es
+    Hole i       -> C.HoleLValue i
+
+instance UnitypeIso C.Literal where
+  toUnitype = \case
+    C.Int i         -> Int i 
+    C.Word i        -> Word i  
+    C.Float d       -> Float d 
+    C.Double d      -> Double d 
+    C.Boolean b     -> Boolean b 
+    C.Char c        -> Char c 
+    C.String s      -> String s 
+    C.Null          -> Null
+    C.HoleLiteral i -> Hole i
+
+  fromUnitype = \case
+    Int i     -> C.Int i 
+    Word i    -> C.Word i  
+    Float d   -> C.Float d 
+    Double d  -> C.Double d 
+    Boolean b -> C.Boolean b 
+    Char c    -> C.Char c 
+    String s  -> C.String s 
+    Null      -> C.Null
+    Hole i    -> C.HoleLiteral i
+
+convertArrInit :: C.ArrayInit -> [AST]
+convertArrInit (C.ArrayInit xs) = (toUnitype <$>) xs
+
+convertArrInitI :: [AST] -> C.ArrayInit
+convertArrInitI = (C.ArrayInit $=>)
+
+instance UnitypeIso C.VarInit where
+  toUnitype = \case
+    C.InitExpr e    -> InitExpr <-$ e
+    C.InitArr e     -> InitArr  $ convertArrInit  e
+    C.HoleVarInit i -> Hole i
+
+  fromUnitype = \case
+    InitExpr e    -> C.InitExpr $-> e
+    InitArr e     -> C.InitArr  $ convertArrInitI e
+    Hole i        -> C.HoleVarInit i
+
+instance UnitypeIso C.ForInit where
+  toUnitype = \case
+    C.FIVars v      -> FIVars v
+    C.FIExprs es    -> FIExprs <=$ es
+    C.HoleForInit i -> Hole i
+
+  fromUnitype = \case
+    FIVars v      -> C.FIVars v
+    FIExprs es    -> C.FIExprs $=> es
+    Hole i        -> C.HoleForInit i
+
+
+instance UnitypeIso C.SwitchBlock where
+  toUnitype = \case
+    C.SwitchBlock l (C.Block bs) -> SwitchBlock l <=$ bs
+    C.HoleSwitchBlock i          -> Hole i
+
+  fromUnitype = \case
+    SwitchBlock l stmts -> C.SwitchBlock l (C.Block $=> stmts)
+    Hole i              -> C.HoleSwitchBlock i
+
+--------------------------------------------------------------------------------
+-- Matching:
+--------------------------------------------------------------------------------
 
 matchList :: [AST] -> [AST] -> Bool
 matchList as bs
   | length as == length bs = and [canMatch a b | (a, b) <- zip as bs]
   | otherwise = False
 
--- | `canMatch complete incomplete` Tells us if the complete AST can possibly match the incomplete AST
---
--- todo: refactor....
+canMatchBi :: Eq a => a -> a -> AST -> t -> AST -> AST -> Bool
+canMatchBi op op' l l' r r' = op == op' && canMatch l l && canMatch r r'
+
+matchMay :: Eq a => (a -> a -> Bool) -> Maybe a -> Maybe a -> Bool
+matchMay f x x' = x == x' || fromMaybe False (f <$> x <*> x')
+
+allc :: Foldable t => (a -> b -> Bool) -> t (a, b) -> Bool
+allc = all . uncurry
+
+allCM :: [(AST, AST)] -> Bool
+allCM = allc canMatch
+
+canMatchArr :: (Eq b, Eq a) => b -> b -> a -> a -> [AST] -> [AST] -> Bool
+canMatchArr t t' i i' xs xs' = t == t' && i == i' && matchList xs xs'
+
+-- | `canMatch complete incomplete` Tells us if the complete AST can possibly
+-- match the incomplete AST.
 canMatch :: AST -> AST -> Bool
-canMatch _ (Hole _) = True
-canMatch (Int i)  (Int j) = i == j 
-canMatch (Word i) (Word j) = i == j
-canMatch (Float i) (Float j) = i == j 
-canMatch (Double d) (Double b) = d == b 
-canMatch (Boolean b) (Boolean a) = a == b 
-canMatch (Char c) (Char a) = a == c 
-canMatch (String s) (String s') = s == s' 
-canMatch Null Null = True
-canMatch (LVName i) (LVName j) = i == j
-canMatch (LVArray a as) (LVArray b bs) = canMatch a b && matchList as bs
-canMatch (InitExpr ast) (InitExpr ast') = canMatch ast ast' 
-canMatch (InitArr  as) (InitArr bs) = matchList as bs
-canMatch (ELit ast) (ELit ast') = canMatch ast ast' 
-canMatch (EVar ast) (EVar ast') = canMatch ast ast' 
-canMatch (ECast t ast) (ECast t' ast') = t == t' && canMatch ast ast' 
-canMatch (ECond a b c) (ECond d e f) = canMatch a d && canMatch b e && canMatch c f
-canMatch (EAssign a b) (EAssign c d) = canMatch a c && canMatch b d
-canMatch (EOAssign ast op ast') (EOAssign ast'' op' ast''') = op == op' && canMatch ast ast'' && canMatch ast' ast'''
-canMatch (ENum op ast ast') (ENum op' ast'' ast''') = op == op' && canMatch ast ast'' && canMatch ast' ast'''
-canMatch (ECmp op ast bst) (ECmp op' ast' bst') = op == op' && canMatch ast ast' && canMatch bst bst' 
-canMatch (ELog op ast bst) (ELog op' ast' bst') = op == op' && canMatch ast ast' && canMatch bst bst' 
-canMatch (ENot ast) (ENot ast') = canMatch ast ast'
-canMatch (EStep op ast) (EStep op' ast') = op == op' && canMatch ast ast' 
-canMatch (EBCompl ast) (EBCompl ast') = canMatch ast ast' 
-canMatch (EPlus ast) (EPlus ast') = canMatch ast ast' 
-canMatch (EMinus ast) (EMinus ast') = canMatch ast ast' 
-canMatch (EMApp c asts) (EMApp d asts') = c == d && matchList asts asts'
-canMatch (EArrNew  t xs is) (EArrNew  t' xs' is') = t == t' && matchList xs xs' && is == is'
-canMatch (EArrNewI t i xs) (EArrNewI t' i' xs') = t == t' && i == i' && matchList xs xs'
-canMatch (ESysOut ast) (ESysOut ast') = canMatch ast ast'
-canMatch SEmpty SEmpty = True
-canMatch (Block ast) (Block ast') = matchList ast ast'
-canMatch (SExpr ast) (SExpr ast') = canMatch ast ast' 
-canMatch (SVars t) (SVars t') = t == t'
-canMatch (SReturn ast) (SReturn ast') = canMatch ast ast' 
-canMatch SVReturn SVReturn = True
-canMatch (SIf a b) (SIf c d) = canMatch a c && canMatch c d
-canMatch (SIfElse b f s) (SIfElse b' f' s') = canMatch b b' && canMatch f f' && canMatch s s'
-canMatch (SWhile b bd) (SWhile b' bd') = canMatch b b' && canMatch bd bd'
-canMatch (SDo b bd) (SDo b' bd') = canMatch b b' && canMatch bd bd'
-canMatch (SForB ma mb mcs d) (SForB ma' mb' mcs' d') = canMatch d d' && (ma == ma' || maybe False id (canMatch <$> ma <*> ma')) &&
-                                                       (mb == mb' || maybe False id (canMatch <$> mb <*> mb')) &&
-                                                       (mcs == mcs' || maybe False id (matchList <$> mcs <*> mcs'))
-canMatch (SForE t i a b) (SForE t' i' a' b') = t == t' && i == i' && canMatch a a' && canMatch b b' 
-canMatch SContinue SContinue = True
-canMatch SBreak SBreak = True
-canMatch (SSwitch ast asts) (SSwitch ast' asts') = canMatch ast ast' && matchList asts asts'
-canMatch (SwitchBlock l asts) (SwitchBlock l' asts') = l == l' && matchList asts asts'
-canMatch (SwitchCase ast) (SwitchCase ast') = canMatch ast ast' 
-canMatch Default Default = True
-canMatch (FIVars i) (FIVars j) = i == j
-canMatch (FIExprs as) (FIExprs bs) = matchList as bs
-canMatch (MethodDecl t id xs ast) (MethodDecl t' id' xs' ast') = t == t' && id == id' && xs == xs' && matchList ast ast'
-canMatch (CompilationUnit a) (CompilationUnit b) = matchList a b
-canMatch (ClassTypeDecl ast) (ClassTypeDecl ast') = canMatch ast ast' 
-canMatch (ClassDecl i ast) (ClassDecl j ast') = i == j && canMatch ast ast' 
-canMatch (ClassBody ast) (ClassBody ast') = matchList ast ast' 
-canMatch (MemberDecl ast) (MemberDecl ast') = canMatch ast ast'
-canMatch _ _ = False
+canMatch = curry $ \case
+  (_,                  Hole _)             -> True
+  (Int i,              Int j)              -> i == j
+  (Word i,             Word j)             -> i == j
+  (Float i,            Float j)            -> i == j
+  (Double d,           Double b)           -> d == b
+  (Boolean b,          Boolean a)          -> a == b
+  (Char c,             Char a)             -> a == c
+  (String s,           String s')          -> s == s'
+  (Null,               Null)               -> True
+  (LVName i,           LVName j)           -> i == j
+  (LVArray a as,       LVArray b bs)       -> canMatch a b && matchList as bs
+  (InitExpr e,         InitExpr e')        -> canMatch e e'
+  (InitArr  as,        InitArr bs)         -> matchList as bs
+  (ELit e,             ELit e')            -> canMatch e e'
+  (EVar e,             EVar e')            -> canMatch e e'
+  (ECast t e,          ECast t' e')        -> t == t' && canMatch e e'
+  (ECond a b c,        ECond d e f)        -> allCM [(a, d), (b, e), (c, f)]
+  (ENum op l r,        ENum op' l' r')     -> canMatchBi op op' l l' r r'
+  (ECmp op l r,        ECmp op' l' r')     -> canMatchBi op op' l l' r r'
+  (ELog op l r,        ELog op' l' r')     -> canMatchBi op op' l l' r r'
+  (ENot ast,           ENot ast')          -> canMatch ast ast'
+  (EStep op e,         EStep op' e')       -> op == op' && canMatch e e'
+  (EBCompl e,          EBCompl e')         -> canMatch e e'
+  (EPlus   e,          EPlus   e')         -> canMatch e e'
+  (EMinus  e,          EMinus  e')         -> canMatch e e'
+  (EMApp c es,         EMApp d es')        -> c == d && matchList es es'
+  (EAssign a b,        EAssign c d)        -> allCM [(a, c), (b, d)]
+  (EOAssign l o r,     EOAssign l' o' r')  -> canMatchBi o o' l l' r r'
+  (EArrNew  t xs d,    EArrNew  t' xs' d') -> canMatchArr t t' d d' xs xs'
+  (EArrNewI t i xs,    EArrNewI t' i' xs') -> canMatchArr t t' i  i'  xs xs'
+  (ESysOut e,          ESysOut e')         -> canMatch e e'
+  (SEmpty,             SEmpty)             -> True
+  (Block ast,          Block ast')         -> matchList ast ast'
+  (SExpr ast,          SExpr ast')         -> canMatch ast ast' 
+  (SVars t,            SVars t')           -> t == t'
+  (SReturn ast,        SReturn ast')       -> canMatch ast ast' 
+  (SVReturn,           SVReturn)           -> True
+  (SIf a b,            SIf c d)            -> canMatch a c && canMatch c d
+  (SIfElse b f s,      SIfElse b' f' s')   -> allCM [(b, b'), (f, f'), (s, s')]
+  (SWhile b bd,        SWhile b' bd')      -> allCM [(b, b'), (bd, bd')]
+  (SDo b bd,           SDo b' bd')         -> allCM [(b, b'), (bd, bd')]
+  (SForB a b cs d,     SForB a' b' cs' d') ->
+    and [ canMatch d d', matchMay canMatch  a a', matchMay canMatch b b'
+        , matchMay matchList cs cs']
+  (SForE t i a b,      SForE t' i' a' b')  ->
+    t == t' && i == i' && allCM [(a, a'), (b, b')]
+  (SContinue,          SContinue)          -> True
+  (SBreak,             SBreak)             -> True
+  (SSwitch e sb,       SSwitch e' sb')     -> canMatch e e' && matchList sb sb'
+  (SwitchBlock l sb,   SwitchBlock l' sb') -> l == l' && matchList sb sb'
+  (SwitchCase ast,     SwitchCase ast')    -> canMatch ast ast' 
+  (Default,            Default)            -> True
+  (FIVars i,           FIVars j)           -> i == j
+  (FIExprs as,         FIExprs bs)         -> matchList as bs
+  (MethodDecl t n p b, MethodDecl t' n' p' b') ->
+    t == t' && n == n' && p == p' && matchList b b'
+  (CompilationUnit a,  CompilationUnit b)  -> matchList a b
+  (ClassTypeDecl cd,   ClassTypeDecl cd')  -> canMatch cd cd' 
+  (ClassDecl i cb,     ClassDecl j cb')    -> i == j && canMatch cb cb' 
+  (ClassBody md,       ClassBody md')      -> matchList md md' 
+  (MemberDecl ast,     MemberDecl ast')    -> canMatch ast ast'
+  (_,                  _)                  -> False
