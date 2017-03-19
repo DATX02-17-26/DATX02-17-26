@@ -81,8 +81,8 @@ tryParseAndMatch :: SolutionContext FilePath -> EvalM Bool
 tryParseAndMatch paths = do
   fallback <- ignoreFailingParse <$> ask 
 
-  -- Get the file contents from the arguments supplied
-  convASTs <- (fmap (fmap parseConvUnit)) . (zipContexts paths) <$> readRawContents paths
+  -- Get the contents from the arguments supplied
+  convASTs <- (fmap (fmap parseConv)) . (zipContexts paths) <$> readRawContents paths
 
   -- Convert `(FilePath, Either String AST)` in to an `EvalM AST` by throwing the parse error
   -- and alerting the user of what file threw the parse error on failure
