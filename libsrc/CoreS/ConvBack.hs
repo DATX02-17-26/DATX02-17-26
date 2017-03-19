@@ -16,7 +16,8 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE LambdaCase, TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, TemplateHaskell
+  , TypeFamilies, FlexibleContexts #-}
 
 -- | Conversion back to Langauge.Java.Syntax (hence: S).
 module CoreS.ConvBack (
@@ -28,16 +29,24 @@ module CoreS.ConvBack (
   , ToLJSyn
   -- * Operations
   , toLJSyn
+  , prettyCore
+  , dumpCore
   ) where
 
 import Prelude hiding (EQ, LT, GT)
 
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
 import Data.Function.Pointless ((.:))
+import Control.Monad ((>=>))
 import Control.Lens ((^?))
 
 import Util.TH (deriveLens)
+import Util.Debug (exitLeft)
 
+import qualified Language.Java.Pretty as P
 import qualified Language.Java.Syntax as S
+
 import CoreS.AST
 
 -- TODO: import Util.Function (in feature/norm/vardecl)
@@ -113,6 +122,7 @@ data HoleSum
   | HSCompilationUnit {
       _hsCompilationUnit :: CompilationUnit
     }
+  deriving (Eq, Ord, Show, Read, Data, Typeable, Generic)
 
 $(deriveLens [''HoleSum])
 
@@ -134,6 +144,14 @@ class ToLJSyn t where
   -- | Convert back to S. The conversion is partial due to
   -- possible holes.
   toLJSyn :: t -> LJSynConv (Repr t)
+
+-- | Prettified a term in CoreS.AST as the Java syntax tree representation.
+prettyCore :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> LJSynConv String
+prettyCore core = P.prettyPrint <$> toLJSyn core
+
+-- | Dumps a CoreS.AST term prettified as the syntax tree in Java.
+dumpCore :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> IO ()
+dumpCore = exitLeft . prettyCore >=> putStrLn
 
 --------------------------------------------------------------------------------
 -- Conversion DSL:
