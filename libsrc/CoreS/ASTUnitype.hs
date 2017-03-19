@@ -19,7 +19,18 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase #-}
 
 -- | The unitype AST corresponding to CoreS.AST.
-module CoreS.ASTUnitype where
+module CoreS.ASTUnitype (
+  -- ** Types
+    AST (..)
+  -- ** Conversions
+  , UnitypeIso
+  , toUnitype
+  , fromUnitype
+  , inUnitype
+  , inCore
+  -- ** Matching
+  , canMatch
+  ) where
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
@@ -97,10 +108,28 @@ data AST =
 -- Conversion class:
 --------------------------------------------------------------------------------
 
--- | Moels conversions from and to the unitype 'AST'.
+-- | Models conversions from and to the unitype 'AST'.
+--
+-- Laws:
+-- > fromUnitype . toUnitype = id
+--
+-- Inverse identity does not apply since fromUnitype is partial in nature.
+-- Thus, this is not a true isomorphism, but it is for our intents and purposes.
 class UnitypeIso t where
+  -- | Converts a term representable in the unitype AST to the unitype AST.
   toUnitype   :: t -> AST
+
+  -- | Converts a term in the unitype AST to one representable in it.
+  -- A partial function!
   fromUnitype :: AST -> t
+
+-- | Lifts a transformation in the unitype AST into the CoreS.AST.
+inUnitype :: UnitypeIso t => (AST -> AST) -> t -> t
+inUnitype f = fromUnitype . f . toUnitype
+
+-- | Lifts a transformation in the CoreS.AST into the unitype AST.
+inCore :: UnitypeIso t => (t -> t) -> AST -> AST
+inCore f = toUnitype . f . fromUnitype
 
 --------------------------------------------------------------------------------
 -- Conversion DSL:
@@ -129,12 +158,6 @@ class UnitypeIso t where
 --------------------------------------------------------------------------------
 -- Concrete conversions:
 --------------------------------------------------------------------------------
-
-convertCompilationUnit :: C.CompilationUnit -> AST
-convertCompilationUnit  = toUnitype
-
-convertCompilationUnitI :: AST -> C.CompilationUnit
-convertCompilationUnitI = fromUnitype
 
 instance UnitypeIso C.CompilationUnit where
   toUnitype = \case
