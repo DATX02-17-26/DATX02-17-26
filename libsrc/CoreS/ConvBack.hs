@@ -23,6 +23,7 @@ module CoreS.ConvBack (
   -- * Types
     HoleSum (..)
   , LJSynConv
+  , Repr
   -- * Classes
   , ToLJSyn
   -- * Operations
