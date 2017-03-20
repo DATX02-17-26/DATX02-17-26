@@ -21,7 +21,7 @@
 module GenStrat where
 
 import Ideas.Common.Library
-import Ideas.Common.DerivationTree
+import Ideas.Common.DerivationTree as DT
 import Ideas.Common.Strategy as S
 import Ideas.Common.Strategy.Sequence hiding ((.*.))
 import Control.Monad.State
@@ -33,6 +33,7 @@ import Debug.Trace
 
 import CoreS.ASTUnitype
 import CoreS.ASTUnitypeUtils
+import Data.RoseTree
 
 type Generator = Int -> AST -> State Int (Strategy AST)
 
@@ -97,13 +98,26 @@ makeDependencyStrategy = \case
 --
 -- (generics?)
 genStrat :: Generator
-genStrat loc (Block xs)                   = refList loc Block xs
-genStrat loc (MethodDecl t i params body) = refList loc (MethodDecl t i params) body
-genStrat loc (ClassDecl i body)           = (ClassDecl i $$ body) loc
-genStrat loc (ClassBody body)             = refList loc ClassBody body
-genStrat loc (ClassTypeDecl body)         = (ClassTypeDecl $$ body) loc
-genStrat loc (CompilationUnit body)       = refList loc CompilationUnit body
-genStrat loc (MemberDecl body)            = (MemberDecl $$ body) loc
+genStrat loc (Block xs)                     = refList loc Block xs
+genStrat loc (MethodDecl t i params body)   = refList loc (MethodDecl t i params) body
+genStrat loc (ClassDecl i body)             = (ClassDecl i $$ body) loc
+genStrat loc (ClassBody body)               = refList loc ClassBody body
+genStrat loc (ClassTypeDecl body)           = (ClassTypeDecl $$ body) loc
+genStrat loc (CompilationUnit body)         = refList loc CompilationUnit body
+genStrat loc (MemberDecl body)              = (MemberDecl $$ body) loc
+genStrat loc (SForB mAST0 mAST1 mASTs body) = (SForB mAST0 mAST1 mASTs $$ body) loc
+genStrat loc (SForE vmt ident ast0 body)    = (SForE vmt ident ast0 $$ body) loc 
+genStrat loc (SIf cond body)                = (SIf cond $$ body) loc
+genStrat loc (SIfElse cond onTrue onFalse)  = do
+  (trueLoc, trueStrat) <- locGen onTrue
+  (falseLoc, falseStrat) <- locGen onFalse
+  return $ refine (SIfElse cond (Hole trueLoc) (Hole falseLoc)) loc .*. trueStrat .*. falseStrat
+genStrat loc (SWhile cond body)             = (SWhile cond $$ body) loc
+genStrat loc (SDo cond body)                = (SDo cond $$ body) loc
+genStrat loc (SwitchCase body)              = (SwitchCase $$ body) loc
+genStrat loc (SwitchBlock lab asts)         = do
+  (locs, strats) <- unzip <$> mapM locGen asts
+  return $ refine (SwitchBlock lab [Hole l | l <- locs]) loc .*. sequenceS strats
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
 
@@ -126,16 +140,13 @@ locGen ast = do
 makeStrategy :: AST -> Strategy AST
 makeStrategy ast = fst $ runState (genStrat 0 ast) 1
 
-data RoseTree a = RoseTree a [RoseTree a]
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
 makeASTsRoseTree :: Strategy AST -> RoseTree AST
 makeASTsRoseTree strat = tree
   where
     tree = go (Hole 0, (firstsTree (emptyPrefix strat (Hole 0))))
 
     go :: (AST, DerivationTree (Elem (Prefix AST)) (Prefix AST)) -> RoseTree AST
-    go (ast, t) = RoseTree ast (map go (zip (map (get . fst) (firsts (root t))) (subtrees t)))
+    go (ast, t) = RoseTree ast (map go (zip (map (get . fst) (firsts (DT.root t))) (subtrees t)))
 
     get (_, term, _) = term
 
@@ -158,8 +169,8 @@ matchesBFS norm tree ast = go [tree]
     go [] = False
     go ((RoseTree a []):trees) = ast == (norm a) || go trees
     go ((RoseTree a asts):trees)
-      | canMatch ast (norm a) = go (trees ++ asts)
-      | otherwise      = go trees
+      | canMatch ast (norm a)  = go (trees ++ asts)
+      | otherwise              = go trees
 
 makeASTs :: Strategy AST -> [AST]
 makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)

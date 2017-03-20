@@ -6,9 +6,10 @@ import qualified Data.Map as Map
 import Control.Monad.State
 import CoreS.AST
 import NormalizationStrategies (makeRule, NormalizationRule)
+import Norm.NormM
 
 alphaRenaming :: NormalizationRule CompilationUnit
-alphaRenaming = makeRule execute name stages
+alphaRenaming = makeRule (convMayN execute) name stages
 
 name :: String
 name = "AlphaR"
