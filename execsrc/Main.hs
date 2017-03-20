@@ -73,7 +73,7 @@ tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> RoseGen String ->
 tryMatchAndFallBack compDir paths gen = do
   goingToPBT <- tryParseAndMatch paths 
   if goingToPBT then
-    runPBT compDir gen
+    void $ runPBT compDir gen
   else
     return ()
   

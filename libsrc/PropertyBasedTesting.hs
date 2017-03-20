@@ -75,7 +75,7 @@ compareOutputs student (model:ms) = do
     return False
 
 -- | Perform the relevant tests on all class files in the directory
-runPBT :: FilePath -> RoseGen String -> EvalM ()
+runPBT :: FilePath -> RoseGen String -> EvalM Bool
 runPBT dir generator = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
@@ -85,12 +85,12 @@ shrink :: FilePath -> RoseTree String -> EvalM ()
 shrink dir tree = issue $ "Failed with: " ++ (root tree)
 
 --Runs the specified number of tests
-runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM ()
-runNumberOfTests 0 _ _ = comment "Student solution passed all tests"
+runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM Bool
+runNumberOfTests 0 _ _ = comment "Student solution passed all tests" >> return True
 runNumberOfTests numTests dir generator = do
   input  <- liftIO $ generate generator
   passed <- testSolutions dir (root input)
   if passed then
     runNumberOfTests (numTests - 1) dir generator
   else
-    shrink dir input
+    shrink dir input >> return False
