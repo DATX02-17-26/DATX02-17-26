@@ -22,48 +22,70 @@
 module Norm.VarDecl where
 
 import qualified Data.Ord as O
+import Data.Maybe (isNothing, fromMaybe)
+import Data.List (sortBy, isPrefixOf)
+import Control.Arrow ((***), (&&&), first, second)
+import Control.Category ((>>>))
+import Control.Lens (Traversal', (^?), (%%~), (%~), (.~))
+import Control.Monad.Writer (Writer, runWriter)
 
-import Data.Maybe (isNothing)
-import Data.List (sortBy)
-import Control.Arrow ((&&&))
-import Control.Lens (Traversal', (^?), (%%~))
+import Util.Monad (traverseJ, sortByM)
+import Class.Sizeables (growN)
 
-import Control.Monad.Writer (WriterT, runWriterT)
-
-import Util.Monad
-import CoreS.AST
-import NormalizationStrategies
+import Norm.NormCS
 
 stage :: Int
 stage = 100 -- ALLOCATE TODO
-
-type NormCUR = NormalizationRule CompilationUnit
-type NormCUA = NormArr CompilationUnit
 
 --------------------------------------------------------------------------------
 -- Exported Rules:
 --------------------------------------------------------------------------------
 
--- | Split variable declarations { T x [= e], y [= e], .. ; }
--- into: { T x [= e]; T y [= e] ; .. }
+-- | Moves the variable declarations (+ any inits) out of a basic for loop:
+-- > for ( T x, [y..] ; cond ; post ) si
+-- normalizes to:
+-- > T x, [y..] ; for ( ; cond ; post ) si
+normMoveForTVD :: NormCUR
+normMoveForTVD = makeRule' "vardecl.stmt.move_bfor_tvd" [stage] execMoveForTVD
+
+-- | Split variable declarations
+-- > { T x [= e], y [= e], .. ; }
+-- into:
+-- > { T x [= e]; T y [= e] ; .. }
 normSingleTVDs :: NormCUR
-normSingleTVDs = makeRule' "vardecl.stmt.to_single" [stage] execSingleTVDs
+normSingleTVDs = makeRule' "vardecl.stmt.to_single" [stage + 1] execSingleTVDs
+
+-- | Move array dimensions in VarDeclId to the type, i.e:
+-- > T x[].. ;  ==>  T[].. x ;
+-- Requires that "vardecl.stmt.to_single" has been run before.
+normVDIArrLeft :: NormCUR
+normVDIArrLeft = makeRule' "vardecl.stmt.array_type" [stage + 2] execVDIArrLeft
 
 -- | Split variable declaration and initialization into 2 statements.
 normSplitInit :: NormCUR
-normSplitInit = makeRule' "vardecl.stmt.init_split" [stage + 1] execSplitInit
-
--- | Sort variable declarations by type.
--- Will not sort any declarator that has initializer.
--- The sorting MUST be stable.
-normSortT :: NormCUR
-normSortT = makeRule' "vardecl.stmt.decl_sort_by_type" [stage + 2] execSortT
+normSplitInit = makeRule' "vardecl.stmt.init_split" [stage + 3] execSplitInit
 
 -- | Moves all variable declarations (without initializers) to the top.
 -- The AST must be alpha renamed right before this is executed to preserve
 -- type correctness.
 normVDTop :: NormCUR
-normVDTop = makeRule' "vardecl.stmt.move_to_top" [stage + 3] execVDTop
+normVDTop = makeRule' "vardecl.stmt.move_to_top" [stage + 4] execVDTop
+
+-- | Sort variable declarations by type.
+-- Will not sort any declarator that has initializer.
+-- The sorting MUST be stable.
+normSortT :: NormCUR
+normSortT = makeRule' "vardecl.stmt.decl_sort_by_type" [stage + 5] execSortT
+
+--------------------------------------------------------------------------------
+-- vardecl.stmt.move_bfor_tvd:
+--------------------------------------------------------------------------------
+
+execMoveForTVD :: NormCUA
+execMoveForTVD = normEvery $ traverseJ $ \x -> case x of
+  SForB (Just (FIVars tvd)) me mps si ->
+    change [SVars tvd, sForInit .~ Nothing $ x]
+  x -> unique [x]
 
 --------------------------------------------------------------------------------
 -- vardecl.stmt.to_single:
@@ -76,6 +98,19 @@ execSingleTVDs = normEvery $ traverseJ $ \case
   x -> unique [x]
 
 --------------------------------------------------------------------------------
+-- vardecl.stmt.array_type:
+--------------------------------------------------------------------------------
+
+execVDIArrLeft :: NormCUA
+execVDIArrLeft = normEvery $ withError' $ \case
+  (TypedVVDecl vmt [vd]) -> do
+    (vdi,  mvi) <- mayDecline $ vd  ^? _VarDecl
+    (vdi', dim) <- first VarDId <$> mayDecline (vdi ^? _VarDArr)
+    let vmt' = vmType %~ growN (fromInteger dim) $ vmt
+    change $ TypedVVDecl vmt' [VarDecl vdi' mvi]
+  x -> unique x
+
+--------------------------------------------------------------------------------
 -- vardecl.stmt.init_split:
 --------------------------------------------------------------------------------
 
@@ -85,12 +120,13 @@ execSplitInit = normEvery $ traverseJ $ \case
     x -> unique [x]
 
 -- | VarInit to an Expr.
-viToExpr :: VMType -> VarInit -> NormE Expr
-viToExpr vmt vi = do
+viToExpr :: VMType -> VarDeclId -> VarInit -> NormE Expr
+viToExpr vmt vdi vi = do
   (baseT, dims) <- mayDecline $ (typeBase &&& typeDimens) <$> vmt ^? vmType
+  let dims' = fromMaybe 0 $ vdi ^? vdiDimen
   case vi of
     InitExpr e    -> change e
-    InitArr  a    -> change $ EArrNewI baseT dims a
+    InitArr  a    -> change $ EArrNewI baseT (dims + dims') a
     HoleVarInit h -> decline
 
 -- | VarDeclId to an LValue.
@@ -107,7 +143,7 @@ splitVD :: VMType -> VarDecl -> NormE [Stmt]
 splitVD vmt vd = do
   mayDecline (isFinal vmt) >>= (`when` decline) -- can't split final.
   (vdi, mvi) <- mayDecline $ vd ^? _VarDecl
-  exp        <- mayDecline mvi >>= viToExpr vmt
+  exp        <- mayDecline mvi >>= viToExpr vmt vdi
   lv         <- vdiToLV vdi >>= change
   pure [ SVars $ TypedVVDecl vmt [VarDecl vdi Nothing]
        , SExpr $ EAssign lv exp
@@ -118,41 +154,39 @@ splitVD vmt vd = do
 --------------------------------------------------------------------------------
 
 execSortT :: NormCUA
-execSortT = normEvery $ convEqN $ sortBy typeSort
+execSortT = normEvery $ sortByM $ curry $ (varType *** varType) >>> \case
+  (Nothing, Nothing) -> pure   O.EQ
+  (Just t1, Nothing) -> pure   O.LT
+  (Nothing, Just t2) -> change O.GT
+  (Just t1, Just t2) -> let o = compare t1 t2
+                        in if o == O.GT then change o else pure o
 
-typeSort :: Stmt -> Stmt -> Ordering
-typeSort s1 s2 = toOrd $ typeSort' s1 s2
+varType :: Stmt -> Maybe Type
+varType s = extTVD s >>= \tvd -> ensureMovable tvd >> fst tvd ^? vmType
 
-toOrd :: Maybe Bool -> Ordering
-toOrd = maybe O.EQ $ \lt -> if lt then O.LT else O.GT
-
-typeSort' :: Stmt -> Stmt -> Maybe Bool
-typeSort' s1 s2 = (<) <$> varType s1 <*> varType s1
+extTVD :: Stmt -> Maybe (VMType, [VarDecl])
+extTVD = (^? sVDecl . _TypedVVDecl)
 
 ensureMovable :: (VMType, [VarDecl]) -> Maybe ()
 ensureMovable (vmt, vds) = do
   final      <- isFinal vmt
   hasNoInits <- all isNothing <$> forM vds (^? vdVInit)
-  unless (not final && hasNoInits) Nothing
-
-extTVD :: Stmt -> Maybe (VMType, [VarDecl])
-extTVD = (^? sVDecl . _TypedVVDecl)
-
-varType :: Stmt -> Maybe Type
-varType s = extTVD s >>= \tvd ->
-            ensureMovable tvd >> fst tvd ^? vmType
+  when (final || not hasNoInits) Nothing
 
 --------------------------------------------------------------------------------
 -- vardecl.stmt.move_to_top:
 --------------------------------------------------------------------------------
 
+travMD :: Traversal' CompilationUnit MemberDecl
+travMD = cuTDecls.traverse.tdClass.cdBody.cbDecls.traverse.declMem
+
 execVDTop :: NormCUA
-execVDTop = normEvery $ mdBlock.bStmts %%~ vdMove
+execVDTop = travMD.mdBlock.bStmts %%~ vdMove
 
 vdMove :: NormArr [Stmt]
-vdMove ss = uncurry (++) <$> runWriterT (vdSteal ss)
+vdMove ss = let (ssF, ssT) = second reverse $ runWriter (normEveryT vdSteal ss)
+            in (if ssT `isPrefixOf` ss then unique else change) $ ssT ++ ssF
 
-vdSteal :: NormArrW [Stmt] [Stmt]
-vdSteal = normEvery $ filterM $ \s ->
-  maybe (pure True) (const $ tell [s] >> lift (change False)) $
-        extTVD s >>= ensureMovable
+vdSteal :: [Stmt] -> Writer [Stmt] [Stmt]
+vdSteal = filterM $ \s -> maybe (pure True) (const $ tell [s] >> pure False) $
+                                extTVD s >>= ensureMovable
