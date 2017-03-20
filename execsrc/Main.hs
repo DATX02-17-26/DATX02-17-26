@@ -82,7 +82,7 @@ tryParseAndMatch paths = do
   fallback <- ignoreFailingParse <$> ask 
 
   -- Get the contents from the arguments supplied
-  convASTs <- (fmap (fmap parseConv)) . (zipContexts paths) <$> readRawContents paths
+  convASTs <- fmap (fmap parseConv) . zipContexts paths <$> readRawContents paths
 
   -- Convert `(FilePath, Either String AST)` in to an `EvalM AST` by throwing the parse error
   -- and alerting the user of what file threw the parse error on failure
@@ -103,8 +103,8 @@ tryParseAndMatch paths = do
     -- The normalized ASTs
     let astContext     = fromJust <$> m_astContext
         normalize      = executeNormalizer normalizations
-        normalizedASTs = (AST.convertCompilationUnit . normalize) <$> astContext
-        normalizeUAST  = AST.convertCompilationUnit . normalize . AST.convertCompilationUnitI
+        normalizedASTs = (AST.toUnitype . normalize) <$> astContext
+        normalizeUAST  = AST.inCore normalize
 
     -- Alert the user of what is going on
     logMessage "Matching student solution to model solutions"
