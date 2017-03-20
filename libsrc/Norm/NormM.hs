@@ -210,6 +210,10 @@ instance (Monad m, Arbitrary a) => Arbitrary (NormT m a) where
 -- | NormE: A failible normalizing computation.
 type NormE a = NormT (Either ()) a
 
+-- | 'withError'': 'withError' specialized to Either () as base monad.
+withError' :: Monad m => NormArrT (Either ()) a -> NormArrT m a
+withError' = withError
+
 -- | 'withError': run a normalizer that can error.
 -- If an error occurs, the starting term will be returned.
 withError :: (HasError e m, Monad m') => NormArrT m a -> NormArrT m' a
