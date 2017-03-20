@@ -19,7 +19,22 @@
 {-# LANGUAGE LambdaCase #-}
 
 -- | Normalizers for variable declarations.
-module Norm.VarDecl where
+module Norm.VarDecl (
+  -- * Normalizers
+    normMoveForTVD
+  , normSingleTVDs
+  , normVDIArrLeft
+  , normSplitInit
+  , normVDTop
+  , normSortT
+  -- * The executor functions:
+  , execMoveForTVD
+  , execSingleTVDs
+  , execVDIArrLeft
+  , execSplitInit
+  , execVDTop
+  , execSortT
+  ) where
 
 import qualified Data.Ord as O
 import Data.Maybe (isNothing, fromMaybe)
