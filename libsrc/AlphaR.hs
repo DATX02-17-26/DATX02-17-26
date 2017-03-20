@@ -1,4 +1,4 @@
-module AlphaR (alphaRenaming) where
+module AlphaR (alphaRenaming, execute) where
 
 import Control.Monad
 import Data.Map (Map)

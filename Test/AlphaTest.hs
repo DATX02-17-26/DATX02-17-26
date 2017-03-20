@@ -5,8 +5,8 @@ import AlphaR
 
 main :: IO()
 main =  do
-  s <- readFile "AlphaTest/Good1.java"
-  s' <- readFile "AlphaTest/Good1-1.java"
+  s <- readFile "C:/Workspace/DATX02-17-26/Test/AlphaTest/Good1.java"
+  s' <- readFile "C:/Workspace/DATX02-17-26/Test/AlphaTest/Good1-1.java"
   let ast = parseConvUnit s
   let ast2 = parseConvUnit s'
   student <- either undefined pure ast
@@ -21,3 +21,4 @@ comapareAST student model = case execute student of
     else do print $ "The student solution: " ++ (show a)
             print ("The model: " ++ (show model))
   Nothing -> print $ "WTF!"
+
