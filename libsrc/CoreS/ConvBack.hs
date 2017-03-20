@@ -30,6 +30,7 @@ module CoreS.ConvBack (
   -- * Operations
   , toLJSyn
   , prettyCore
+  , prettyCore'
   , dumpCore
   ) where
 
@@ -37,6 +38,7 @@ import Prelude hiding (EQ, LT, GT)
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
+import Data.Bifunctor (first)
 import Data.Function.Pointless ((.:))
 import Control.Monad ((>=>))
 import Control.Lens ((^?))
@@ -148,6 +150,11 @@ class ToLJSyn t where
 -- | Prettified a term in CoreS.AST as the Java syntax tree representation.
 prettyCore :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> LJSynConv String
 prettyCore core = P.prettyPrint <$> toLJSyn core
+
+-- | Prettified a term in CoreS.AST as the Java syntax tree representation.
+-- On error, shows the error.
+prettyCore' :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> Either String String
+prettyCore' core = first show $ prettyCore core
 
 -- | Dumps a CoreS.AST term prettified as the syntax tree in Java.
 dumpCore :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> IO ()
