@@ -123,6 +123,7 @@ Test-Suite tests
   build-depends:
       tasty
     , tasty-hunit
+    , tasty-golden
     , tasty-quickcheck
     , base
     , language-java == 0.2.8
