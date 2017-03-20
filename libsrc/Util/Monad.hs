@@ -44,12 +44,15 @@ module Util.Monad (
   , untilMatchM
   -- ** Monadic folds and traversals
   , traverseJ
+  -- ** Monadic sorting
+  , MComparator
+  , sortByM
   -- ** Monad stack transformations
   , rebase
   , io
   ) where
 
-import Control.Monad (join)
+import Control.Monad (join, (>=>))
 import Data.Function.Pointless ((.:))
 import Control.Monad.Identity (Identity)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -91,6 +94,44 @@ untilMatchM p f = (>>= \x -> unless' (f x) (p x) (untilMatchM p f . return))
 traverseJ :: (Applicative f, Traversable t, Monad t)
              => (a -> f (t b)) -> t a -> f (t b)
 traverseJ = fmap join .: traverse
+
+--------------------------------------------------------------------------------
+-- Monadic sorting:
+--------------------------------------------------------------------------------
+
+-- | A monadic comparator:
+type MComparator m a = a -> a -> m Ordering
+
+-- | Monadic sort, stable,
+-- From: https://hackage.haskell.org/package/monadlist-0.0.2
+sortByM :: Monad m => MComparator m a -> [a] -> m [a]
+sortByM cmp = sequences >=> mergeAll
+  where
+    sequences (a:b:xs) =
+      cmp a b >>= onGT (descending b [a] xs) (ascending b (a:) xs)
+    sequences xs       = pure [xs]
+
+    descending a as cs@(b:bs) =
+      cmp a b >>= onGT (descending b (a:as) bs) (((a:as) :) <$> sequences cs)
+    descending a as bs = ((a:as) :) <$> sequences bs
+
+    ascending a as cs@(b:bs) =
+      cmp a b >>=
+      onGT ((as [a] :) <$> sequences cs) (ascending b (as . (a:)) bs)
+    ascending a as bs = (as [a] :) <$> sequences bs
+
+    mergeAll [x] = pure x
+    mergeAll xs  = mergePairs xs >>= mergeAll
+
+    mergePairs (a:b:xs) = (:) <$> merge a b <*> mergePairs xs
+    mergePairs xs = pure xs
+
+    merge as@(a:as') bs@(b:bs') =
+      cmp a b >>= onGT ((b :) <$> merge as bs') ((a :) <$> merge as' bs)
+    merge [] bs = pure bs
+    merge as [] = pure as
+
+    onGT gt ngt ord = if ord == GT then gt else ngt
 
 --------------------------------------------------------------------------------
 -- Transformers:
