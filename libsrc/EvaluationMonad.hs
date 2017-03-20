@@ -200,4 +200,3 @@ inTemporaryDirectory dir evalm = do
   logMessage $ "Changing directory to " ++ was
   liftIO $ setCurrentDirectory was
   return result
-

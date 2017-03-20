@@ -1,4 +1,4 @@
-module AlphaR where
+module AlphaR (alphaRenaming) where
 
 import Control.Monad
 import Data.Map (Map)
@@ -7,6 +7,16 @@ import Control.Monad.State
 import CoreS.AST
 import Data.Maybe
 import NormalizationStrategies (makeRule, NormalizationRule)
+import Norm.NormM
+
+alphaRenaming :: NormalizationRule CompilationUnit
+alphaRenaming = makeRule (convMayN execute) name stages
+
+name :: String
+name = "AlphaR"
+
+stages :: [Int]
+stages = [0]
 
 --A Context
 --might need a [Map Ident (Map Ident Ident)] where first ident is class
@@ -34,7 +44,6 @@ newEnv = Env {
   varNames = [Map.empty],
   metNames = [Map.empty]
 }
-
 
 --create a new Context
 newContext :: State Env ()
@@ -141,14 +150,6 @@ lookupMetInScope i (m:ms) = do
     name -> name
 
 
-alphaRenaming :: NormalizationRule CompilationUnit
-alphaRenaming = makeRule execute name stages
-
-name :: String
-name = "AplhaR"
-
-stages :: [Int]
-stages = [0]
 --jämför träden så att de returnerar nothing om den nya är == med gamla
 execute :: CompilationUnit -> Maybe CompilationUnit
 execute cu =
@@ -156,10 +157,6 @@ execute cu =
   case cu == ast of
     True -> Nothing
     False -> Just $ ast
-
-
-
-
 
 --Renames all class names, method names, formalparams and method bodies
 rename :: CompilationUnit -> State Env CompilationUnit
@@ -169,14 +166,13 @@ rename (CompilationUnit typeDecls) =
     mapM renameAllMethodNames td >>= \td' ->
     CompilationUnit <$> mapM renameClass td'
 
-
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
 renameClass :: TypeDecl -> State Env TypeDecl
 renameClass htd@(HoleTypeDecl _) = return htd
 renameClass (ClassTypeDecl ctd) =
   case ctd of
-    (ClassDecl ident(ClassBody decls)) -> do
+    (ClassDecl ident (ClassBody decls)) -> do
       newContext
       newMethodCxt
       decls' <- mapM renameMethod decls
@@ -184,7 +180,6 @@ renameClass (ClassTypeDecl ctd) =
       exitMethodCxt
       return (ClassTypeDecl (ClassDecl ident (ClassBody decls')))
     holeClassDecl -> return $ ClassTypeDecl holeClassDecl
-
 
 --Renames a class to a new (Unique) Ident
 renameClassName :: TypeDecl-> State Env TypeDecl
@@ -225,6 +220,7 @@ renameMethod (MemberDecl (MethodDecl mType ident formalParams block)) = do
   b <- renameBlock block
   exitContext
   return (MemberDecl (MethodDecl mType ident fp b))
+renameMethod hd@(MemberDecl _) = return hd
 
 --Renames the Formal Parameters
 renameFormalParam :: FormalParam -> State Env FormalParam

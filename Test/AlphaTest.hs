@@ -5,8 +5,8 @@ import AlphaR
 
 main :: IO()
 main =  do
-  s <- readFile "C:/Users/Aleksander/Documents/GitHub/DATX02-17-26/Test/AlphaTest/Good2.java"
-  s' <- readFile "C:/Users/Aleksander/Documents/GitHub/DATX02-17-26/Test/AlphaTest/Good2-2.java"
+  s <- readFile "C:/Users/Aleksander/Documents/GitHub/DATX02-17-26/Test/AlphaTest/Good3.java"
+  s' <- readFile "C:/Users/Aleksander/Documents/GitHub/DATX02-17-26/Test/AlphaTest/Good3-3.java"
   let ast = parseConvUnit s
   let ast2 = parseConvUnit s'
   student <- either undefined pure ast
