@@ -212,14 +212,35 @@ convApp = \case
         | otherwise    -> pure $ EMApp m args'
   x -> unimpl $__LOCATION__ x
 
-convArrIx :: S.ArrayIndex -> CConv Expr
-convArrIx (S.ArrayIndex a is) = EVar <$> (LVArray <-$ a <=* is)
+instance ToCoreS S.AssignOp where
+  type Repr S.AssignOp = NumOp
+  toCoreS x = case x of
+    S.EqualA   -> -- represented differently, but supported.
+                  unimpl $__LOCATION__ x
+    S.MultA    -> pure Mul
+    S.DivA     -> pure Div
+    S.RemA     -> pure Rem
+    S.AddA     -> pure Add
+    S.SubA     -> pure Sub
+    S.LShiftA  -> pure LShift
+    S.RShiftA  -> pure RShift
+    S.RRShiftA -> pure RRShift
+    S.AndA     -> pure And
+    S.XorA     -> pure Xor
+    S.OrA      -> pure Or
 
-convAssign :: S.Lhs -> S.AssignOp -> S.Exp -> CConv Expr
-convAssign lv op e = case lv of
-  S.NameLhs   n -> toCoreS n >>= \(Name is) -> EVar . LVName <$> convOne is
-  S.ArrayLhs ai -> convArrIx ai
-  x             -> unimpl $__LOCATION__ x
+instance ToCoreS S.Lhs where
+  type Repr S.Lhs = LValue
+  toCoreS = \case
+    S.NameLhs   n                  -> toCoreS n >>= \(Name is) ->
+                                      LVName <$> convOne is
+    S.ArrayLhs (S.ArrayIndex a is) -> LVArray <-$ a <=* is
+    x                              -> unimpl $__LOCATION__ x
+
+convAssign :: S.Lhs -> S.Exp -> S.AssignOp -> CConv Expr
+convAssign lv e = \case
+  S.EqualA -> EAssign  <-$ lv <-* e
+  op       -> EOAssign <-$ lv <-* op <-* e
 
 instance ToCoreS S.Exp where
   type Repr S.Exp = Expr
@@ -242,7 +263,7 @@ instance ToCoreS S.Exp where
     S.Cast        t e         -> ECast <-$ t <-* e
     S.BinOp     l o r         -> convBOp l r o
     S.Cond      c i e         -> ECond <-$ c <-* i <-* e
-    S.Assign   lv o e         -> convAssign lv o e
+    S.Assign   lv o e         -> convAssign lv e o
     x                         -> unimpl $__LOCATION__ x
 
 --------------------------------------------------------------------------------
