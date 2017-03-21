@@ -34,10 +34,14 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE ConstraintKinds #-}
+
 -- | Functor, Applicative, Monad (+ transformer) utilities.
 module Util.Monad (
+  -- ** Classes and types
+    MonadCo
   -- ** General utilities
-    (<$$>)
+  , (<$$>)
   , unless'
   , fkeep
   , untilEqM
@@ -50,13 +54,25 @@ module Util.Monad (
   -- ** Monad stack transformations
   , rebase
   , io
+  , exceptT
   ) where
 
+import Control.Comonad (Comonad)
 import Control.Monad (join, (>=>))
 import Data.Function.Pointless ((.:))
 import Control.Monad.Identity (Identity)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Morph (MFunctor, hoist, generalize)  
+import Control.Monad.Except (ExceptT)
+import Control.Monad.Trans.Except (except)
+
+--------------------------------------------------------------------------------
+-- Classes and types:
+--------------------------------------------------------------------------------
+
+-- | Combined constraint of being both a Monad and a Comonad.
+-- With great power come greats responsibility!
+type MonadCo m = (Monad m, Comonad m)
 
 --------------------------------------------------------------------------------
 -- General utilities:
@@ -144,3 +160,7 @@ rebase = hoist generalize
 -- | 'io': alias of 'liftIO'
 io :: MonadIO m => IO a -> m a
 io = liftIO
+
+-- | Produces an ExceptT e m a, in any monad m, given an Either e a.
+exceptT :: Monad m => Either e a -> ExceptT e m a
+exceptT e = rebase $ except e
