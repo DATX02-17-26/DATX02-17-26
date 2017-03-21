@@ -24,10 +24,9 @@ module GeneratorExamples where
 import Data.Char
 import Control.Monad
 import Control.Monad.Trans
-import Test.QuickCheck
-import Test.QuickCheck.Gen
 
 import InputMonad 
+import Util.RoseGen (RoseGen)
 
 -- Lot's of examples of generators
 
@@ -67,37 +66,6 @@ exercise1_8 = do
   inp $ show n
   n <- abs <$> anything @Double
   inp $ show n
-
-{- Lab 1.11 in the course TDA540
- - Input:
- - * Read a date on the format "yymmdd"
- -
- - Task:
- - * Convert the date to the format "mm/dd/yy"
- -
- - Output:
- - * Print the date on the new format
- -}
-exercise1_11 :: InputMonoid m => InputMonad m ()
-exercise1_11 = do
-  y <- lift $ choose (0, 99 :: Int)
-  inp $ leftPad 2 '0' (show y)
-
-  m <- lift $ choose (1, 12)
-  inp $ leftPad 2 '0' (show m)
-
-  d <- lift $ choose (1, monthLength m)
-  inp $ leftPad 2 '0' (show d)
-
--- | Calculate the length of a month in days
-monthLength :: Int -> Int
-monthLength m = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] !! (m - 1)
-
--- | Break the entire `nodejs` ecosystem
-leftPad :: Int -> Char -> String -> String
-leftPad i c s
-  | length s >= i = s
-  | otherwise     = (replicate (i - length s) c) ++ s
 
 {- 2) Skapa en kommandoradsmeny med valen p, r och q (q avslutar menyn (metoden)).
       Vid valen r och p görs en inläsning och en utskift av den inlästa strängen.

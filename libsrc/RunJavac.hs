@@ -39,6 +39,10 @@ tryCompile dir path = do
   let command = "javac -d " ++ dir ++ " " ++ path
   logMessage $ "Running the command: " ++ command 
   (exitCode, stdin, stderr) <- liftIO $ readCreateProcessWithExitCode (shell command) ""
+  if not (null stderr) then
+    logMessage $ "STDERR: " ++ stderr
+  else
+    return ()
 
   -- Check if the compilation was successfull
   case exitCode of

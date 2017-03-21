@@ -16,16 +16,33 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+{-# LANGUAGE
+    TypeApplications
+  , FlexibleContexts #-}
+module Generator where
 
-import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import Data.Char
+import Control.Monad
+import Control.Monad.Trans
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ identityTransformation, alphaRenaming ]
+import InputMonad 
+import Util.RoseGen (RoseGen)
 
--- Do nothing
-identityTransformation :: NormalizationRule CompilationUnit 
-identityTransformation = makeRule pure "Identity" [0]
+-- Lot's of examples of generators
+
+{- Typical exercise specification:
+ -  Input:
+ -  * Read a number `n`
+ -  * Read `n` numbers
+ - 
+ -  Task:
+ -  * Take the sum of these `n` numbers
+ -
+ -  Output:
+ -  * Print the sum
+ -}
+gen :: InputMonoid m => InputMonad m ()
+gen = do
+  n <- abs <$> anything @Int
+  inp  $ show n
+  void $ replicateM n $ anything @Int >>= inp . show

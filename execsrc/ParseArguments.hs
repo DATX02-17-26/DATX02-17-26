@@ -59,4 +59,3 @@ argumentParser = info (arguments <**> helper)
                  (  fullDesc
                  <> header "JAA, a program for Java Automated Assessment"
                  )
-

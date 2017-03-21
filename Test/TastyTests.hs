@@ -11,6 +11,8 @@ import qualified NormalizationTests as Norm
 
 import qualified Util.ListTests as UL
 
+import qualified TestPBT as PBT
+
 -- | HUnit unit tests
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
@@ -18,6 +20,7 @@ unitTests = testGroup "Unit tests"
   , testCase "parser" $
         JP.parser JP.exp "1 + 2 * 3" @?=
         Right (BinOp (Lit (Int 1)) Add (BinOp (Lit (Int 2)) Mult (Lit (Int 3))))
+  , PBT.allTests
   ]
 
 -- | QuickCheck property based tests
