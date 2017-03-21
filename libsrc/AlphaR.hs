@@ -34,7 +34,10 @@ data Env = Env {
   metNames :: MCxt
   }
      deriving (Eq, Show)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9b6a8b387af9f510a6ce3e1f9993eb3f7f2a4b6b
 
 --create a new Env
 newEnv :: Env
@@ -46,7 +49,10 @@ newEnv = Env {
   metNames = [Map.empty]
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9b6a8b387af9f510a6ce3e1f9993eb3f7f2a4b6b
 --create a new Context
 newContext :: State Env ()
 newContext = modify (\s -> s{varNames = Map.empty : varNames s})
@@ -152,6 +158,10 @@ lookupMetInScope i (m:ms) = do
     Nothing -> lookupMetInScope i ms
     name -> name
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9b6a8b387af9f510a6ce3e1f9993eb3f7f2a4b6b
 --jämför träden så att de returnerar nothing om den nya är == med gamla
 execute :: CompilationUnit -> Maybe CompilationUnit
 execute cu =
@@ -168,7 +178,10 @@ rename (CompilationUnit typeDecls) =
     mapM renameAllMethodNames td >>= \td' ->
     CompilationUnit <$> mapM renameClass td'
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9b6a8b387af9f510a6ce3e1f9993eb3f7f2a4b6b
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
 renameClass :: TypeDecl -> State Env TypeDecl
