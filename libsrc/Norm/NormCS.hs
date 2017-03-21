@@ -20,7 +20,8 @@
 -- This should be imported when writing normalizers.
 -- It reexports CoreS.AST, Norm.NormM, NormalizationStrategies.
 module Norm.NormCS (
-   NormCUR
+   NormalizerCU
+ , NormCUR
  , NormCUA
  , module RE
  ) where
@@ -28,6 +29,9 @@ module Norm.NormCS (
 import CoreS.AST               as RE
 import Norm.NormM              as RE
 import NormalizationStrategies as RE
+
+-- | Normalizer for CompilationUnit.
+type NormalizerCU = Normalizer CompilationUnit
 
 -- | NormalizationRule for CompilationUnit:s.
 -- This is the top level normalizer.
