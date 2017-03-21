@@ -122,10 +122,11 @@ Test-Suite tests
   hs-source-dirs:  Test
   main-is:         TastyTests.hs
   other-modules:
-      NormalizationTests
-    , Util.ListTests
+      Util.ListTests
+    , ParserTests
     , TestUtil
     , TestPBT
+    , NormalizationTests
     , Norm.NormTestUtil
     , Norm.VarDeclTest
   default-language: Haskell2010

@@ -16,32 +16,24 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
--- | Entry point for all tests, of all kinds.
-module Main (
-    main
+-- | Parser tests (on Language.Java.Parser)
+module ParserTests (
+    allTests
   ) where
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-import CoreS.Parse
 
 import Language.Java.Parser as JP
 import Language.Java.Syntax as JA
 
-import qualified ParserTests        as Parser
-import qualified NormalizationTests as Norm
-import qualified Util.ListTests     as UL
-import qualified TestPBT            as PBT
+parserAssocRegression :: TestTree
+parserAssocRegression = testCase "parser_associativity_regression_test" $
+  JP.parser JP.exp "1 + 2 * 3" @?=
+  Right (BinOp (Lit (Int 1)) Add (BinOp (Lit (Int 2)) Mult (Lit (Int 3))))
 
 -- | All tests:
 allTests :: TestTree
-allTests = testGroup "All tests"
-  [ UL.allTests
-  , Parser.allTests
-  , Norm.allTests
-  , PBT.allTests
+allTests = testGroup "Language.Java.Parser tests"
+  [ parserAssocRegression
   ]
-
-main :: IO ()
-main = defaultMain allTests
