@@ -73,8 +73,17 @@ readRawContents ctx = do
   return $ Ctx studentSolution modelSolutions
 
 -- | Check if a student solution matches any of the model solutions
-studentSolutionMatches :: (a -> a -> Bool) -> SolutionContext a -> Bool
-studentSolutionMatches eqCheck ctx = any (eqCheck $ studentSolution ctx) (modelSolutions ctx)
+studentSolutionMatches :: (a -> a -> Bool) -> SolutionContext (FilePath, a) -> EvalM (Maybe FilePath)
+studentSolutionMatches eqCheck ctx = go (modelSolutions ctx)
+  where
+    studSol = snd (studentSolution ctx)
+
+    go []             = return Nothing
+    go ((fp, modSol):sols)  = do
+      logMessage $ "Checking: " ++ fp
+      if eqCheck studSol modSol
+      then return (Just fp)
+      else go sols
 
 -- | Zip together two SolutionContext's
 zipContexts :: SolutionContext a -> SolutionContext b -> SolutionContext (a, b)
