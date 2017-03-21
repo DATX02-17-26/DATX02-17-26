@@ -24,6 +24,7 @@ module Util.Debug (
   -- ** Operations
     fromRight
   , exitLeft
+  , sectionLn
   , pretty
   , pPrint
   , hcPrint
@@ -54,12 +55,23 @@ exitLeft = \case
 -- Pretty printing:
 --------------------------------------------------------------------------------
 
+-- | Prints a string in on a new line, but first wraps it with a
+-- line filled with "-"
+sectionLn :: String -> IO ()
+sectionLn h = putStrLn l >> putStrLn h >> putStrLn l
+  where l = replicate 80 '-'
+
+-- | Pretty prints a term with indentation and fluff but no color.
+-- Useful for debugging.
 pretty :: Show a => a -> String
 pretty = unpack . P.pShowOpt (P.OutputOptions 2 Nothing)
 
+-- | Pretty prints a term with indentation and fluff and color.
+-- Useful for debugging.
 pPrint :: (MonadIO m, Show a) => a -> m ()
 pPrint = P.pPrintOpt $ P.OutputOptions 2 $ Just P.defaultColorOptionsDarkBg
 
+-- | Color preferences used in hcPrint.
 cp :: ColourPrefs
 cp = ColourPrefs
   { keyword  = [Foreground Green,Underscore]
@@ -79,5 +91,6 @@ cp = ColourPrefs
   , definition = [Foreground Blue]
   }
 
+-- | Uses hscolour to pretty print a term with color. Useful for debugging.
 hcPrint :: (MonadIO m, Show a) => a -> m ()
 hcPrint = liftIO . putStrLn . hscolour cp . pretty
