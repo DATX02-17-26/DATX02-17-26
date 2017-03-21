@@ -16,12 +16,13 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, ConstraintKinds #-}
 
 -- | Parser language-java and conversion to CoreS.AST.
 module CoreS.Parse (
   -- * Classes
     LJParser
+  , ToCoreSP
   -- * Operations
   , ljParser
   , parse
@@ -54,13 +55,17 @@ class LJParser t where
 -- Operations:
 --------------------------------------------------------------------------------
 
+-- | Combined constraint of things parsable in S and then convertible into a
+-- corresponding term in CoreS.AST (== Repr t).
+type ToCoreSP t = (LJParser t, ToCoreS t)
+
 -- | Parses a term in S.
 parse :: LJParser t => String -> CConv t
 parse = first show . P.parser ljParser
 
 -- | Parses a term in S and then converts it into the corresponding term in
 -- the CoreS.AST.
-parseConv :: (LJParser t, ToCoreS t) => String -> CConv (Repr t)
+parseConv :: ToCoreSP t => String -> CConv (Repr t)
 parseConv = parse >=> toCoreS
 
 --------------------------------------------------------------------------------
