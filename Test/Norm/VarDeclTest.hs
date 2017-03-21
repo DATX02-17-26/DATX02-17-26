@@ -16,32 +16,23 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
--- | Entry point for all tests, of all kinds.
-module Main (
-    main
+module Norm.VarDeclTest (
+    allTests
   ) where
 
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-import CoreS.Parse
+import Norm.NormTestUtil
+import Norm.VarDecl
 
-import Language.Java.Parser as JP
-import Language.Java.Syntax as JA
+normalizers :: NormalizerCU
+normalizers = [ normMoveForTVD
+              , normSingleTVDs
+              , normVDIArrLeft
+              , normSplitInit
+              , normVDTop
+              , normSortT
+              ]
 
-import qualified ParserTests        as Parser
-import qualified NormalizationTests as Norm
-import qualified Util.ListTests     as UL
-import qualified TestPBT            as PBT
-
--- | All tests:
 allTests :: TestTree
-allTests = testGroup "All tests"
-  [ UL.allTests
-  , Parser.allTests
-  , Norm.allTests
-  , PBT.allTests
+allTests = testGroup "Norm.VarDecl tests"
+  [ normTestDir "vardecl_unittest_1" "vardecl" 1 normalizers
   ]
-
-main :: IO ()
-main = defaultMain allTests
