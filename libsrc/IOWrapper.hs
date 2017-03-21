@@ -3,30 +3,36 @@ module IOWrapper where
 import Control.Monad.State
 import CoreS.AST
 import Data.List (delete, elem)
+import Control.Lens
+import CoreS.Parse
+import AlphaR
 
-data File = File {
-  code :: [Statement]
-  }
+main :: IO()
+main = do
+  s <- readFile "C:/Workspace/DATX02-17-26/Test/AlphaTest/Good1.java"
+ -- s' <- readFile "C:/Workspace/DATX02-17-26/Test/AlphaTest/Good1-1.java"
+  let ast = parseConv s
+  --let ast2= parseConv s'
+  student <- either undefined pure ast
+  --model  :: CompilationUnit <- either undefined pure ast2
+  print $ wrap (student :: CompilationUnit)
 
-data Statement = String
+wrap cu = cu
 
-print :: Statement -> State File ()
-print s = modify (\st -> st{code = s : code st})
+fromCUtoCD (CompilationUnit typeDecls) = map fromTDtoDecl typeDecls
 
-newFile :: File
-newFile = File { code = []}
+fromTDtoDecl(ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
+  decls
 
-wrap :: CompilationUnit -> CompilationUnit -> IO ()
-wrap student model =
 
 --I assume that 2 methods does the same thing if they have the same:
 --Return Type and, number of and Types of formal parameters
-isSameMethod :: MemberDecl -> MemberDecl -> Bool
-isSameMethod student@(MethodDecl sType sIdent sFormalParams sBlock)
-               model@(MethodDecl mType mIdent mFormalParams mBlock) =
-  if sType == mType then
-    compareFormalParams sFormalParams mFormalParams
-  else False
+isSameMethod :: Decl -> Decl -> Bool
+isSameMethod (MemberDecl (MethodDecl sType sIdent sFormalParams sBlock))
+             (MemberDecl (MethodDecl mType mIdent mFormalParams mBlock)) =
+      if sType == mType then
+        compareFormalParams sFormalParams mFormalParams
+      else False
 
 compareFormalParams :: [FormalParam] -> [FormalParam]-> Bool
 compareFormalParams student model =
