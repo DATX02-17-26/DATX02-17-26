@@ -17,7 +17,7 @@
  -}
 
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, TemplateHaskell
-  , TypeFamilies, FlexibleContexts #-}
+  , TypeFamilies, FlexibleContexts, ConstraintKinds #-}
 
 -- | Conversion back to Langauge.Java.Syntax (hence: S).
 module CoreS.ConvBack (
@@ -27,6 +27,7 @@ module CoreS.ConvBack (
   , Repr
   -- * Classes
   , ToLJSyn
+  , ToLJSynP
   -- * Operations
   , toLJSyn
   , prettyCore
@@ -147,17 +148,21 @@ class ToLJSyn t where
   -- possible holes.
   toLJSyn :: t -> LJSynConv (Repr t)
 
+-- | Combined constraint for things convertible back to S,
+-- and which in turn in S is convertible to String via prettyfication.
+type ToLJSynP ast = (ToLJSyn ast, P.Pretty (Repr ast))
+
 -- | Prettified a term in CoreS.AST as the Java syntax tree representation.
-prettyCore :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> LJSynConv String
+prettyCore :: ToLJSynP ast => ast -> LJSynConv String
 prettyCore core = P.prettyPrint <$> toLJSyn core
 
 -- | Prettified a term in CoreS.AST as the Java syntax tree representation.
 -- On error, shows the error.
-prettyCore' :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> Either String String
+prettyCore' :: ToLJSynP ast => ast -> Either String String
 prettyCore' core = first show $ prettyCore core
 
 -- | Dumps a CoreS.AST term prettified as the syntax tree in Java.
-dumpCore :: (ToLJSyn ast, P.Pretty (Repr ast)) => ast -> IO ()
+dumpCore :: ToLJSynP ast => ast -> IO ()
 dumpCore = exitLeft . prettyCore >=> putStrLn
 
 --------------------------------------------------------------------------------
