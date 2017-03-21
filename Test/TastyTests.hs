@@ -33,16 +33,28 @@ import qualified NormalizationTests as Norm
 
 import qualified Util.ListTests as UL
 
+<<<<<<< HEAD
 parserAssocRegression :: TestTree
 parserAssocRegression = testCase "parser_associativity_regression_test" $
   JP.parser JP.exp "1 + 2 * 3" @?=
   Right (BinOp (Lit (Int 1)) Add (BinOp (Lit (Int 2)) Mult (Lit (Int 3))))
+=======
+import qualified TestPBT as PBT
+>>>>>>> dev
 
 -- | HUnit unit tests
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
+<<<<<<< HEAD
   [ parserAssocRegression
   , Norm.allTests
+=======
+  [ testCase "1 == 1" $ 1 @?= (1 :: Int)
+  , testCase "parser" $
+        JP.parser JP.exp "1 + 2 * 3" @?=
+        Right (BinOp (Lit (Int 1)) Add (BinOp (Lit (Int 2)) Mult (Lit (Int 3))))
+  , PBT.allTests
+>>>>>>> dev
   ]
 
 -- | QuickCheck property based tests

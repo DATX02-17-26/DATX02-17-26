@@ -125,6 +125,7 @@ Test-Suite tests
       NormalizationTests
     , Util.ListTests
     , TestUtil
+    , TestPBT
     , Norm.NormTestUtil
     , Norm.VarDeclTest
   default-language: Haskell2010

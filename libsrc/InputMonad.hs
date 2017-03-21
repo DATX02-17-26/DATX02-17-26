@@ -23,16 +23,18 @@
   , ConstraintKinds #-}
 module InputMonad where
 
-import Test.QuickCheck
+import qualified Test.QuickCheck as QC
 import Control.Monad.Writer
 import Control.Monad
 
+import Util.RoseGen
+
 -- | A monad in which to construct exercise input
 -- specifications
-type InputMonad m a = WriterT m Gen a
+type InputMonad m a = WriterT m RoseGen a
 
 -- | Construct a `Gen String` from an `InputMonad a`
-makeGenerator :: (Monoid m, Wrapper m String) => InputMonad m a -> Gen String
+makeGenerator :: (Monoid m, Wrapper m String) => InputMonad m a -> RoseGen String
 makeGenerator input = (unwrap . snd) <$> runWriterT input
 
 -- | Provide some input to the program under test
@@ -40,8 +42,8 @@ inp :: (Monoid m, Wrapper m String) => String -> InputMonad m ()
 inp = tell . wrap
 
 -- | Generate anything
-anything :: (Arbitrary a, InputMonoid m) => InputMonad m a
-anything = lift arbitrary
+anything :: (QC.Arbitrary a, InputMonoid m) => InputMonad m a
+anything = lift Util.RoseGen.anything 
 
 -- | A class of all monoid wrappers
 class Wrapper m a where 
