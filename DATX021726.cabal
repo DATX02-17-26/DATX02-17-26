@@ -80,6 +80,9 @@ library
     , parsec == 3.1.11
   hs-source-dirs:   libsrc
   default-language: Haskell2010
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
 
 executable JAA 
   main-is:          Main.hs
@@ -102,6 +105,9 @@ executable JAA
     , random == 1.1
   hs-source-dirs:   execsrc 
   default-language: Haskell2010
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
 
 Test-Suite tests 
   type:            exitcode-stdio-1.0
@@ -117,3 +123,16 @@ Test-Suite tests
     , language-java == 0.2.8
     , DATX021726
     , lens >= 4.14
+
+benchmark bench-strategies
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          BenchStrategies.hs
+  build-depends:    base,
+                    deepseq,
+                    ghc-prim,
+                    criterion,
+                    DATX021726
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
