@@ -29,6 +29,7 @@ module NormalizationStrategies (
  , name
  , stages
  , makeRule
+ , makeRule'
  , (><)
  , (<>)
  , include
@@ -70,6 +71,10 @@ data NormalizationRuleT m a = NormR
 -- | Construct a normalization rule
 makeRule :: NormArrT m a -> String -> NormalizationStages -> NormalizationRuleT m a
 makeRule = NormR
+
+-- | Construct a normalization rule with the executing logic as last argument.
+makeRule' :: String -> NormalizationStages -> NormArrT m a -> NormalizationRuleT m a
+makeRule' n s e = makeRule e n s
 
 -- | Make obligatory lenses.
 $(deriveLens [''NormalizationRuleT])

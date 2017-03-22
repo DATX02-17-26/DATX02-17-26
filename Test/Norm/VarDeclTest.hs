@@ -16,12 +16,23 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+module Norm.VarDeclTest (
+    allTests
+  ) where
 
-import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import Norm.NormTestUtil
+import Norm.VarDecl
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+normalizers :: NormalizerCU
+normalizers = [ normMoveForTVD
+              , normSingleTVDs
+              , normVDIArrLeft
+              , normSplitInit
+              , normVDTop
+              , normSortT
+              ]
+
+allTests :: TestTree
+allTests = testGroup "Norm.VarDecl tests"
+  [ normTestDir "vardecl_unittest_1" "vardecl" 1 normalizers
+  ]
