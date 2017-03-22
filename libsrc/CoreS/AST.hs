@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell, LambdaCase #-}
 
 module CoreS.AST where
 
@@ -25,6 +25,7 @@ import GHC.Generics (Generic)
 import Data.Maybe (fromMaybe)
 import Control.Lens ((^?), isn't)
 
+import Class.Sizeables
 import Util.TH
 
 --------------------------------------------------------------------------------
@@ -119,6 +120,32 @@ isTNum t = fromMaybe False $ isn't _BoolT <$> (t ^? tPrim)
 -- | Yields True if the type is primitive integral.
 isTInt :: Type -> Bool
 isTInt = (`elem` [byT, chT, shT, inT, loT])
+
+--------------------------------------------------------------------------------
+-- Sizability of types:
+--------------------------------------------------------------------------------
+
+instance Growable   Type where
+  grow = ArrayT
+
+instance Shrinkable Type where
+  shrink = \case ArrayT t -> t
+                 x        -> x
+
+-- Fold a type into something else recursively until it reaches a base type.
+-- Tail recursive fold.
+typeFold :: (b -> Type -> b) -> b -> Type -> b
+typeFold f z = \case
+  ArrayT t -> typeFold f (f z t) t
+  t        -> z
+
+-- | Dimensionality of a type, an array adds +1 dimensionality.
+typeDimens :: Type -> Integer
+typeDimens = typeFold (const . (+1)) 0
+
+-- | Base type of type - given a base type, this is id.
+typeBase :: Type -> Type
+typeBase t = typeFold (flip const) t t
 
 --------------------------------------------------------------------------------
 -- Operators:
@@ -478,10 +505,6 @@ data Stmt
       _sHole :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
---------------------------------------------------------------------------------
--- Method:
---------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- Method:
