@@ -30,7 +30,7 @@ import EvaluationMonad
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
 solutionOutput stdin file = do
-  let command = "java " ++ dropExtension file
+  let command = "java " ++ dropExtension file ++ " " ++ stdin
   logMessage $ "Running the command: " ++ command
 
   -- Timeout 1 second
@@ -54,7 +54,7 @@ studentOutput dir input = do
 modelSolutionsOutputs :: FilePath -> String -> EvalM [String]
 modelSolutionsOutputs dir input = do
   modelSolutions <- liftIO $ listDirectory (dir </> "model")
-  inTemporaryDirectory (dir </> "model") $ sequence $ solutionOutput input <$> modelSolutions
+  (inTemporaryDirectory (dir </> "model") $ sequence $ solutionOutput input <$> modelSolutions)
 
 -- | Test the student solution in `dir </> "student/"` against
 -- the solutions in `dir </> "model/"`
