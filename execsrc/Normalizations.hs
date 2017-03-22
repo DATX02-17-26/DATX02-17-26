@@ -24,8 +24,4 @@ import AlphaR
 
 -- All normalizations in scope 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ identityTransformation, alphaRenaming ]
-
--- Do nothing
-identityTransformation :: NormalizationRule CompilationUnit 
-identityTransformation = makeRule pure "Identity" [0]
+normalizations = [ alphaRenaming ]
