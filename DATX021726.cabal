@@ -124,7 +124,7 @@ Test-Suite tests
     , DATX021726
     , lens >= 4.14
 
-benchmark bench-strategies
+benchmark strategies
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchStrategies.hs
