@@ -7,22 +7,20 @@ import Control.Lens
 import CoreS.Parse
 import AlphaR
 
-main :: IO()
-main = do
-  s <- readFile "C:/Workspace/DATX02-17-26/Test/AlphaTest/Good1.java"
- -- s' <- readFile "C:/Workspace/DATX02-17-26/Test/AlphaTest/Good1-1.java"
-  let ast = parseConv s
-  --let ast2= parseConv s'
-  student <- either undefined pure ast
-  --model  :: CompilationUnit <- either undefined pure ast2
-  print $ wrap (student :: CompilationUnit)
+wrapDecl ((Ident id), decl) =
+  CompilationUnit
+  $ [ClassTypeDecl
+  $ ClassDecl (Ident (id ++ (declName decl)))
+  $ ClassBody [decl]
+  ]
 
-wrap cu = cu
 
-fromCUtoCD (CompilationUnit typeDecls) = map fromTDtoDecl typeDecls
+declName :: Decl -> String
+declName (MemberDecl(MethodDecl _ (Ident ident) _ _ )) = ident
 
-fromTDtoDecl(ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
-  decls
+filterMethods :: Decl -> [(Ident, Decl)] -> [(Ident, Decl)]
+filterMethods student models = filter f models
+  where f (_, decl) = isSameMethod student decl
 
 
 --I assume that 2 methods does the same thing if they have the same:
@@ -48,7 +46,13 @@ compareTypes student@(x:xs) model =
     compareTypes xs (delete x model)
   else False
 
+getIdDecls :: CompilationUnit -> [(Ident, Decl)]
+getIdDecls(CompilationUnit typeDecls) = concat $ map fromTDtoDecl typeDecls
 
+fromTDtoDecl :: TypeDecl -> [(Ident, Decl)]
+fromTDtoDecl(ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
+  map zipIdent decls
+  where zipIdent decl = (ident,decl)
 
 
 
