@@ -26,6 +26,7 @@ import Norm.NormM
 import NormalizationStrategies
 
 import qualified Norm.VarDeclTest as NoVD
+import qualified Norm.LoopTest as NoFo
 
 instance Show (NormalizationRuleT m a) where
   show = (^. name)
@@ -34,6 +35,7 @@ allTests :: TestTree
 allTests = testGroup "Normalization tests"
   [ normStrat
   , NoVD.allTests
+  , NoFo.allTests
   ]
 
 normStrat :: TestTree
