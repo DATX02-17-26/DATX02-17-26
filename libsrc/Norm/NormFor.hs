@@ -1,12 +1,14 @@
-module NormFor where
+module Norm.NormFor (
+    normForToWhile
+  ) where
 
 import CoreS.AST
 import Data.Maybe
-import NormalizationStrategies (makeRule, NormalizationRule)
+import Norm.NormCS hiding(stages, name, execute)
 
 --make a rule that normalizes for into while
-normForToWhile :: NormalizationRule CompilationUnit
-normForToWhile = makeRule execute name stages
+normForToWhile :: NormCUR
+normForToWhile =  makeRule (convMayN execute) name stages
 
 --The name of the normalization step
 name :: String
