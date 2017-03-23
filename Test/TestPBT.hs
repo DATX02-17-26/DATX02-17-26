@@ -20,7 +20,7 @@ compDir = "tmp"
 
 test :: SolutionContext FilePath -> RG.RoseGen String -> IO Bool
 test paths gen =
-  executeEvalM defaultEnv $
+  resultEvalM $
   withTemporaryDirectory compDir $ do
     compileContext paths compDir
     runPBT compDir gen

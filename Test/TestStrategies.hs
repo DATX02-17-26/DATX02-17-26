@@ -28,11 +28,18 @@ checkMatches stud mod = do
   (Ctx (Right stud) [Right mod]) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
   return $ matches normalizeUAST (AST.toUnitype $ normalize stud) (AST.toUnitype (normalize mod))
 
+matchesItself :: FilePath -> IO Bool
+matchesItself x = checkMatches x x
+
 {- Tests -}
 test0 :: IO Bool
-test0 = checkMatches "Test/Student_solutions/helloWorld0.java" "Test/Model_solutions/helloWorld0.java"
+test0 = checkMatches "Test/fixture/strategies/helloWorld_student.java" "Test/fixture/strategies/helloWorld_model.java"
+
+test1 :: IO Bool
+test1 = matchesItself "Test/fixture/strategies/helloWorld_student.java"
 
 allTests :: TestTree 
 allTests = testGroup "Strategies tests"
-  [ testCase "helloWorld" $ assert test0
+  [ testCase "helloWorld"    $ assert test0
+  , testCase "matchesItself" $ assert test1
   ]
