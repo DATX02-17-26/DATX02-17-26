@@ -16,12 +16,24 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+-- | Parser tests (on Language.Java.Parser)
+module ParserTests (
+    allTests
+  ) where
 
-import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import Test.Tasty
+import Test.Tasty.HUnit
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+import Language.Java.Parser as JP
+import Language.Java.Syntax as JA
+
+parserAssocRegression :: TestTree
+parserAssocRegression = testCase "parser_associativity_regression_test" $
+  JP.parser JP.exp "1 + 2 * 3" @?=
+  Right (BinOp (Lit (Int 1)) Add (BinOp (Lit (Int 2)) Mult (Lit (Int 3))))
+
+-- | All tests:
+allTests :: TestTree
+allTests = testGroup "Language.Java.Parser tests"
+  [ parserAssocRegression
+  ]

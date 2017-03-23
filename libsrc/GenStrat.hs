@@ -158,6 +158,7 @@ matchesDFS norm tree ast = go [tree]
     go ((RoseTree a []):trees)
       | ast == (norm a) = True
       | otherwise       = go trees
+    go ((RoseTree _ [a]):trees) = go (a:trees)
     go ((RoseTree a asts):trees)
       | canMatch ast (norm a) = go (asts ++ trees)
       | otherwise             = go trees

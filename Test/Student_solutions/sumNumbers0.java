@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public class stud 
+public class sumNumbers0
 {
   public static void main(String[] argv)
   {

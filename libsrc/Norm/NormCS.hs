@@ -16,12 +16,27 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+-- | Entrypoint for normalizations for CoreS.AST.
+-- This should be imported when writing normalizers.
+-- It reexports CoreS.AST, Norm.NormM, NormalizationStrategies.
+module Norm.NormCS (
+   NormalizerCU
+ , NormCUR
+ , NormCUA
+ , module RE
+ ) where
 
-import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import CoreS.AST               as RE
+import Norm.NormM              as RE
+import NormalizationStrategies as RE
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+-- | Normalizer for CompilationUnit.
+type NormalizerCU = Normalizer CompilationUnit
+
+-- | NormalizationRule for CompilationUnit:s.
+-- This is the top level normalizer.
+type NormCUR = NormalizationRule CompilationUnit
+
+-- | Normalization arrow for CompilationUnit:s.
+-- This is the top level normalizer arrow.
+type NormCUA = NormArr CompilationUnit
