@@ -48,13 +48,21 @@ library
     , CoreS.AST
     , CoreS.Convert
     , CoreS.Parse
+    , CoreS.ConvBack
     , CoreS.ASTUnitype
     , CoreS.ASTUnitypeUtils
+    , Util.Debug
+    , Util.Function
+    , Util.Monad
     , Util.List
-    , Util.TH
     , Util.RoseGen
+    , Util.TH
+    , Class.HasError
+    , Class.Sizeables
     , Data.RoseTree
     , Norm.NormM
+    , Norm.NormCS
+    , Norm.VarDecl
     , AlphaR
 
   build-depends:
@@ -78,9 +86,16 @@ library
     , template-haskell >= 2.11.0.0
     , comonad == 5
     , pointless-fun == 1.1.0.6
+    , mmorph == 1.0.9
     , parsec == 3.1.11
+    , text == 1.2.2.1
+    -- TODO: REMOVE IN PRODUCTION:
+    , hscolour == 1.24.1
+    -- TODO: REMOVE IN PRODUCTION:
+    , pretty-simple == 2.0.0.0
   hs-source-dirs:   libsrc
   default-language: Haskell2010
+  ghc-options:      -O2
 
 executable JAA
   main-is:          Main.hs
@@ -103,18 +118,44 @@ executable JAA
     , random == 1.1
   hs-source-dirs:   execsrc
   default-language: Haskell2010
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
 
 Test-Suite tests
   type:            exitcode-stdio-1.0
   hs-source-dirs:  Test
   main-is:         TastyTests.hs
-  other-modules:   NormalizationTests, Util.ListTests, TestPBT
+  other-modules:
+      Util.ListTests
+    , ParserTests
+    , TestUtil
+    , TestPBT
+    , NormalizationTests
+    , Norm.NormTestUtil
+    , Norm.VarDeclTest
   default-language: Haskell2010
   build-depends:
       tasty
     , tasty-hunit
+    , tasty-golden
     , tasty-quickcheck
     , base
     , language-java == 0.2.8
     , DATX021726
     , lens >= 4.14
+    , mtl >= 2.2
+    , filepath >= 1.4
+
+benchmark strategies
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          BenchStrategies.hs
+  build-depends:    base,
+                    deepseq,
+                    ghc-prim,
+                    criterion,
+                    DATX021726
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
