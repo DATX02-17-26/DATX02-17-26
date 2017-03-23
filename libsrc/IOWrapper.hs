@@ -14,13 +14,14 @@ wrapDecl ((Ident id), decl) =
   $ ClassBody [decl]
   ]
 
-wrapMain :: Decl -> Decl
+wrapMain ::Decl -> Decl
 wrapMain decl = (MemberDecl (MethodDecl Nothing (Ident "main")
   [(FormalParam (VMType VMNormal (ArrayT StringT)) (VarDId (Ident "args")))]
   (Block [decl])))
 
 declName :: Decl -> String
 declName (MemberDecl(MethodDecl _ (Ident ident) _ _ )) = ident
+
 
 filterMethods :: Decl -> [(Ident, Decl)] -> [(Ident, Decl)]
 filterMethods student models = filter f models
