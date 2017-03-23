@@ -1,0 +1,58 @@
+{- DATX02-17-26, automated assessment of imperative programs.
+ - Copyright, 2017, see AUTHORS.md.
+ -
+ - This program is free software; you can redistribute it and/or
+ - modify it under the terms of the GNU General Public License
+ - as published by the Free Software Foundation; either version 2
+ - of the License, or (at your option) any later version.
+ -
+ - This program is distributed in the hope that it will be useful,
+ - but WITHOUT ANY WARRANTY; without even the implied warranty of
+ - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ - GNU General Public License for more details.
+ -
+ - You should have received a copy of the GNU General Public License
+ - along with this program; if not, write to the Free Software
+ - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -}
+
+{-# LANGUAGE LambdaCase #-}
+
+-- | Normalizers for eliminating redundant statements and blocks.
+module Norm.ElimRedundant (
+  -- * Normalizers
+    normEmptyBlock
+  , normFilterEmpty
+  ) where
+
+
+import Control.Monad
+import Norm.NormCS
+
+stage :: Int
+stage = 50
+
+-- | Rule for removing empty statement blocks.
+normEmptyBlock :: NormCUR
+normEmptyBlock = makeRule' "elim_redundant.stmt.empty_sblock" [stage]
+                           execEmptyBlock
+
+-- | Rule for removing all empty statements from all blocks.
+normFilterEmpty :: NormCUR
+normFilterEmpty = makeRule' "elim_redundant.stmt.filter_empty" [stage + 1]
+                            execFilterEmpty
+
+-- | Remove redundant blocks.
+execEmptyBlock :: NormCUA
+execEmptyBlock = normEvery $ \case
+  SBlock (Block []) -> change SEmpty
+  x                 -> unique x
+
+-- | Remove empty statements from blocks.
+execFilterEmpty :: NormCUA
+execFilterEmpty = normEvery $ \case
+  SBlock (Block ss) ->  SBlock . Block
+                    <$> filterM (\case SEmpty -> change False
+                                       _      -> unique True)
+                                ss
+  x                 -> unique x
