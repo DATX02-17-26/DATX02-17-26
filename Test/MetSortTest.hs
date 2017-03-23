@@ -5,8 +5,8 @@ import MethodSort
 
 main :: IO()
 main =  do
-  s <- readFile "C:/Users/Aleksander/Documents/GitHub/DATX02-17-26/Test/MethodSortTest/Good1.java"
-  s' <- readFile "C:/Users/Aleksander/Documents/GitHub/DATX02-17-26/Test/MethodSortTest/Good1-1.java"
+  s <- readFile "C:/Users/ak/Documents/GitHub/DATX02-17-26/Test/MethodSortTest/Good1.java"
+  s' <- readFile "C:/Users/ak/Documents/GitHub/DATX02-17-26/Test/MethodSortTest/Good1-1.java"
   let ast = parseConv s
   let ast2 = parseConv s'
   student <- either undefined pure ast

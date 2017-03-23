@@ -1,5 +1,6 @@
 module MethodSort where
 
+import Data.List
 import CoreS.AST
 import NormalizationStrategies (makeRule, NormalizationRule)
 
@@ -29,6 +30,16 @@ intoClassBody cb = case cb of
   ClassBody decls -> ClassBody (sortRet decls)
   hole            -> hole
 
+sortRetType :: Decl -> Decl -> Ordering
+sortRetType d1 d2
+  | getType d1 < getType d2 = Prelude.LT
+  | getType d1 > getType d2 = Prelude.GT
+  | getType d1 == getType d2 = Prelude.EQ
+
+
+sortRet :: [Decl] -> [Decl]
+sortRet decls = sortBy sortRetType decls
+{-}
 --Slow but works. Can be made prettier. Sorts methods according to return type
 sortRet :: [Decl] -> [Decl]
 sortRet decls = do
@@ -50,12 +61,19 @@ sortRet decls = do
   --  MemberDecl (MethodDecl (Just (PrimT BoolT)) i fp b)  -> sortRet ms m:sorted
   --  MemberDecl (MethodDecl (Just (PrimT ByteT)) i fp b)  -> m:(sortRet ms)
   --hole          -> hole
-
+-}
 --check type
-getType :: Decl -> Maybe Type
-getType md = case md of
+getMayType :: Decl -> Maybe Type
+getMayType md = case md of
   MemberDecl (MethodDecl (Just t) _ _ _) -> Just t
   MemberDecl (MethodDecl Nothing _ _ _)  -> Nothing
+
+  --check type
+getType :: Decl -> Type
+getType md = case md of
+  MemberDecl (MethodDecl (Just t) _ _ _) -> t
+  MemberDecl (MethodDecl Nothing _ _ _)  -> NullT
+
 
 --if array
 isArr :: Decl -> Bool
