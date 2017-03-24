@@ -12,6 +12,7 @@ import NormalizationStrategies
 import CoreS.AST
 import qualified CoreS.ASTUnitype as AST
 import CoreS.Parse
+import Data.RoseTree
 
 normalizations :: Normalizer CompilationUnit
 normalizations = [ alphaRenaming ]
@@ -31,6 +32,16 @@ checkMatches stud mod = do
 matchesItself :: FilePath -> IO Bool
 matchesItself x = checkMatches x x
 
+leftmost :: RoseTree a -> a
+leftmost (RoseTree a []) = a
+leftmost (RoseTree _ (t:_)) = leftmost t
+
+selfIsLeftmost :: FilePath -> IO Bool
+selfIsLeftmost sol = do
+  let paths = Ctx sol []
+  (Ctx (Right sol) []) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
+  return $ leftmost (makeASTsRoseTree (makeStrategy (AST.toUnitype $ normalize sol))) == (AST.toUnitype $ normalize sol)
+
 {- Tests -}
 test0 :: IO Bool
 test0 = checkMatches "Test/fixture/strategies/helloWorld_student.java" "Test/fixture/strategies/helloWorld_model.java"
@@ -38,8 +49,16 @@ test0 = checkMatches "Test/fixture/strategies/helloWorld_student.java" "Test/fix
 test1 :: IO Bool
 test1 = matchesItself "Test/fixture/strategies/helloWorld_student.java"
 
+test2 :: IO Bool
+test2 = selfIsLeftmost "Test/fixture/strategies/helloWorld_student.java"
+
+test3 :: IO Bool
+test3 = selfIsLeftmost "Test/fixture/strategies/wide.java"
+
 allTests :: TestTree 
 allTests = testGroup "Strategies tests"
-  [ testCase "helloWorld"    $ assert test0
-  , testCase "matchesItself" $ assert test1
+  [ testCase "helloWorld"                $ assert test0
+  , testCase "matchesItself"             $ assert test1
+  , testCase "selfIsLeftmost_helloWorld" $ assert test2
+  , testCase "selfIsLeftmost_wide"       $ assert test3
   ]
