@@ -23,27 +23,30 @@ module Norm.ElimRedundant (
   -- * Normalizers
     normEmptyBlock
   , normFilterEmpty
+  , normFlattenBlock
   ) where
 
-
-import Control.Monad
+import Util.Monad (traverseJ)
 import Norm.NormCS
-import Util.Monad
 
+-- TODO allocate stages. At the moment chosen arbitrarily.
 stage :: Int
 stage = 50
 
 -- | Rule to flatten a block containing statements in to parent block
+-- > { s {s s} s } => {s s s s}
 normFlattenBlock :: NormCUR
 normFlattenBlock = makeRule' "elim_redundant.stmt.flatten_block" [stage]
                             execFlattenBlock
 
 -- | Rule for removing empty statement blocks.
+-- > {} => ;
 normEmptyBlock :: NormCUR
 normEmptyBlock = makeRule' "elim_redundant.stmt.empty_sblock" [stage + 1]
                            execEmptyBlock
 
 -- | Rule for removing all empty statements from all blocks.
+-- > {s ; s} => {s s}
 normFilterEmpty :: NormCUR
 normFilterEmpty = makeRule' "elim_redundant.stmt.filter_empty" [stage + 2]
                             execFilterEmpty
@@ -56,8 +59,7 @@ execFlattenBlock = normEvery $ \case
     s                 -> unique [s]
   x           -> unique x
 
-
--- | Remove redundant blocks.
+-- | Normalize an empty block into an empty statement.
 execEmptyBlock :: NormCUA
 execEmptyBlock = normEvery $ \case
   SBlock (Block []) -> change SEmpty
@@ -66,8 +68,7 @@ execEmptyBlock = normEvery $ \case
 -- | Remove empty statements from blocks.
 execFilterEmpty :: NormCUA
 execFilterEmpty = normEvery $ \case
-  SBlock (Block ss) ->  SBlock . Block
-                    <$> filterM (\case SEmpty -> change False
+  Block ss -> Block <$> filterM (\case SEmpty -> change False
                                        _      -> unique True)
                                 ss
-  x                 -> unique x
+  x        -> unique x

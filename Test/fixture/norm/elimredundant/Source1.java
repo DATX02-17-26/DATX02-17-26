@@ -81,7 +81,7 @@ public class C{
           {}
         }
       }
-    }while(true)
+    }while(true);
     while(true){
       int k;
       {}
@@ -101,7 +101,7 @@ public class C{
     for (; ;) {}
     if(true){}else{}
     while(true){}
-    do{}while(true)
+    do{}while(true);
     if(true){}
   }
 }
