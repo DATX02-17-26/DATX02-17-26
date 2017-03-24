@@ -28,19 +28,34 @@ module Norm.ElimRedundant (
 
 import Control.Monad
 import Norm.NormCS
+import Util.Monad
 
 stage :: Int
 stage = 50
 
+-- | Rule to flatten a block containing statements in to parent block
+normFlattenBlock :: NormCUR
+normFlattenBlock = makeRule' "elim_redundant.stmt.flatten_block" [stage]
+                            execFlattenBlock
+
 -- | Rule for removing empty statement blocks.
 normEmptyBlock :: NormCUR
-normEmptyBlock = makeRule' "elim_redundant.stmt.empty_sblock" [stage]
+normEmptyBlock = makeRule' "elim_redundant.stmt.empty_sblock" [stage + 1]
                            execEmptyBlock
 
 -- | Rule for removing all empty statements from all blocks.
 normFilterEmpty :: NormCUR
-normFilterEmpty = makeRule' "elim_redundant.stmt.filter_empty" [stage + 1]
+normFilterEmpty = makeRule' "elim_redundant.stmt.filter_empty" [stage + 2]
                             execFilterEmpty
+
+-- | Flatten blocks
+execFlattenBlock :: NormCUA
+execFlattenBlock = normEvery $ \case
+  Block stmts -> fmap Block $ flip traverseJ stmts $ \case
+    SBlock (Block ss) -> change ss
+    s                 -> unique [s]
+  x           -> unique x
+
 
 -- | Remove redundant blocks.
 execEmptyBlock :: NormCUA
