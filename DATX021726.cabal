@@ -63,6 +63,7 @@ library
     , Norm.NormM
     , Norm.NormCS
     , Norm.VarDecl
+    , Norm.ElimRedundant
     , AlphaR
   build-depends:
       base >=4.8 && < 5
@@ -70,7 +71,7 @@ library
     , safe == 0.3.13
     , directory >= 1.2
     , ideas >= 1.6
-    , transformers >= 0.5 
+    , transformers >= 0.5
     , mtl >= 2.2
     , filepath >= 1.4
     , process >= 1.4
@@ -97,7 +98,7 @@ library
   default-language: Haskell2010
   ghc-options:      -O2
 
-executable JAA 
+executable JAA
   main-is:          Main.hs
   other-modules:    Normalizations,
                     ParseArguments
@@ -106,7 +107,7 @@ executable JAA
     , lens >= 4.14
     , directory >= 1.2
     , ideas >= 1.6
-    , transformers >= 0.5 
+    , transformers >= 0.5
     , mtl >= 2.2
     , filepath >= 1.4
     , process >= 1.4
@@ -116,13 +117,13 @@ executable JAA
     , QuickCheck
     , hint == 0.6.0
     , random == 1.1
-  hs-source-dirs:   execsrc 
+  hs-source-dirs:   execsrc
   default-language: Haskell2010
   ghc-options:      -O2
                     -threaded
                     -rtsopts
 
-Test-Suite tests 
+Test-Suite tests
   type:            exitcode-stdio-1.0
   hs-source-dirs:  Test
   main-is:         TastyTests.hs
@@ -134,6 +135,7 @@ Test-Suite tests
     , NormalizationTests
     , Norm.NormTestUtil
     , Norm.VarDeclTest
+    , Norm.ElimRedundantTest
   default-language: Haskell2010
   build-depends:
       tasty
