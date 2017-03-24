@@ -92,6 +92,7 @@ library
     , hscolour == 1.24.1
     -- TODO: REMOVE IN PRODUCTION:
     , pretty-simple == 2.0.0.0
+    , deepseq
   hs-source-dirs:   libsrc
   default-language: Haskell2010
   ghc-options:      -O2
@@ -150,6 +151,32 @@ benchmark strategies
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchStrategies.hs
+  build-depends:    base,
+                    deepseq,
+                    ghc-prim,
+                    criterion,
+                    DATX021726
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
+
+benchmark alpha
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          BenchAlpha.hs
+  build-depends:    base,
+                    deepseq,
+                    ghc-prim,
+                    criterion,
+                    DATX021726
+  ghc-options:      -O2
+                    -threaded
+                    -rtsopts
+
+benchmark convert 
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          BenchConvert.hs
   build-depends:    base,
                     deepseq,
                     ghc-prim,
