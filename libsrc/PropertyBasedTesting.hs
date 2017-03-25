@@ -22,6 +22,7 @@ import System.Process
 import System.Directory
 import System.Timeout
 import Control.Monad.Reader
+import Data.Maybe
 
 import EvaluationMonad
 import Data.RoseTree
@@ -58,21 +59,17 @@ modelSolutionsOutputs dir input = do
 
 -- | Test the student solution in `dir </> "student/"` against
 -- the solutions in `dir </> "model/"`
-testSolutions :: FilePath -> String -> EvalM Bool
+testSolutions :: FilePath -> String -> EvalM (Maybe (String, String))
 testSolutions dir input = do
   modelOutputs <- modelSolutionsOutputs dir input
-  studO <- studentOutput dir input
-  maybe (return False) (\s -> compareOutputs s modelOutputs) studO
+  studO        <- studentOutput dir input
+  return $ maybe Nothing (\s -> compareOutputs s modelOutputs) studO
 
---Compares the output of all model solutions to 1 student solution
-compareOutputs :: String -> [String] -> EvalM Bool
-compareOutputs _ [] = return True
-compareOutputs student (model:ms) = do
-  if student == model then
-    compareOutputs student ms
-  else do
-    issue $ "Student output: " ++ student ++ "\nModel output: " ++ model
-    return False
+compareOutputs :: String -> [String] -> Maybe (String, String)
+compareOutputs _ [] = Nothing
+compareOutputs s (s':ss)
+  | s /= s'   = Just (s, s')
+  | otherwise = compareOutputs s ss
 
 -- | Perform the relevant tests on all class files in the directory
 runPBT :: FilePath -> RoseGen String -> EvalM Bool
@@ -82,15 +79,28 @@ runPBT dir generator = do
   runNumberOfTests numTests dir generator
 
 -- | Shrink the failing input
-shrink :: FilePath -> RoseTree String -> EvalM Bool
-shrink dir (RoseTree input []) = do
-  result <- testSolutions dir input
-  if not result then do
-    issue $ "Failed with: " ++ input
-    return True
+-- TODO: Keep track of the current smallest failing counterexample
+-- TODO: Get the output from the smallest failing counterexample
+shrink :: FilePath -> [RoseTree String] -> EvalM ()
+shrink dir []                          = return () -- Shrinking failed
+shrink dir ((RoseTree input []):trees) = do
+  mFailing <- testSolutions dir input
+  case mFailing of
+    Nothing          -> shrink dir trees
+    Just (stud, mod) -> do
+      issue $
+           "Failed on input: " ++ input ++ "\n"
+        ++ "With\n"
+        ++ "Student solution output: "
+        ++ stud ++ "\n"
+        ++ "Model solution output: "
+        ++ mod ++ "\n"
+shrink dir (tree:trees) = do
+  res <- testSolutions dir (root tree)
+  if isJust res then
+    shrink dir $ branches tree ++ trees
   else
-    return False
-shrink dir tree = undefined 
+    shrink dir trees
 
 --Runs the specified number of tests
 runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM Bool
@@ -98,7 +108,7 @@ runNumberOfTests 0 _ _ = comment "Student solution passed all tests" >> return T
 runNumberOfTests numTests dir generator = do
   input  <- liftIO $ generate generator
   passed <- testSolutions dir (root input)
-  if passed then
+  if not (isJust passed) then
     runNumberOfTests (numTests - 1) dir generator
   else
-    shrink dir input >> return False
+    shrink dir [input] >> return False
