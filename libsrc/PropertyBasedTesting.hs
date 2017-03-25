@@ -71,7 +71,7 @@ compareOutputs student (model:ms) = do
   if student == model then
     compareOutputs student ms
   else do
-    issue $ "Student output: " ++ student ++ "\n    Model output: " ++ model
+    issue $ "Student output: " ++ student ++ "\nModel output: " ++ model
     return False
 
 -- | Perform the relevant tests on all class files in the directory
@@ -81,8 +81,16 @@ runPBT dir generator = do
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
   runNumberOfTests numTests dir generator
 
-shrink :: FilePath -> RoseTree String -> EvalM ()
-shrink dir tree = issue $ "Failed with: " ++ (root tree)
+-- | Shrink the failing input
+shrink :: FilePath -> RoseTree String -> EvalM Bool
+shrink dir (RoseTree input []) = do
+  result <- testSolutions dir input
+  if not result then do
+    issue $ "Failed with: " ++ input
+    return True
+  else
+    return False
+shrink dir tree = undefined 
 
 --Runs the specified number of tests
 runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM Bool
