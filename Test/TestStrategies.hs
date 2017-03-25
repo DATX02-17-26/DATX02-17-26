@@ -2,6 +2,7 @@ module TestStrategies where
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 import Control.Monad
 
 import EvaluationMonad
@@ -42,6 +43,12 @@ selfIsLeftmost sol = do
   (Ctx (Right sol) []) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
   return $ leftmost (makeASTsRoseTree (makeStrategy (AST.toUnitype $ normalize sol))) == (AST.toUnitype $ normalize sol)
 
+prop_dagHelper_unchanging :: [Int] -> Property
+prop_dagHelper_unchanging as = property $ and $
+  map (`elem` (map fst $ dagHelper (\x y -> x `mod` y == 0) ts [])) ts
+  where
+    ts = zip as [1..]
+
 {- Tests -}
 test0 :: IO Bool
 test0 = checkMatches "Test/fixture/strategies/helloWorld_student.java" "Test/fixture/strategies/helloWorld_model.java"
@@ -55,10 +62,11 @@ test2 = selfIsLeftmost "Test/fixture/strategies/helloWorld_student.java"
 test3 :: IO Bool
 test3 = selfIsLeftmost "Test/fixture/strategies/wide.java"
 
-allTests :: TestTree 
+allTests :: TestTree
 allTests = testGroup "Strategies tests"
   [ testCase "helloWorld"                $ assert test0
   , testCase "matchesItself"             $ assert test1
   , testCase "selfIsLeftmost_helloWorld" $ assert test2
   , testCase "selfIsLeftmost_wide"       $ assert test3
+  , testProperty "prop_dagHelper_unchanging" prop_dagHelper_unchanging
   ]
