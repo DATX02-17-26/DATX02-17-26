@@ -110,10 +110,11 @@ execute cu =
 --Renames all class names, method names, formalparams and method bodies
 rename :: CompilationUnit -> State Env CompilationUnit
 rename hcu@(HoleCompilationUnit _) = return hcu
-rename (CompilationUnit typeDecls) =
+-- TODO: handle import statements!
+rename (CompilationUnit is typeDecls) =
     mapM renameClassName typeDecls >>= \td -> 
     mapM renameAllMethodNames td >>= \td' ->
-    CompilationUnit <$> mapM renameClass td' 
+    CompilationUnit is <$> mapM renameClass td' 
 
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName

@@ -97,7 +97,8 @@ data AST =
   | FIVars C.TypedVVDecl
   | FIExprs [AST]
   | MethodDecl (Maybe C.Type) C.Ident [C.FormalParam] [AST]
-  | CompilationUnit [AST]
+  | CompilationUnit [AST] [AST]
+  | ImportDecl C.Name Bool Bool
   | ClassTypeDecl AST
   | ClassDecl C.Ident AST
   | ClassBody [AST]
@@ -164,12 +165,21 @@ inCore f = toUnitype . f . fromUnitype
 
 instance UnitypeIso C.CompilationUnit where
   toUnitype = \case
-    C.CompilationUnit tds   -> CompilationUnit <=$ tds
-    C.HoleCompilationUnit i -> Hole i
+    C.CompilationUnit is tds -> CompilationUnit <=$ is <=$ tds
+    C.HoleCompilationUnit i  -> Hole i
 
   fromUnitype = \case
-    CompilationUnit tds -> C.CompilationUnit $=> tds
-    Hole i              -> C.HoleCompilationUnit i
+    CompilationUnit is tds -> C.CompilationUnit $=> is $=> tds
+    Hole i                 -> C.HoleCompilationUnit i
+
+instance UnitypeIso C.ImportDecl where
+  toUnitype = \case
+    C.ImportDecl n s w -> ImportDecl n s w
+    C.HoleImportDecl i -> Hole i
+
+  fromUnitype = \case
+    ImportDecl n s w -> C.ImportDecl n s w
+    Hole i           -> C.HoleImportDecl i
 
 instance UnitypeIso C.TypeDecl where
   toUnitype = \case
@@ -357,7 +367,6 @@ instance UnitypeIso C.ForInit where
     FIExprs es    -> C.FIExprs $=> es
     Hole i        -> C.HoleForInit i
 
-
 instance UnitypeIso C.SwitchBlock where
   toUnitype = \case
     C.SwitchBlock l (C.Block bs) -> SwitchBlock l <=$ bs
@@ -451,7 +460,9 @@ canMatch = curry $ \case
   (FIExprs as,         FIExprs bs)         -> matchList as bs
   (MethodDecl t n p b, MethodDecl t' n' p' b') ->
     t == t' && n == n' && p == p' && matchList b b'
-  (CompilationUnit a,  CompilationUnit b)  -> matchList a b
+  (CompilationUnit i t, CompilationUnit i' t') ->
+  -- TODO: handle import statements!
+    matchList i i' && matchList t t'
   (ClassTypeDecl cd,   ClassTypeDecl cd')  -> canMatch cd cd' 
   (ClassDecl i cb,     ClassDecl j cb')    -> i == j && canMatch cb cb' 
   (ClassBody md,       ClassBody md')      -> matchList md md' 

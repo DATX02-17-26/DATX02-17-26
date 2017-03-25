@@ -122,6 +122,9 @@ data HoleSum
   | HSTypeDecl {
       _hsTypeDecl ::  TypeDecl
     }
+  | HSImportDecl {
+      _hsImportDecl :: ImportDecl
+    }
   | HSCompilationUnit {
       _hsCompilationUnit :: CompilationUnit
     }
@@ -513,8 +516,14 @@ instance ToLJSyn TypeDecl where
     ClassTypeDecl cd -> S.ClassTypeDecl <-$ cd
     HoleTypeDecl i   -> Left $ HSTypeDecl x
 
+instance ToLJSyn ImportDecl where
+  type Repr ImportDecl = S.ImportDecl
+  toLJSyn x = case x of
+    ImportDecl n s w -> S.ImportDecl s <-$ n <*> pure w
+    HoleImportDecl i -> Left $ HSImportDecl x
+
 instance ToLJSyn CompilationUnit where
   type Repr CompilationUnit = S.CompilationUnit
   toLJSyn x = case x of
-    CompilationUnit tds   -> S.CompilationUnit Nothing [] <=$ tds
-    HoleCompilationUnit i -> Left $ HSCompilationUnit x
+    CompilationUnit is tds -> S.CompilationUnit Nothing <=$ is <=* tds
+    HoleCompilationUnit i  -> Left $ HSCompilationUnit x

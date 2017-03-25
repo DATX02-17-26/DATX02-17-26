@@ -103,7 +103,8 @@ genStrat loc (MethodDecl t i params body)   = refList loc (MethodDecl t i params
 genStrat loc (ClassDecl i body)             = (ClassDecl i $$ body) loc
 genStrat loc (ClassBody body)               = refList loc ClassBody body
 genStrat loc (ClassTypeDecl body)           = (ClassTypeDecl $$ body) loc
-genStrat loc (CompilationUnit body)         = refList loc CompilationUnit body
+-- TODO: fix for import statements!
+genStrat loc (CompilationUnit is tds)       = refList loc (CompilationUnit is) tds
 genStrat loc (MemberDecl body)              = (MemberDecl $$ body) loc
 genStrat loc (SForB mAST0 mAST1 mASTs body) = (SForB mAST0 mAST1 mASTs $$ body) loc
 genStrat loc (SForE vmt ident ast0 body)    = (SForE vmt ident ast0 $$ body) loc 
