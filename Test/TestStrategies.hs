@@ -14,6 +14,7 @@ import CoreS.AST
 import qualified CoreS.ASTUnitype as AST
 import CoreS.Parse
 import Data.RoseTree
+import Data.List
 
 normalizations :: Normalizer CompilationUnit
 normalizations = [ alphaRenaming ]
@@ -44,10 +45,20 @@ selfIsLeftmost sol = do
   return $ leftmost (makeASTsRoseTree (makeStrategy (AST.toUnitype $ normalize sol))) == (AST.toUnitype $ normalize sol)
 
 prop_dagHelper_unchanging :: [Int] -> Property
-prop_dagHelper_unchanging as = property $ and $
-  map (`elem` (map fst $ dagHelper (\x y -> x `mod` y == 0) ts [])) ts
+prop_dagHelper_unchanging as = (not $ elem 0 as) ==>
+  null (deleteFirstsBy (==) ts after)
   where
+    after = map fst $ dagHelper (\x y -> 0 == x `mod` y) ts []
     ts = zip as [1..]
+
+roseTreeEqList :: Eq a => [a] -> RoseTree a -> Bool
+roseTreeEqList [a] (RoseTree r []) = a==r
+roseTreeEqList as (RoseTree r rs)  = all (roseTreeEqList (delete r as)) rs
+
+prop_allTop_unchanging :: [Int] -> Property
+prop_allTop_unchanging as = ((length as <= 8) && (not $ elem 0 as)) ==>
+  roseTreeEqList as $ allTop ((1,0),[]) $
+    dagHelper (\x y -> 0 == x `mod` y) (zip as [1..]) []
 
 {- Tests -}
 test0 :: IO Bool
@@ -69,4 +80,5 @@ allTests = testGroup "Strategies tests"
   , testCase "selfIsLeftmost_helloWorld" $ assert test2
   , testCase "selfIsLeftmost_wide"       $ assert test3
   , testProperty "prop_dagHelper_unchanging" prop_dagHelper_unchanging
+  , testProperty "prop_allTop_unchanging"    prop_allTop_unchanging
   ]
