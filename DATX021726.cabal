@@ -132,6 +132,7 @@ Test-Suite tests
     , ParserTests
     , TestUtil
     , TestPBT
+    , TestStrategies
     , NormalizationTests
     , Norm.NormTestUtil
     , Norm.VarDeclTest

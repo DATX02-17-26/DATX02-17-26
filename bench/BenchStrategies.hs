@@ -23,11 +23,13 @@ makeBench :: FilePath -> FilePath -> IO Benchmarkable
 makeBench stud mod = do
   let paths = Ctx stud [mod]
   (Ctx (Right stud) [Right mod]) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
-  return $ (nf (uncurry (matches normalizeUAST)) (AST.toUnitype $ normalize stud, AST.toUnitype $ mod))
+  return $ (nf (uncurry (matches normalizeUAST)) (AST.toUnitype $ normalize stud, AST.toUnitype $ normalize mod))
 
 main :: IO ()
 main = do
   wide <- makeBench "bench/Programs/wideStudent.java" "bench/Programs/wideModel.java"
+  same <- makeBench "bench/Programs/wideModel.java" "bench/Programs/wideModel.java"
   defaultMain
-    [ bench "matches wide" wide
+    [ bench "wide" wide
+    , bench "same" same
     ]
