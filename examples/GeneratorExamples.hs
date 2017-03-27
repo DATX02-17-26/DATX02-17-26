@@ -44,8 +44,10 @@ import Util.RoseGen (RoseGen)
 exercise0 :: InputMonoid m => InputMonad m ()
 exercise0 = do
   n <- abs <$> anything @Int
-  inp  $ show n
-  void $ replicateM n $ anything @Int >>= inp . show
+  inp $ show n
+  numbers <- replicateM n (anything @Int)
+  mapM_ (inp . show) numbers
+  --void $ replicateM n $ anything @Int >>= inp . show
 
 {- Lab 1.8 in the course TDA540
  - Input:
