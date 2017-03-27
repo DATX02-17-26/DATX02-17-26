@@ -19,17 +19,15 @@ normalize = executeNormalizer normalizations
 normalizeUAST :: AST.AST -> AST.AST
 normalizeUAST  = AST.inCore normalize
 
-makeBench :: FilePath -> FilePath -> IO Benchmarkable
-makeBench stud mod = do
-  let paths = Ctx stud [mod]
-  (Ctx (Right stud) [Right mod]) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
-  return $ (nf (uncurry (matches normalizeUAST)) (AST.toUnitype $ normalize stud, AST.toUnitype $ normalize mod))
+makeBench :: FilePath -> IO Benchmarkable
+makeBench stud = do
+  let paths = Ctx stud []
+  (Ctx (Right stud) []) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
+  return $ nf normalize stud
 
 main :: IO ()
 main = do
-  wide <- makeBench "bench/Programs/wideStudent.java" "bench/Programs/wideModel.java"
-  same <- makeBench "bench/Programs/wideModel.java" "bench/Programs/wideModel.java"
+  wide <- makeBench "bench/Programs/wideStudent.java"
   defaultMain
     [ bench "wide" wide
-    , bench "same" same
     ]

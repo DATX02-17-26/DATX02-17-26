@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Norm.LoopTest (
+module Norm.NormForTest (
     allTests
   ) where
 
@@ -29,5 +29,5 @@ normalizers = [ normForToWhile ]
 
 allTests :: TestTree
 allTests = testGroup "Norm.NormFor tests"
-  [ normTestDir "for_to_while_norm_test" "loops" 1 normalizers
+  [ normTestDir "for_to_while_norm_test" "normfor" 1 normalizers
   ]
