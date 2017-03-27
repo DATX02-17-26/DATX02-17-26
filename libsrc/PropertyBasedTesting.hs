@@ -79,8 +79,6 @@ runPBT dir generator = do
   runNumberOfTests numTests dir generator
 
 -- | Shrink the failing input
--- TODO: Keep track of the current smallest failing counterexample
--- TODO: Get the output from the smallest failing counterexample
 shrink :: FilePath -> (String, String, String) -> [RoseTree String] -> EvalM ()
 shrink dir (input, stud, mod) [] =
   issue $
