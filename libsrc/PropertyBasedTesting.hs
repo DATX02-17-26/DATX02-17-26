@@ -81,12 +81,19 @@ runPBT dir generator = do
 -- | Shrink the failing input
 -- TODO: Keep track of the current smallest failing counterexample
 -- TODO: Get the output from the smallest failing counterexample
-shrink :: FilePath -> [RoseTree String] -> EvalM ()
-shrink dir []                          = return () -- Shrinking failed
-shrink dir ((RoseTree input []):trees) = do
+shrink :: FilePath -> (String, String, String) -> [RoseTree String] -> EvalM ()
+shrink dir (input, stud, mod) [] =
+  issue $
+       "Failed on input: " ++ input ++ "\n"
+    ++ "With\n"
+    ++ "Student solution output: "
+    ++ stud ++ "\n"
+    ++ "Model solution output: "
+    ++ mod ++ "\n"
+shrink dir failing ((RoseTree input []):trees) = do
   mFailing <- testSolutions dir input
   case mFailing of
-    Nothing          -> shrink dir trees
+    Nothing          -> shrink dir failing trees
     Just (stud, mod) -> do
       issue $
            "Failed on input: " ++ input ++ "\n"
@@ -95,20 +102,18 @@ shrink dir ((RoseTree input []):trees) = do
         ++ stud ++ "\n"
         ++ "Model solution output: "
         ++ mod ++ "\n"
-shrink dir (tree:trees) = do
+shrink dir failing (tree:trees) = do
   res <- testSolutions dir (root tree)
-  if isJust res then
-    shrink dir $ branches tree ++ trees
-  else
-    shrink dir trees
+  case res of
+    Just (stud, mod) -> shrink dir (root tree, stud, mod) $ branches tree ++ trees
+    Nothing          -> shrink dir failing trees
 
 --Runs the specified number of tests
 runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM Bool
 runNumberOfTests 0 _ _ = comment "Student solution passed all tests" >> return True
 runNumberOfTests numTests dir generator = do
-  input  <- liftIO $ generate generator
-  passed <- testSolutions dir (root input)
-  if not (isJust passed) then
-    runNumberOfTests (numTests - 1) dir generator
-  else
-    shrink dir [input] >> return False
+  input   <- liftIO $ generate generator
+  failing <- testSolutions dir (root input)
+  case failing of
+    Just (stud, mod) -> shrink dir (root input, stud, mod) (branches input) >> return False
+    Nothing          -> runNumberOfTests (numTests - 1) dir generator
