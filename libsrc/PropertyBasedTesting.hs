@@ -29,9 +29,9 @@ import Data.RoseTree
 import Util.RoseGen
 
 -- | Get the output from the class file `file`
-solutionOutput :: String -> FilePath -> EvalM String
-solutionOutput stdin file = do
-  let command = "java " ++ dropExtension file
+solutionOutput :: ([String], String) -> FilePath -> EvalM String
+solutionOutput (commandLineArgs, stdin) file = do
+  let command = "java " ++ dropExtension file ++ intercalate " " commandLineArgs
   logMessage $ "Running the command: " ++ command
 
   -- Timeout 1 second
@@ -41,7 +41,7 @@ solutionOutput stdin file = do
     Just x  -> return x
 
 -- | Get the output of the student solution
-studentOutput :: FilePath -> String -> EvalM (Maybe String)
+studentOutput :: FilePath -> ([String], String) -> EvalM (Maybe String)
 studentOutput dir input = do
   -- This is really inefficient and should be floated to the top level
   ss <- liftIO $ listDirectory $ dir </> "student"
@@ -52,14 +52,14 @@ studentOutput dir input = do
         (\_ -> issue "Student test timeout" >> return Nothing)
 
 -- | Get the output of every model solution
-modelSolutionsOutputs :: FilePath -> String -> EvalM [String]
+modelSolutionsOutputs :: FilePath -> ([String], String) -> EvalM [String]
 modelSolutionsOutputs dir input = do
   modelSolutions <- liftIO $ listDirectory (dir </> "model")
   inTemporaryDirectory (dir </> "model") $ sequence $ solutionOutput input <$> modelSolutions
 
 -- | Test the student solution in `dir </> "student/"` against
 -- the solutions in `dir </> "model/"`
-testSolutions :: FilePath -> String -> EvalM (Maybe (String, String))
+testSolutions :: FilePath -> ([String], String) -> EvalM (Maybe (String, String))
 testSolutions dir input = do
   modelOutputs <- modelSolutionsOutputs dir input
   studO        <- studentOutput dir input
