@@ -67,6 +67,20 @@ public class C{
       }
     }
 
+    {
+      ;
+      while(true){
+      }
+    }
+
+    {
+      int j = 0;
+      while(j < 3){
+        ;
+        j++;
+      }
+    }
+
   }
 
 }
