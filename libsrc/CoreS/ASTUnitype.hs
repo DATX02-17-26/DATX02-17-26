@@ -461,8 +461,8 @@ canMatch = curry $ \case
   (MethodDecl t n p b, MethodDecl t' n' p' b') ->
     t == t' && n == n' && p == p' && matchList b b'
   (CompilationUnit i t, CompilationUnit i' t') ->
-  -- TODO: handle import statements!
     matchList i i' && matchList t t'
+  (ImportDecl n s w,   ImportDecl n' s' w') -> n == n' && s == s' && w == w'
   (ClassTypeDecl cd,   ClassTypeDecl cd')  -> canMatch cd cd' 
   (ClassDecl i cb,     ClassDecl j cb')    -> i == j && canMatch cb cb' 
   (ClassBody md,       ClassBody md')      -> matchList md md' 

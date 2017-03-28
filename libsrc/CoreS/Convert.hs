@@ -418,5 +418,4 @@ instance ToCoreS S.CompilationUnit where
   toCoreS = \case
     S.CompilationUnit mpd is tds -> do
       ensure $__LOCATION__ mpd $ isNothing mpd
-      ensure $__LOCATION__ is  $ null is
       CompilationUnit <=$ is <=* tds
