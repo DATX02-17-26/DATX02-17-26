@@ -36,44 +36,47 @@ dependsOn y x = True
 
 nbrOfStatements :: AST -> Int
 nbrOfStatements a = 1 + case a of
-  (LVArray a as) -> sum $ map nbrOfStatements (a:as)
-  (InitExpr a) -> nbrOfStatements a
-  (InitArr as) -> sum $ map nbrOfStatements as
-  (ELit a) -> nbrOfStatements a
-  (EVar a) -> nbrOfStatements a
-  (ECast _ a) -> nbrOfStatements a
-  (ECond a1 a2 a3) -> sum $ map nbrOfStatements [a1,a2,a3]
-  (EAssign a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (EOAssign a1 _ a2) -> sum $ map nbrOfStatements [a1,a2]
-  (ENum _ a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (ECmp _ a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (ELog _ a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (ENot a) -> nbrOfStatements a
-  (EStep _ a) -> nbrOfStatements a
-  (EBCompl a) -> nbrOfStatements a
-  (EPlus   a) -> nbrOfStatements a
-  (EMinus  a) -> nbrOfStatements a
-  (EMApp _ as) -> sum $ map nbrOfStatements as
-  (EArrNew  _ as _) -> sum $ map nbrOfStatements as
-  (EArrNewI _ _ as) -> sum $ map nbrOfStatements as
-  (ESysOut a) -> nbrOfStatements a
-  (Block as) -> sum $ map nbrOfStatements as
-  (SExpr a) -> nbrOfStatements a
-  (SReturn a) -> nbrOfStatements a
-  (SIf a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (SIfElse a1 a2 a3) -> sum $ map nbrOfStatements [a1,a2,a3]
-  (SWhile a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (SDo a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (SForB ma1 ma2 mas a) ->  sum $ map nbrOfStatements $ a : maybeToList ma1 ++ maybeToList ma2 ++ (concat . maybeToList) mas
-  (SForE _ _ a1 a2) -> sum $ map nbrOfStatements [a1,a2]
-  (SSwitch a as) -> sum $ map nbrOfStatements (a:as)
-  (SwitchBlock _ as) -> sum $ map nbrOfStatements as
-  (SwitchCase a) -> nbrOfStatements a
-  (FIExprs as) -> sum $ map nbrOfStatements as
-  (MethodDecl _ _ _ as) -> sum $ map nbrOfStatements as
-  (CompilationUnit as) -> sum $ map nbrOfStatements as
-  (ClassTypeDecl a) -> nbrOfStatements a
-  (ClassDecl _ a) -> nbrOfStatements a
-  (ClassBody as) -> sum $ map nbrOfStatements as
-  (MemberDecl a) -> nbrOfStatements a
-  _ -> 0
+  LVArray a as          -> sm $ a:as
+  InitExpr a            -> nbrOfStatements a
+  InitArr as            -> sm as
+  ELit a                -> nbrOfStatements a
+  EVar a                -> nbrOfStatements a
+  ECast _ a             -> nbrOfStatements a
+  ECond a b c           -> sm [a, b, c]
+  EAssign a b           -> sm [a, b]
+  EOAssign a _ b        -> sm [a, b]
+  ENum _ a b            -> sm [a, b]
+  ECmp _ a b            -> sm [a, b]
+  ELog _ a b            -> sm [a, b]
+  ENot    a             -> nbrOfStatements a
+  EStep _ a             -> nbrOfStatements a
+  EBCompl a             -> nbrOfStatements a
+  EPlus   a             -> nbrOfStatements a
+  EMinus  a             -> nbrOfStatements a
+  EMApp _ as            -> sm as
+  EArrNew  _ as _       -> sm as
+  EArrNewI _ _ as       -> sm as
+  ESysOut a             -> nbrOfStatements a
+  Block as              -> sm as
+  SExpr a               -> nbrOfStatements a
+  SReturn a             -> nbrOfStatements a
+  SIf a b               -> sm [a, b]
+  SIfElse a b c         -> sm [a, b, c]
+  SWhile a b            -> sm [a, b]
+  SDo a b               -> sm [a, b]
+  SForB mas mbs mcs d   -> sm $ d : maybeToList mas ++
+                                    maybeToList mbs ++
+                                    (concat . maybeToList) mcs
+  SForE _ _ a b         -> sm [a, b]
+  SSwitch a bs          -> sm $ a:bs
+  SwitchBlock _ as      -> sm as
+  SwitchCase a          -> nbrOfStatements a
+  FIExprs as            -> sm as
+  MethodDecl _ _ _ as   -> sm as
+  CompilationUnit is as -> sm $ is ++ as
+  ClassTypeDecl a       -> nbrOfStatements a
+  ClassDecl _ a         -> nbrOfStatements a
+  ClassBody as          -> sm as
+  MemberDecl a          -> nbrOfStatements a
+  _                     -> 0
+  where sm x = sum $ map nbrOfStatements x
