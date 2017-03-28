@@ -29,6 +29,8 @@ import Control.Monad
 
 import Util.RoseGen
 
+data Input = Input [String] String deriving (Ord, Eq, Show)
+
 -- | A monad in which to construct exercise input
 -- specifications
 type InputMonad m a = WriterT m RoseGen a

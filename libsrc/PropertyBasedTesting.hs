@@ -27,10 +27,11 @@ import Data.Maybe
 import EvaluationMonad
 import Data.RoseTree
 import Util.RoseGen
+import InputMonad
 
 -- | Get the output from the class file `file`
 solutionOutput :: ([String], String) -> FilePath -> EvalM String
-solutionOutput (commandLineArgs, stdin) file = do
+solutionOutput (Input commandLineArgs stdin) file = do
   let command = "java " ++ dropExtension file ++ intercalate " " commandLineArgs
   logMessage $ "Running the command: " ++ command
 
