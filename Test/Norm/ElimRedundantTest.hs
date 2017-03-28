@@ -16,12 +16,21 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+-- | Test for eliminating redundant blocks and statements
+module Norm.ElimRedundantTest (
+    allTests
+  ) where
 
-import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import Norm.NormTestUtil
+import Norm.ElimRedundant
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+normalizers :: NormalizerCU
+normalizers = [ normFlattenBlock
+              , normEmptyBlock
+              , normFilterEmpty
+              ]
+
+allTests :: TestTree
+allTests = testGroup "Norm.ElimRedundant tests"
+  [ normTestDir "elimredundant_unittest_1" "elimredundant" 1 normalizers
+  ]

@@ -60,16 +60,21 @@ refine ast i = toStrategy $ makeRule ruleId f
 -- Creates a DAG of dependencies of given ASTs, in the form of a list where
 -- each element describes a node and a list of all other nodes that node are
 -- dependant on
-dagHelper :: [(AST, Int)] -> [(AST, Int)] -> [((AST, Int), [(AST, Int)])]
-dagHelper [] _       = []
-dagHelper (a:as) old =
-  (a, (filter ((`dependsOn` (fst a)) . fst) old)):(dagHelper as (a:old))
+dagHelper :: Eq b
+          => (a -> a -> Bool)
+          -> [(a, b)]
+          -> [(a, b)]
+          -> [((a, b), [(a, b)])]
+dagHelper _ [] _       = []
+dagHelper f (a:as) old =
+  (a, (filter ((`f` (fst a)) . fst) old)):(dagHelper f as (a:old))
 
 -- Returns all possible topological orderings in a RoseTree, where each level
 -- represents a new step, and its elements possible pathways.
-allTop :: ((AST, Int), [(AST, Int)])
-       -> [((AST, Int), [(AST, Int)])]
-       -> RoseTree AST
+allTop :: Eq b
+       => ((a, b), [(a, b)])
+       -> [((a, b), [(a, b)])]
+       -> RoseTree a
 allTop top [] = RoseTree ((fst . fst) top) []
 allTop top as = RoseTree ((fst . fst) top)
                        $ map (\x -> allTop x (rest x as))
@@ -91,7 +96,7 @@ makeDependencyStrategy :: [(AST, Int)] -> State Int (Strategy AST)
 makeDependencyStrategy = \case
   []         -> return $ succeed
   [(x, loc)] -> genStrat loc x
-  as         ->  makeAllTopStrat (allTop ((SEmpty,-1),[]) (dagHelper as []))
+  as         ->  makeAllTopStrat (allTop ((SEmpty,-1),[]) (dagHelper dependsOn as []))
                  $ (-1):(map snd as)
 
 -- | Can we make this more DRY?
@@ -106,7 +111,7 @@ genStrat loc (ClassTypeDecl body)           = (ClassTypeDecl $$ body) loc
 genStrat loc (CompilationUnit body)         = refList loc CompilationUnit body
 genStrat loc (MemberDecl body)              = (MemberDecl $$ body) loc
 genStrat loc (SForB mAST0 mAST1 mASTs body) = (SForB mAST0 mAST1 mASTs $$ body) loc
-genStrat loc (SForE vmt ident ast0 body)    = (SForE vmt ident ast0 $$ body) loc 
+genStrat loc (SForE vmt ident ast0 body)    = (SForE vmt ident ast0 $$ body) loc
 genStrat loc (SIf cond body)                = (SIf cond $$ body) loc
 genStrat loc (SIfElse cond onTrue onFalse)  = do
   (trueLoc, trueStrat) <- locGen onTrue
@@ -158,6 +163,7 @@ matchesDFS norm tree ast = go [tree]
     go ((RoseTree a []):trees)
       | ast == (norm a) = True
       | otherwise       = go trees
+    go ((RoseTree _ [a]):trees) = go (a:trees)
     go ((RoseTree a asts):trees)
       | canMatch ast (norm a) = go (asts ++ trees)
       | otherwise             = go trees

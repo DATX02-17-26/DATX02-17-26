@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell, LambdaCase #-}
 
 module CoreS.AST where
 
@@ -24,7 +24,9 @@ import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 import Data.Maybe (fromMaybe)
 import Control.Lens ((^?), isn't)
+import Control.DeepSeq
 
+import Class.Sizeables
 import Util.TH
 
 --------------------------------------------------------------------------------
@@ -37,11 +39,15 @@ data Ident = Ident
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData Ident
+
 -- | Name: Qualified identifier.
 data Name = Name
   { _nmIds  :: [Ident] -- ^ Identifier parts of the name.
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData Name
 
 --------------------------------------------------------------------------------
 -- Types:
@@ -59,6 +65,8 @@ data PrimType
   | DoubleT -- ^ Type of double values and expressions.
   deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
 
+instance NFData PrimType
+
 -- | All possible types that value / expression can be of.
 data Type
   = PrimT {
@@ -70,6 +78,8 @@ data Type
     }
   | NullT                -- ^ Type of the null literal, can't be declared.
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData Type
 
 -- | Return types (including "void").
 type RType = Maybe Type
@@ -121,6 +131,32 @@ isTInt :: Type -> Bool
 isTInt = (`elem` [byT, chT, shT, inT, loT])
 
 --------------------------------------------------------------------------------
+-- Sizability of types:
+--------------------------------------------------------------------------------
+
+instance Growable   Type where
+  grow = ArrayT
+
+instance Shrinkable Type where
+  shrink = \case ArrayT t -> t
+                 x        -> x
+
+-- Fold a type into something else recursively until it reaches a base type.
+-- Tail recursive fold.
+typeFold :: (b -> Type -> b) -> b -> Type -> b
+typeFold f z = \case
+  ArrayT t -> typeFold f (f z t) t
+  t        -> z
+
+-- | Dimensionality of a type, an array adds +1 dimensionality.
+typeDimens :: Type -> Integer
+typeDimens = typeFold (const . (+1)) 0
+
+-- | Base type of type - given a base type, this is id.
+typeBase :: Type -> Type
+typeBase t = typeFold (flip const) t t
+
+--------------------------------------------------------------------------------
 -- Operators:
 --------------------------------------------------------------------------------
 
@@ -139,6 +175,8 @@ data NumOp
   | Or      -- ^ Numeric operator for Bitwise Or.
   deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
 
+instance NFData NumOp
+
 -- CmpOp: (binary) comparison operators, result is always boolean typed.
 data CmpOp
   = EQ -- ^ Comparison operator for Equality (==).
@@ -149,11 +187,15 @@ data CmpOp
   | GE -- ^ Comparison operator for Greater than / Equal to (>=).
   deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
 
+instance NFData CmpOp
+
 -- LogOp: (binary) logical operators, operands and results are boolean typed.
 data LogOp
   = LAnd -- ^ Logical conjunction \land (LaTeX) operator.
   | LOr  -- ^ Logical disjunction \lor  (LaTeX) operator.
   deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
+
+instance NFData LogOp
 
 -- | StepOp: Unary stepping operators, operand must be of a numeric type.
 data StepOp
@@ -162,6 +204,8 @@ data StepOp
   | PreInc  -- ^ Unary operator for Pre Incrementation (++i).
   | PreDec  -- ^ Unary operator for Pre Incrementation (--i).
   deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
+
+instance NFData StepOp
 
 --------------------------------------------------------------------------------
 -- Literals:
@@ -196,6 +240,8 @@ data Literal
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData Literal
+
 --------------------------------------------------------------------------------
 -- lvalues:
 --------------------------------------------------------------------------------
@@ -216,6 +262,8 @@ data LValue
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData LValue
+
 --------------------------------------------------------------------------------
 -- Variable & Array initialization:
 --------------------------------------------------------------------------------
@@ -233,12 +281,16 @@ data VarInit
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData VarInit
+
 -- | ArrayInit: Initializer of array creation (new T[]...) expressions.
 data ArrayInit = ArrayInit
   {
     _aiVIs  :: [VarInit] -- ^ List of initializers for each element in array.
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData ArrayInit
 
 --------------------------------------------------------------------------------
 -- Expressions:
@@ -323,6 +375,8 @@ data Expr
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData Expr
+
 --------------------------------------------------------------------------------
 -- Statements:
 --------------------------------------------------------------------------------
@@ -341,6 +395,8 @@ data VarDeclId
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData VarDeclId
+
 -- | VarDecl: variable declaration (id + initializer).
 data VarDecl
   = VarDecl {
@@ -352,9 +408,13 @@ data VarDecl
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData VarDecl
+
 -- | VarMod: A variable can either be declared as final, or not.
 data VarMod = VMFinal | VMNormal
   deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
+
+instance NFData VarMod
 
 -- | VMType: VarMod + Type.
 data VMType
@@ -367,6 +427,8 @@ data VMType
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData VMType
+
 -- | TypedVVDecl: Typed Variable declarations.
 data TypedVVDecl
   = TypedVVDecl {
@@ -377,6 +439,8 @@ data TypedVVDecl
       _tvdHole   :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData TypedVVDecl
 
 -- | ForInit: For loop initializer for normal for loops.
 data ForInit
@@ -391,6 +455,8 @@ data ForInit
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData ForInit
+
 -- | SwitchLabel (case).
 data SwitchLabel
   = SwitchCase {
@@ -401,6 +467,8 @@ data SwitchLabel
       _slHole :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData SwitchLabel
 
 -- | SwitchBlock: One match arm of a switch block.
 data SwitchBlock
@@ -413,6 +481,8 @@ data SwitchBlock
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData SwitchBlock
+
 -- | Block of statements.
 data Block
   = Block {
@@ -422,6 +492,8 @@ data Block
       _bHole :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData Block
 
 -- | Stmt: A statement, unlike expressions, it has no value.
 data Stmt
@@ -479,9 +551,7 @@ data Stmt
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
---------------------------------------------------------------------------------
--- Method:
---------------------------------------------------------------------------------
+instance NFData Stmt
 
 --------------------------------------------------------------------------------
 -- Method:
@@ -493,6 +563,8 @@ data FormalParam = FormalParam
   , _fpVDI  :: VarDeclId -- ^ Identifier of parameter.
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData FormalParam
 
 -- | MemberDecl: Member declarations of a class.
 data MemberDecl
@@ -507,8 +579,12 @@ data MemberDecl
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData MemberDecl
+
 data MethodBody = MethodBody Block | HoleMethodBody Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData MethodBody
 
 --------------------------------------------------------------------------------
 -- Compilation Unit:
@@ -524,6 +600,8 @@ data Decl
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData Decl
+
 -- | ClassBody: class body the class.
 data ClassBody
   = ClassBody {
@@ -533,6 +611,8 @@ data ClassBody
       _cbHole  :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData ClassBody
 
 -- | ClassDecl: class declaration.
 data ClassDecl
@@ -545,6 +625,8 @@ data ClassDecl
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData ClassDecl
+
 -- | TypeDecl: type declarations in the CU.
 data TypeDecl
   = ClassTypeDecl {
@@ -555,6 +637,8 @@ data TypeDecl
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+instance NFData TypeDecl
+
 -- | CompilationUnit: A whole file.
 data CompilationUnit
   = CompilationUnit {
@@ -564,6 +648,8 @@ data CompilationUnit
       _cuHole   :: Int
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData CompilationUnit
 
 --------------------------------------------------------------------------------
 -- Derive lenses + prisms:

@@ -35,6 +35,7 @@ module CoreS.ASTUnitype (
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 import Data.Maybe (fromMaybe)
+import Control.DeepSeq
 
 import qualified CoreS.AST as C
 
@@ -103,6 +104,8 @@ data AST =
   | MemberDecl AST
   | Hole Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData AST
 
 --------------------------------------------------------------------------------
 -- Conversion class:

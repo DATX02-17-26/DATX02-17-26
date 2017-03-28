@@ -29,6 +29,7 @@ module EvaluationMonad (
   EvalM,
   runEvalM,
   executeEvalM,
+  resultEvalM,
   Env(..),
   defaultEnv,
   parseEnv 
@@ -186,6 +187,15 @@ executeEvalM env eval = do
     Right a -> do
       putStrLn $ printFeedback feedback
       return a
+
+resultEvalM :: EvalM a -> IO a
+resultEvalM eval = do
+  ((result, feedback), log) <- runEvalM defaultEnv eval 
+  case result of
+    Left e -> do
+      putStrLn $ "Error: " ++ e
+      exitFailure
+    Right a -> return a
 
 -- | Run an `EvalM` computation with a temporary directory
 withTemporaryDirectory :: FilePath -> EvalM a -> EvalM a
