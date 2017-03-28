@@ -18,7 +18,7 @@ import InputMonad
 compDir :: FilePath 
 compDir = "tmp"
 
-test :: SolutionContext FilePath -> RG.RoseGen String -> IO Bool
+test :: SolutionContext FilePath -> RG.RoseGen Input -> IO Bool
 test paths gen =
   resultEvalM $
   withTemporaryDirectory compDir $ do
@@ -29,7 +29,7 @@ test paths gen =
 test0 :: IO Bool
 test0 = test
   (Ctx "Test/Student_solutions/helloWorld0.java" ["Test/Model_solutions/helloWorld0.java"])
-  RG.anything
+  (return $ Input [] "")
 
 sumNumbers :: InputMonoid m => InputMonad m ()
 sumNumbers = do

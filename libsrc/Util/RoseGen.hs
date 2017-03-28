@@ -72,7 +72,7 @@ bindGenTree m k = do
       runGen seed1 (runReaderT m env) >>= runGen seed2 . (flip runReaderT env) . k
 
 -- | Generate an arbitrary value, and all ways to shrink that value
-anything :: (QC.Arbitrary a) => RoseGen a
+anything :: QC.Arbitrary a => RoseGen a
 anything = RoseGen $ do
   a <- lift $ QC.arbitrary
   return $ makeTree a
