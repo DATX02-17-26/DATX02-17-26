@@ -36,7 +36,7 @@ data Input = Input [String] String deriving (Ord, Eq, Show)
 type InputMonad m a = WriterT m RoseGen a
 
 -- | Construct a `Gen String` from an `InputMonad a`
-makeGenerator :: (Monoid m, Wrapper m String) => InputMonad m a -> RoseGen String
+makeGenerator :: (Monoid m, Wrapper m String) => InputMonad m a -> RoseGen Input
 makeGenerator input = (unwrap . snd) <$> runWriterT input
 
 -- | Provide some input to the program under test
