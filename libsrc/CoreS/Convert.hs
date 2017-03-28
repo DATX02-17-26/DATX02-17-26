@@ -408,10 +408,14 @@ instance ToCoreS S.TypeDecl where
     S.ClassTypeDecl cd -> ClassTypeDecl <-$ cd
     x                  -> unimpl $__LOCATION__ x
 
+instance ToCoreS S.ImportDecl where
+  type Repr S.ImportDecl = ImportDecl
+  toCoreS = \case
+    S.ImportDecl s n w -> ImportDecl <-$ n <*> pure s <*> pure w
+
 instance ToCoreS S.CompilationUnit where
   type Repr S.CompilationUnit = CompilationUnit
   toCoreS = \case
     S.CompilationUnit mpd is tds -> do
       ensure $__LOCATION__ mpd $ isNothing mpd
-      ensure $__LOCATION__ is  $ null is
-      CompilationUnit <=$ tds
+      CompilationUnit <=$ is <=* tds

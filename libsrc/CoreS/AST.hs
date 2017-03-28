@@ -639,10 +639,33 @@ data TypeDecl
 
 instance NFData TypeDecl
 
+-- | An Import declaration allowing things to be referred to by unqualified
+-- identifiers.
+--
+-- If _idStatic is True, the object referred to is a static member,
+-- which is either a static field or a static method. Otherwise,
+-- it is a type.
+--
+-- If _idWild is True, then all things (depending on _idStatic) in the given
+-- package or class in _idName are imported.
+data ImportDecl
+  = ImportDecl {
+      _idName   :: Name -- ^ Name to import.
+    , _idStatic :: Bool -- ^ Import static member?
+    , _idWild   :: Bool -- ^ Import with wildcard? I.e: .*
+    }
+  | HoleImportDecl {
+      _idHole   :: Int
+    }
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+instance NFData ImportDecl
+
 -- | CompilationUnit: A whole file.
 data CompilationUnit
   = CompilationUnit {
-      _cuTDecls :: [TypeDecl] -- ^ Type declarations of the CU.
+      _cuImports :: [ImportDecl] -- ^ Import declarations.
+    , _cuTDecls  :: [TypeDecl]   -- ^ Type declarations of the CU.
     }
   | HoleCompilationUnit {
       _cuHole   :: Int
@@ -660,5 +683,5 @@ $(deriveLens [ ''Ident, ''Name
              , ''VarDeclId, ''VMType, ''VarDecl, ''TypedVVDecl, ''Block
              , ''ForInit, ''SwitchLabel, ''SwitchBlock, ''Stmt, ''MemberDecl
              , ''FormalParam, ''CompilationUnit, ''TypeDecl, ''ClassDecl
-             , ''ClassBody, ''Decl
+             , ''ClassBody, ''Decl, ''ImportDecl
              ])
