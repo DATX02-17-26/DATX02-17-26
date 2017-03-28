@@ -14,6 +14,9 @@ wrapDecl ((Ident id), decl) =
   $ ClassBody [decl]
   ]
 
+wrap :: CompilationUnit -> [CompilationUnit] -> (CompilationUnit, [CompilationUnit])
+wrap = undefined
+
 wrapMain ::Decl -> Decl
 wrapMain decl@(MemberDecl(MethodDecl _ _ formalParams _ )) = (MemberDecl (MethodDecl Nothing (Ident "main")
   [(FormalParam (VMType VMNormal (ArrayT StringT)) (VarDId (Ident "args")))]
