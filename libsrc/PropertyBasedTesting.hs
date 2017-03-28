@@ -23,6 +23,7 @@ import System.Directory
 import System.Timeout
 import Control.Monad.Reader
 import Data.Maybe
+import Data.List
 
 import EvaluationMonad
 import Data.RoseTree
@@ -32,7 +33,7 @@ import InputMonad
 -- | Get the output from the class file `file`
 solutionOutput :: Input -> FilePath -> EvalM String
 solutionOutput (Input commandLineArgs stdin) file = do
-  let command = "java " ++ dropExtension file ++ intercalate " " commandLineArgs
+  let command = "java " ++ dropExtension file ++ " " ++ intercalate " " commandLineArgs
   logMessage $ "Running the command: " ++ command
 
   -- Timeout 1 second
@@ -83,7 +84,7 @@ runPBT dir generator = do
 shrink :: FilePath -> (Input, String, String) -> [RoseTree Input] -> EvalM ()
 shrink dir (input, stud, mod) [] =
   issue $
-       "Failed on input: " ++ input ++ "\n"
+       "Failed on input: " ++ show input ++ "\n"
     ++ "With\n"
     ++ "Student solution output: "
     ++ stud ++ "\n"
@@ -95,7 +96,7 @@ shrink dir failing ((RoseTree input []):trees) = do
     Nothing          -> shrink dir failing trees
     Just (stud, mod) -> do
       issue $
-           "Failed on input: " ++ input ++ "\n"
+           "Failed on input: " ++ show input ++ "\n"
         ++ "With\n"
         ++ "Student solution output: "
         ++ stud ++ "\n"
