@@ -15,13 +15,38 @@ wrapDecl ((Ident id), decl) =
   ]
 
 wrapMain ::Decl -> Decl
-wrapMain decl = (MemberDecl (MethodDecl Nothing (Ident "main")
+wrapMain decl@(MemberDecl(MethodDecl _ _ formalParams _ )) = (MemberDecl (MethodDecl Nothing (Ident "main")
   [(FormalParam (VMType VMNormal (ArrayT StringT)) (VarDId (Ident "args")))]
-  (Block [decl])))
+  (Block [
+    (SExpr (ESysOut (EMApp (Name [Ident (declName decl)]) (getArgs formalParams 0))))
+  ])))
 
 declName :: Decl -> String
 declName (MemberDecl(MethodDecl _ (Ident ident) _ _ )) = ident
 
+getArgs :: [FormalParam] -> Int -> [Expr]
+getArgs [] _ = []
+getArgs (p@(FormalParam vmType varDeclId):ps) pos =
+    (EVar (LVName (Ident ((cast $ makeType p) ++ "args[" ++ (show pos) ++ "])"))))
+    : (getArgs ps (pos+1))
+
+cast :: Type -> String
+cast t = case t of
+  (PrimT primType) -> castPrim primType
+  StringT -> ""
+  ArrayT t' -> cast t'
+  _ -> undefined
+
+castPrim :: PrimType -> String
+castPrim p = case p of
+  BoolT -> "Boolean.parseBoolean("
+  ByteT -> "Byte.valueOf("
+  ShortT -> "Short.parseShort("
+  IntT -> "Integer.parseInt("
+  LongT -> "Long.parseLong("
+  CharT -> undefined
+  FloatT -> "Float.parseFloat("
+  DoubleT -> "Double.parseDouble("
 
 filterMethods :: Decl -> [(Ident, Decl)] -> [(Ident, Decl)]
 filterMethods student models = filter f models
