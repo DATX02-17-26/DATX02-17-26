@@ -33,7 +33,7 @@ module CoreS.Convert (
 
 import Safe (headMay)
 import Prelude hiding (LT, GT, EQ)
-import Control.Monad (unless, (>=>))
+import Control.Monad (forM, unless, (>=>))
 import Data.Maybe (isNothing)
 import Data.List (nub)
 
@@ -110,15 +110,19 @@ instance ToCoreS S.PrimType where
     S.FloatT   -> FloatT
     S.DoubleT  -> DoubleT
 
-strTPrefix = S.ClassType $ ((, []) . S.Ident) <$> ["java", "lang", "String"]
-strT       = S.ClassType $ ((, []) . S.Ident) <$> ["String"]
+mkCT :: [String] -> S.ClassType
+mkCT = S.ClassType . fmap ((, []) . S.Ident)
+
+strTPrefix, strT :: S.ClassType
+strTPrefix = mkCT ["java", "lang", "String"]
+strT       = mkCT ["String"]
 
 convRTyp :: S.RefType -> CConv Type
 convRTyp = \case
   S.ClassRefType ct |
     ct `elem` [strT, strTPrefix] -> pure StringT
+  S.ClassRefType ct              -> ClassType <$> convCTName ct
   S.ArrayType    t               -> ArrayT <-$ t
-  x                              -> unimpl $__LOCATION__ x
 
 instance ToCoreS S.Type where
   type Repr S.Type = Type
@@ -183,10 +187,6 @@ convBOp l r = \case
   S.CAnd    -> convLog l r LAnd
   S.COr     -> convLog l r LOr
 
-convOne :: Show a => [a] -> CConv a
-convOne = \case [x] -> pure x
-                xs  -> unimpl $__LOCATION__ xs
-
 instance ToCoreS S.VarInit where
   type Repr S.VarInit = VarInit
   toCoreS = \case
@@ -232,8 +232,7 @@ instance ToCoreS S.AssignOp where
 instance ToCoreS S.Lhs where
   type Repr S.Lhs = LValue
   toCoreS = \case
-    S.NameLhs   n                  -> toCoreS n >>= \(Name is) ->
-                                      LVName <$> convOne is
+    S.NameLhs   n                  -> LVName  <-$ n
     S.ArrayLhs (S.ArrayIndex a is) -> LVArray <-$ a <=* is
     x                              -> unimpl $__LOCATION__ x
 
@@ -242,16 +241,36 @@ convAssign lv e = \case
   S.EqualA -> EAssign  <-$ lv <-* e
   op       -> EOAssign <-$ lv <-* op <-* e
 
+convCTName :: S.ClassType -> CConv Name
+convCTName (S.ClassType ns) = toCoreS =<< S.Name <$> (forM ns $ \(np, tas) ->
+                                ensure $__LOCATION__ tas (null tas) *> pure np)
+
+convTDS :: S.TypeDeclSpecifier -> CConv Name
+convTDS t = case t of
+  S.TypeDeclSpecifierUnqualifiedWithDiamond {} -> unimpl $__LOCATION__ t
+  S.TypeDeclSpecifierWithDiamond            {} -> unimpl $__LOCATION__ t
+  S.TypeDeclSpecifier                       ct -> convCTName ct
+
+convInstCreat :: [S.TypeArgument] -> S.TypeDeclSpecifier
+              -> [S.Exp] -> Maybe S.ClassBody
+              -> CConv Expr
+convInstCreat ts tds as cb = do
+  ensure $__LOCATION__ ts $ null ts
+  ensure $__LOCATION__ cb $ isNothing cb
+  EInstNew <$> convTDS tds <=* as
+
 instance ToCoreS S.Exp where
   type Repr S.Exp = Expr
   toCoreS = \case
     S.Lit                 lit -> ELit <-$ lit
+    S.InstanceCreation
+      ts t as cb              -> convInstCreat ts t as cb
     S.ArrayCreate    t ls lex -> EArrNew  <-$ t <=* ls <*> pure (toInteger lex)
     S.ArrayCreateInit t dl ai -> EArrNewI <-$ t <*> pure (toInteger dl) <-* ai
     S.MethodInv    mi         -> convApp mi
     S.ArrayAccess
       (S.ArrayIndex e eis)    -> EVar <$> (LVArray <-$ e <=* eis)
-    S.ExpName (S.Name ns)     -> convOne ns >>= (EVar . LVName <-$)
+    S.ExpName n               -> EVar <$> LVName <-$ n
     S.PostIncrement e         -> EStep PostInc <-$ e
     S.PostDecrement e         -> EStep PostDec <-$ e
     S.PreIncrement  e         -> EStep PreInc  <-$ e
