@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, TemplateHaskell #-}
 
 -- | The unitype AST corresponding to CoreS.AST.
 module CoreS.ASTUnitype (
@@ -37,6 +37,8 @@ import GHC.Generics (Generic)
 import Data.Maybe (fromMaybe)
 import Control.DeepSeq
 
+import Util.TH (deriveLens)
+
 import qualified CoreS.AST as C
 
 --------------------------------------------------------------------------------
@@ -45,66 +47,233 @@ import qualified CoreS.AST as C
 
 -- | The unitype AST, it corresponds to constructors in CoreS.AST,
 -- see that module for documentation.
-data AST =
-    Int Integer
-  | Word Integer
-  | Float Double
-  | Double Double
-  | Boolean Bool
-  | Char Char
-  | String String
+data AST
+  -- START: Literal
+  = Int {
+      _litI      :: Integer
+    }
+  | Word {
+      _litI      :: Integer
+    }
+  | Float {
+      _litD      :: Double
+    }
+  | Double {
+      _litD      :: Double
+    }
+  | Boolean {
+      _litB      :: Bool
+    }
+  | Char {
+      _litC      :: Char
+    }
+  | String {
+      _litS      :: String
+    }
   | Null
-  | LVName C.Ident
-  | LVArray AST [AST]
-  | InitExpr AST 
-  | InitArr  [AST]
-  | ELit AST
-  | EVar AST 
-  | ECast C.Type AST 
-  | ECond AST AST AST
-  | EAssign AST AST
-  | EOAssign AST C.NumOp AST 
-  | ENum C.NumOp AST AST 
-  | ECmp C.CmpOp AST AST 
-  | ELog C.LogOp AST AST 
-  | ENot AST 
-  | EStep C.StepOp AST 
-  | EBCompl AST 
-  | EPlus   AST 
-  | EMinus  AST 
-  | EMApp C.Name [AST]
-  | EArrNew  C.Type [AST] Integer
-  | EArrNewI C.Type Integer [AST] 
-  | ESysOut  AST 
+  -- START: LValue
+  | LVName {
+      _lvId      :: C.Name
+    }
+  | LVArray {
+      _lvExpr    :: AST
+    , _lvExprs   :: [AST]
+    }
+  -- START: VarInit
+  | InitExpr {
+      _viExpr    :: AST
+    }
+  | InitArr {
+      _viArrInit :: [AST]
+    }
+  -- Start: Expr
+  | ELit {
+      _eLit      :: AST
+  }
+  | EVar  {
+      _eLValue   :: AST
+  }
+  | ECast {
+      _eDefT     :: C.Type
+    , _eExpr     :: AST
+    }
+  | ECond {
+      _eCond     :: AST
+    , _eExpI     :: AST
+    , _eExpE     :: AST
+  }
+  | EAssign {
+      _eLValue   :: AST
+    , _eExpr     :: AST
+  }
+  | EOAssign {
+      _eLValue   :: AST
+    , _eNumOp    :: C.NumOp
+    , _eExpr     :: AST
+    }
+  | ENum {
+      _eNumOp    :: C.NumOp
+    , _eLeft     :: AST
+    , _eRight    :: AST
+  }
+  | ECmp {
+      _eCmpOp    :: C.CmpOp
+    , _eLeft     :: AST
+    , _eRight    :: AST
+  }
+  | ELog {
+      _eLogOp    :: C.LogOp
+    , _eLeft     :: AST
+    , _eRight    :: AST
+  }
+  | ENot {
+      _eExpr     :: AST
+    }
+  | EStep {
+      _eStepOp   :: C.StepOp
+    , _eExpr     :: AST
+    }
+  | EBCompl {
+      _eExpr     :: AST
+    }
+  | EPlus {
+      _eExpr     :: AST
+    }
+  | EMinus {
+      _eExpr     :: AST
+    }
+  | EMApp {
+      _eName     :: C.Name
+    , _eExprs    :: [AST]
+    }
+  | EInstNew {
+      _eName     :: C.Name
+    , _eExprs    :: [AST]
+    }
+  | EArrNew {
+      _eDefT     :: C.Type
+    , _eExprs    :: [AST]
+    , _eEDims    :: Integer
+    }
+  | EArrNewI {
+      _eDefT     :: C.Type
+    , _eDims     :: Integer
+    , _eAInit    :: [AST]
+    }
+  | ESysOut {
+      _eExpr     :: AST
+    }
+  -- START: Stmt
   | SEmpty
-  | Block [AST]
-  | SExpr AST 
-  | SVars C.TypedVVDecl
-  | SReturn AST 
+  | Block {
+      _sBlock    :: [AST]
+    }
+  | SExpr {
+      _sExpr     :: AST
+    }
+  | SVars {
+      -- TODO: POSSIBLE BUG!!! CONTAINS Expr!!!
+      _sVDecl    :: C.TypedVVDecl
+    }
+  | SReturn {
+      _sExpr     :: AST
+    }
   | SVReturn
-  | SIf AST AST 
-  | SIfElse AST AST AST
-  | SWhile AST AST
-  | SDo AST AST
-  | SForB (Maybe AST) (Maybe AST) (Maybe [AST]) AST
-  | SForE C.VMType C.Ident AST AST
+  | SIf {
+      _sExpr     :: AST
+    , _sSi       :: AST
+    }
+  | SIfElse {
+      _sExpr     :: AST
+    , _sSi       :: AST
+    , _sSe       :: AST
+    }
+  | SWhile {
+      _sExpr     :: AST
+    , _sSi       :: AST
+    }
+  | SDo {
+      _sExpr     :: AST
+    , _sSi       :: AST
+    }
+  | SForB {
+      _sForInit  :: Maybe AST
+    , _sForECond :: Maybe AST
+    , _sForEPost :: Maybe [AST]
+    , _sSi       :: AST
+    }
+  | SForE {
+      _sForVMTy  :: C.VMType
+    , _sForVar   :: C.Ident
+    , _sExpr     :: AST
+    , _sSi       :: AST
+    }
   | SContinue
   | SBreak
-  | SSwitch AST [AST]
-  | SwitchBlock C.SwitchLabel [AST]
-  | SwitchCase AST
+  | SSwitch {
+      _sExpr      :: AST
+    , _sSwiBlock  :: [AST]
+    }
+  -- START: SwitchBlock
+  | SwitchBlock {
+      -- TODO: POSSIBLE BUG!!! Should probably be AST instead of C.SwitchLabel !!!
+      _sbLab      :: C.SwitchLabel
+    , _sbBlock    :: [AST]
+    }
+  -- START: SwitchLabel
+  | SwitchCase {
+      _slExpr     :: AST
+    }
   | Default
-  | FIVars C.TypedVVDecl
-  | FIExprs [AST]
-  | MethodDecl (Maybe C.Type) C.Ident [C.FormalParam] [AST]
-  | CompilationUnit [AST] [AST]
-  | ImportDecl C.Name Bool Bool
-  | ClassTypeDecl AST
-  | ClassDecl C.Ident AST
-  | ClassBody [AST]
-  | MemberDecl AST
-  | Hole Int
+  -- START: ForInit
+  | FIVars {
+      -- TODO: POSSIBLE BUG!!! CONTAINS Expr!!!
+      _fiVars     :: C.TypedVVDecl
+    }
+  | FIExprs {
+      _fiExprs    :: [AST]
+    }
+  -- START: MemberDecl
+  | MethodDecl {
+      _mdRetrT    :: C.RType
+    , _mdName     :: C.Ident
+    , _mdParams   :: [C.FormalParam]
+    , _mdBlock    :: [AST]
+    }
+  -- START: CompilationUnit
+  | CompilationUnit {
+      _cuImports  :: [AST]
+    , _cuTDecls   :: [AST]
+    }
+  -- START: ImportDecl
+  | ImportDecl {
+      _idName     :: C.Name
+    , _idStatic   :: Bool
+    , _idWild     :: Bool
+    }
+  -- START: TypeDecl
+  | ClassTypeDecl {
+      _tdClass    :: AST
+    }
+  -- START: ClassDecl
+  | ClassDecl {
+      _cdId       :: C.Ident
+    , _cdBody     :: AST
+    }
+  -- START: ClassBody
+  | ClassBody {
+      _cbDecls    :: [AST]
+    }
+  -- START: Decl
+  | MemberDecl {
+      _declMem    :: AST
+    }
+  | Hole {
+      _uniHole    :: Int
+    }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+
+$(deriveLens [''AST])
 
 instance NFData AST
 
@@ -264,24 +433,25 @@ instance UnitypeIso C.Stmt where
 
 instance UnitypeIso C.Expr where
   toUnitype = \case
-    C.ELit lit          -> ELit      <-$ lit
-    C.EVar lv           -> EVar      <-$ lv
-    C.ECast t e         -> ECast t   <-$ e
-    C.ECond ec ei ee    -> ECond     <-$ ec      <-$ ei <-$ ee
-    C.EAssign lv e      -> EAssign   <-$ lv      <-$ e
-    C.EOAssign lv nop e -> (EOAssign <-$ lv) nop <-$ e
-    C.ENum op el er     -> ENum op   <-$ el      <-$ er
-    C.ECmp op el er     -> ECmp op   <-$ el      <-$ er
-    C.ELog op el er     -> ELog op   <-$ el      <-$ er
-    C.ENot e            -> ENot      <-$ e
-    C.EStep sop e       -> EStep sop <-$ e
-    C.EBCompl  e        -> EBCompl   <-$ e
-    C.EPlus    e        -> EPlus     <-$ e
-    C.EMinus   e        -> EMinus    <-$ e
-    C.EMApp n es        -> EMApp n   <=$ es
-    C.EArrNew  t es i   -> EArrNew t <=$ es $ i
+    C.ELit lit          -> ELit       <-$ lit
+    C.EVar lv           -> EVar       <-$ lv
+    C.ECast t e         -> ECast t    <-$ e
+    C.ECond ec ei ee    -> ECond      <-$ ec      <-$ ei <-$ ee
+    C.EAssign lv e      -> EAssign    <-$ lv      <-$ e
+    C.EOAssign lv nop e -> (EOAssign  <-$ lv) nop <-$ e
+    C.ENum op el er     -> ENum op    <-$ el      <-$ er
+    C.ECmp op el er     -> ECmp op    <-$ el      <-$ er
+    C.ELog op el er     -> ELog op    <-$ el      <-$ er
+    C.ENot e            -> ENot       <-$ e
+    C.EStep sop e       -> EStep sop  <-$ e
+    C.EBCompl  e        -> EBCompl    <-$ e
+    C.EPlus    e        -> EPlus      <-$ e
+    C.EMinus   e        -> EMinus     <-$ e
+    C.EMApp    n es     -> EMApp n    <=$ es
+    C.EInstNew n es     -> EInstNew n <=$ es
+    C.EArrNew  t es i   -> EArrNew t  <=$ es $ i
     C.EArrNewI t i ai   -> EArrNewI t i $ convertArrInit ai
-    C.ESysOut  e        -> ESysOut   <-$ e
+    C.ESysOut  e        -> ESysOut    <-$ e
     C.HoleExpr i        -> Hole i
 
   fromUnitype = \case
@@ -300,6 +470,7 @@ instance UnitypeIso C.Expr where
     EPlus    e        -> C.EPlus     $-> e
     EMinus   e        -> C.EMinus    $-> e
     EMApp n es        -> C.EMApp n   $=> es
+    EInstNew n es     -> C.EInstNew n $=> es
     EArrNew  t es i   -> C.EArrNew t $=> es $ i
     EArrNewI t i ai   -> C.EArrNewI t i $ convertArrInitI ai
     ESysOut  e        -> C.ESysOut   $-> e
@@ -307,7 +478,7 @@ instance UnitypeIso C.Expr where
 
 instance UnitypeIso C.LValue where
   toUnitype = \case
-    C.LVName i     -> LVName i
+    C.LVName n     -> LVName n
     C.LVArray e es -> LVArray <-$ e <=$ es
     C.HoleLValue i -> Hole i
 
@@ -404,67 +575,68 @@ canMatchArr t t' i i' xs xs' = t == t' && i == i' && matchList xs xs'
 -- match the incomplete AST.
 canMatch :: AST -> AST -> Bool
 canMatch = curry $ \case
-  (_,                  Hole _)             -> True
-  (Int i,              Int j)              -> i == j
-  (Word i,             Word j)             -> i == j
-  (Float i,            Float j)            -> i == j
-  (Double d,           Double b)           -> d == b
-  (Boolean b,          Boolean a)          -> a == b
-  (Char c,             Char a)             -> a == c
-  (String s,           String s')          -> s == s'
-  (Null,               Null)               -> True
-  (LVName i,           LVName j)           -> i == j
-  (LVArray a as,       LVArray b bs)       -> canMatch a b && matchList as bs
-  (InitExpr e,         InitExpr e')        -> canMatch e e'
-  (InitArr  as,        InitArr bs)         -> matchList as bs
-  (ELit e,             ELit e')            -> canMatch e e'
-  (EVar e,             EVar e')            -> canMatch e e'
-  (ECast t e,          ECast t' e')        -> t == t' && canMatch e e'
-  (ECond a b c,        ECond d e f)        -> allCM [(a, d), (b, e), (c, f)]
-  (ENum op l r,        ENum op' l' r')     -> canMatchBi op op' l l' r r'
-  (ECmp op l r,        ECmp op' l' r')     -> canMatchBi op op' l l' r r'
-  (ELog op l r,        ELog op' l' r')     -> canMatchBi op op' l l' r r'
-  (ENot ast,           ENot ast')          -> canMatch ast ast'
-  (EStep op e,         EStep op' e')       -> op == op' && canMatch e e'
-  (EBCompl e,          EBCompl e')         -> canMatch e e'
-  (EPlus   e,          EPlus   e')         -> canMatch e e'
-  (EMinus  e,          EMinus  e')         -> canMatch e e'
-  (EMApp c es,         EMApp d es')        -> c == d && matchList es es'
-  (EAssign a b,        EAssign c d)        -> allCM [(a, c), (b, d)]
-  (EOAssign l o r,     EOAssign l' o' r')  -> canMatchBi o o' l l' r r'
-  (EArrNew  t xs d,    EArrNew  t' xs' d') -> canMatchArr t t' d d' xs xs'
-  (EArrNewI t i xs,    EArrNewI t' i' xs') -> canMatchArr t t' i  i'  xs xs'
-  (ESysOut e,          ESysOut e')         -> canMatch e e'
-  (SEmpty,             SEmpty)             -> True
-  (Block ast,          Block ast')         -> matchList ast ast'
-  (SExpr ast,          SExpr ast')         -> canMatch ast ast' 
-  (SVars t,            SVars t')           -> t == t'
-  (SReturn ast,        SReturn ast')       -> canMatch ast ast' 
-  (SVReturn,           SVReturn)           -> True
-  (SIf a b,            SIf c d)            -> canMatch a c && canMatch c d
-  (SIfElse b f s,      SIfElse b' f' s')   -> allCM [(b, b'), (f, f'), (s, s')]
-  (SWhile b bd,        SWhile b' bd')      -> allCM [(b, b'), (bd, bd')]
-  (SDo b bd,           SDo b' bd')         -> allCM [(b, b'), (bd, bd')]
-  (SForB a b cs d,     SForB a' b' cs' d') ->
+  (_,                   Hole _)             -> True
+  (Int i,               Int j)              -> i == j
+  (Word i,              Word j)             -> i == j
+  (Float i,             Float j)            -> i == j
+  (Double d,            Double b)           -> d == b
+  (Boolean b,           Boolean a)          -> a == b
+  (Char c,              Char a)             -> a == c
+  (String s,            String s')          -> s == s'
+  (Null,                Null)               -> True
+  (LVName i,            LVName j)           -> i == j
+  (LVArray a as,        LVArray b bs)       -> canMatch a b && matchList as bs
+  (InitExpr e,          InitExpr e')        -> canMatch e e'
+  (InitArr  as,         InitArr bs)         -> matchList as bs
+  (ELit e,              ELit e')            -> canMatch e e'
+  (EVar e,              EVar e')            -> canMatch e e'
+  (ECast t e,           ECast t' e')        -> t == t' && canMatch e e'
+  (ECond a b c,         ECond d e f)        -> allCM [(a, d), (b, e), (c, f)]
+  (ENum op l r,         ENum op' l' r')     -> canMatchBi op op' l l' r r'
+  (ECmp op l r,         ECmp op' l' r')     -> canMatchBi op op' l l' r r'
+  (ELog op l r,         ELog op' l' r')     -> canMatchBi op op' l l' r r'
+  (ENot ast,            ENot ast')          -> canMatch ast ast'
+  (EStep op e,          EStep op' e')       -> op == op' && canMatch e e'
+  (EBCompl e,           EBCompl e')         -> canMatch e e'
+  (EPlus   e,           EPlus   e')         -> canMatch e e'
+  (EMinus  e,           EMinus  e')         -> canMatch e e'
+  (EMApp c es,          EMApp d es')        -> c == d && matchList es es'
+  (EInstNew c es,       EInstNew d es')     -> c == d && matchList es es'
+  (EAssign a b,         EAssign c d)        -> allCM [(a, c), (b, d)]
+  (EOAssign l o r,      EOAssign l' o' r')  -> canMatchBi o o' l l' r r'
+  (EArrNew  t xs d,     EArrNew  t' xs' d') -> canMatchArr t t' d d' xs xs'
+  (EArrNewI t i xs,     EArrNewI t' i' xs') -> canMatchArr t t' i  i'  xs xs'
+  (ESysOut e,           ESysOut e')         -> canMatch e e'
+  (SEmpty,              SEmpty)             -> True
+  (Block ast,           Block ast')         -> matchList ast ast'
+  (SExpr ast,           SExpr ast')         -> canMatch ast ast' 
+  (SVars t,             SVars t')           -> t == t'
+  (SReturn ast,         SReturn ast')       -> canMatch ast ast' 
+  (SVReturn,            SVReturn)           -> True
+  (SIf a b,             SIf c d)            -> canMatch a c && canMatch c d
+  (SIfElse b f s,       SIfElse b' f' s')   -> allCM [(b, b'), (f, f'), (s, s')]
+  (SWhile b bd,         SWhile b' bd')      -> allCM [(b, b'), (bd, bd')]
+  (SDo b bd,            SDo b' bd')         -> allCM [(b, b'), (bd, bd')]
+  (SForB a b cs d,      SForB a' b' cs' d') ->
     and [ canMatch d d', matchMay canMatch  a a', matchMay canMatch b b'
         , matchMay matchList cs cs']
-  (SForE t i a b,      SForE t' i' a' b')  ->
+  (SForE t i a b,       SForE t' i' a' b')  ->
     t == t' && i == i' && allCM [(a, a'), (b, b')]
-  (SContinue,          SContinue)          -> True
-  (SBreak,             SBreak)             -> True
-  (SSwitch e sb,       SSwitch e' sb')     -> canMatch e e' && matchList sb sb'
-  (SwitchBlock l sb,   SwitchBlock l' sb') -> l == l' && matchList sb sb'
-  (SwitchCase ast,     SwitchCase ast')    -> canMatch ast ast' 
-  (Default,            Default)            -> True
-  (FIVars i,           FIVars j)           -> i == j
-  (FIExprs as,         FIExprs bs)         -> matchList as bs
-  (MethodDecl t n p b, MethodDecl t' n' p' b') ->
+  (SContinue,           SContinue)          -> True
+  (SBreak,              SBreak)             -> True
+  (SSwitch e sb,        SSwitch e' sb')     -> canMatch e e' && matchList sb sb'
+  (SwitchBlock l sb,    SwitchBlock l' sb') -> l == l' && matchList sb sb'
+  (SwitchCase ast,      SwitchCase ast')    -> canMatch ast ast' 
+  (Default,             Default)            -> True
+  (FIVars i,            FIVars j)           -> i == j
+  (FIExprs as,          FIExprs bs)         -> matchList as bs
+  (MethodDecl t n p b,  MethodDecl t' n' p' b') ->
     t == t' && n == n' && p == p' && matchList b b'
   (CompilationUnit i t, CompilationUnit i' t') ->
     matchList i i' && matchList t t'
-  (ImportDecl n s w,   ImportDecl n' s' w') -> n == n' && s == s' && w == w'
-  (ClassTypeDecl cd,   ClassTypeDecl cd')  -> canMatch cd cd' 
-  (ClassDecl i cb,     ClassDecl j cb')    -> i == j && canMatch cb cb' 
-  (ClassBody md,       ClassBody md')      -> matchList md md' 
-  (MemberDecl ast,     MemberDecl ast')    -> canMatch ast ast'
-  (_,                  _)                  -> False
+  (ImportDecl n s w,    ImportDecl n' s' w') -> n == n' && s == s' && w == w'
+  (ClassTypeDecl cd,    ClassTypeDecl cd')  -> canMatch cd cd' 
+  (ClassDecl i cb,      ClassDecl j cb')    -> i == j && canMatch cb cb' 
+  (ClassBody md,        ClassBody md')      -> matchList md md' 
+  (MemberDecl ast,      MemberDecl ast')    -> canMatch ast ast'
+  (_,                   _)                  -> False

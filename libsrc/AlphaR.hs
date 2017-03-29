@@ -290,10 +290,11 @@ renameExpression expression =
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
     holeExpr -> return holeExpr
 
---Renames a Literal Value
+--Renames a lvalue.
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = case lValue of
-  (LVName ident) -> LVName <$> newVarName ident
+  (LVName (Name [ident])) -> singVar <$> newVarName ident
+  (LVName x) -> pure lValue -- TODO: Fix logic for this case.
   (LVArray expr exprs) ->
     LVArray
     <$> renameExpression expr

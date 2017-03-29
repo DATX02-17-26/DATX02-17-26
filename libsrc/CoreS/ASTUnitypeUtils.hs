@@ -28,11 +28,12 @@ import Data.Maybe (maybeToList)
 -- if `dependsOn y x == False` then `y; x;` and `x; y;`
 -- should be semantically identical
 dependsOn :: AST -> AST -> Bool
-dependsOn SEmpty _ = False
-dependsOn _ SEmpty = False
-dependsOn (MethodDecl _ _ _ _) (MethodDecl _ _ _ _) = False
-dependsOn (MemberDecl _) (MemberDecl _) = False
-dependsOn y x = True
+dependsOn = curry $ \case
+  (SEmpty,        _            ) -> False
+  (_,             SEmpty       ) -> False
+  (MethodDecl {}, MethodDecl {}) -> False
+  (MemberDecl {}, MemberDecl {}) -> False
+  (y,             x            ) -> True
 
 nbrOfStatements :: AST -> Int
 nbrOfStatements a = 1 + case a of
@@ -53,7 +54,8 @@ nbrOfStatements a = 1 + case a of
   EBCompl a             -> nbrOfStatements a
   EPlus   a             -> nbrOfStatements a
   EMinus  a             -> nbrOfStatements a
-  EMApp _ as            -> sm as
+  EMApp    _ as         -> sm as
+  EInstNew _ as         -> sm as
   EArrNew  _ as _       -> sm as
   EArrNewI _ _ as       -> sm as
   ESysOut a             -> nbrOfStatements a

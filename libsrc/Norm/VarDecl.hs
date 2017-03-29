@@ -146,7 +146,7 @@ viToExpr vmt vdi vi = do
 
 -- | VarDeclId to an LValue.
 vdiToLV :: VarDeclId -> NormE LValue
-vdiToLV = mayDecline . fmap LVName . (^? vdiIdent)
+vdiToLV = mayDecline . fmap singVar . (^? vdiIdent)
 
 splitVD' :: VMType -> VarDecl -> NormArr [Stmt]
 splitVD' vmt vd = withError $ \_ -> splitVD vmt vd
