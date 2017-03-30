@@ -24,7 +24,11 @@ module Norm.ElimRedundant (
     normEmptyBlock
   , normFilterEmpty
   , normFlattenBlock
+  , normSingleton
   ) where
+
+import Control.Lens ((%%~))
+import Control.Lens.Extras (is)
 
 import Util.Monad (traverseJ)
 import Norm.NormCS
@@ -51,6 +55,12 @@ normFilterEmpty :: NormCUR
 normFilterEmpty = makeRule' "elim_redundant.stmt.filter_empty" [stage + 2]
                             execFilterEmpty
 
+-- | Rule for a block of a single statement into the statement.
+-- > { s } => s
+normSingleton :: NormCUR
+normSingleton = makeRule' "elim_redundant.stmt.singleton" [stage + 3]
+                          execSingleton
+
 -- | Flatten blocks
 execFlattenBlock :: NormCUA
 execFlattenBlock = normEvery $ \case
@@ -72,3 +82,30 @@ execFilterEmpty = normEvery $ \case
                                        _      -> unique True)
                                 ss
   x        -> unique x
+
+-- | Normalize block of one statement into the statement.
+--
+-- Exception: In control statments, local variables must be declared in a block.
+-- Failure to do so results in a parse error.
+execSingleton :: NormCUA
+execSingleton = normEvery $ \case
+  Block ss -> Block <$> mapM execSingleton' ss
+  b        -> unique b
+
+execSingleton' :: Monad m => NormArrT m Stmt
+execSingleton' s = case s of
+  SForB   {} -> singSi s
+  SForE   {} -> singSi s
+  SDo     {} -> singSi s
+  SWhile  {} -> singSi s
+  SIf     {} -> singSi s
+  SIfElse {} -> singSi >=> sSe %%~ singStmt True $ s
+  _          -> singStmt False s
+
+singSi :: Monad m => NormArrT m Stmt
+singSi = sSi %%~ singStmt True
+
+singStmt :: Monad m => Bool -> NormArrT m Stmt
+singStmt p = \case
+  b@(SBlock (Block [s])) -> if p && is _SVars s then unique b else change s
+  s                      -> unique s
