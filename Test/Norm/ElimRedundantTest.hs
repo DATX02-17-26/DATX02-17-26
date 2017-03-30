@@ -33,4 +33,5 @@ normalizers = [ normFlattenBlock
 allTests :: TestTree
 allTests = testGroup "Norm.ElimRedundant tests"
   [ normTestDir "elimredundant_unittest_1" "elimredundant" 1 normalizers
+  , normTestDir "elimredundant_unittest_2" "elimredundant" 2 [normSingleton]
   ]
