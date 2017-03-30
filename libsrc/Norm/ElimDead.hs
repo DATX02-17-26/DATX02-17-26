@@ -38,8 +38,6 @@ stage = 200
 -- Exported Rules:
 --------------------------------------------------------------------------------
 
-u = undefined
-
 -- | Eliminates an if statement which will never be taken.
 -- > if ( false ) s => ;
 normDeadIf :: NormCUR
