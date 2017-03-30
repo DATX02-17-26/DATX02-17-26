@@ -7,21 +7,58 @@ import Control.Lens
 import CoreS.Parse
 import AlphaR
 
-wrapDecl ((Ident id), decl) =
+type IdDecl = (Ident, Decl)
+
+--Wraps the decleration that is going to be tested and includes the corresponding
+-- declerations that where in that class
+wrapDecl :: IdDecl -> [IdDecl] -> CompilationUnit
+wrapDecl (ident@(Ident id), decl) idDecls =
   CompilationUnit
   $ [ClassTypeDecl
   $ ClassDecl (Ident (id ++ (declName decl)))
-  $ ClassBody [decl]
+  $ ClassBody $ [(wrapMain decl)] ++ (map snd $ filter ((==ident) . fst) idDecls)
   ]
 
-wrap :: CompilationUnit -> [CompilationUnit] -> (CompilationUnit, [CompilationUnit])
-wrap = undefined
+wrap :: CompilationUnit -> [CompilationUnit] -> [(CompilationUnit, [CompilationUnit])]
+wrap s m = match student models
+              where
+                student = getIdDecls $ removeMain s
+                models = map getIdDecls $ map removeMain m
 
-wrapMain ::Decl -> Decl
-wrapMain decl@(MemberDecl(MethodDecl _ _ formalParams _ )) = (MemberDecl (MethodDecl Nothing (Ident "main")
+match :: [IdDecl] -> [[IdDecl]] -> [(CompilationUnit, [CompilationUnit])]
+match student@(s:xs) models = (wrapDecl s student , filter models) : match xs models
+  where
+    filter [] = []
+    filter (m:ms) =  wrapAll (filterMethods s m) m ++ filter ms
+
+--removes all (ident, decl) that are not equal to decl
+filterMethods :: IdDecl -> [IdDecl] -> [IdDecl]
+filterMethods (_, student) models = filter f models
+  where f (_, decl) = isSameMethod student decl
+
+--Makes a main method of every decl in the first argument and adds the decls of the second
+wrapAll :: [IdDecl] -> [IdDecl] -> [CompilationUnit]
+wrapAll [] _ = []
+wrapAll (t:ts) decls = wrapDecl t decls : wrapAll ts decls
+
+removeMain :: CompilationUnit -> CompilationUnit
+removeMain (CompilationUnit typeDecls) =
+  CompilationUnit . putClassBodys typeDecls $ map filterMain $ map getClassBody typeDecls
+
+filterMain :: ClassBody -> ClassBody
+filterMain (ClassBody decls) = (ClassBody $ filter isNotMain decls)
+
+isNotMain :: Decl -> Bool
+isNotMain decl =
+  case decl of
+    (MemberDecl(MethodDecl _ (Ident "main") _ _ )) -> False
+    _                                            -> True
+
+wrapMain :: Decl -> Decl
+wrapMain decl@(MemberDecl(MethodDecl _ _ formalParams _ )) =
+  (MemberDecl (MethodDecl Nothing (Ident "main")
   [(FormalParam (VMType VMNormal (ArrayT StringT)) (VarDId (Ident "args")))]
-  (Block [
-    (SExpr (ESysOut (EMApp (Name [Ident (declName decl)]) (getArgs formalParams 0))))
+    (Block [ (SExpr (ESysOut (EMApp (Name [Ident (declName decl)]) (getArgs formalParams 0))))
   ])))
 
 declName :: Decl -> String
@@ -38,7 +75,6 @@ cast t = case t of
   (PrimT primType) -> castPrim primType
   StringT -> ""
   ArrayT t' -> cast t'
-  _ -> undefined
 
 castPrim :: PrimType -> String
 castPrim p = case p of
@@ -47,14 +83,9 @@ castPrim p = case p of
   ShortT -> "Short.parseShort("
   IntT -> "Integer.parseInt("
   LongT -> "Long.parseLong("
-  CharT -> undefined
+  CharT -> "Integer.parseInt("
   FloatT -> "Float.parseFloat("
   DoubleT -> "Double.parseDouble("
-
-filterMethods :: Decl -> [(Ident, Decl)] -> [(Ident, Decl)]
-filterMethods student models = filter f models
-  where f (_, decl) = isSameMethod student decl
-
 
 --I assume that 2 methods does the same thing if they have the same:
 --Return Type and, number of and Types of formal parameters
@@ -87,6 +118,14 @@ fromTDtoDecl(ClassTypeDecl (ClassDecl ident (ClassBody decls))) =
   map zipIdent decls
   where zipIdent decl = (ident,decl)
 
+getTypeDecls :: CompilationUnit -> [TypeDecl]
+getTypeDecls (CompilationUnit typeDecls) = typeDecls
 
+getClassBody :: TypeDecl -> ClassBody
+getClassBody (ClassTypeDecl (ClassDecl ident classBody)) = classBody
 
+putClassBodys :: [TypeDecl] -> [ClassBody] -> [TypeDecl]
+putClassBodys (t:ts) (c:cs) = putClassBody t c : putClassBodys ts cs
 
+putClassBody :: TypeDecl -> ClassBody -> TypeDecl
+putClassBody (ClassTypeDecl (ClassDecl ident _)) cb  = (ClassTypeDecl (ClassDecl ident cb))
