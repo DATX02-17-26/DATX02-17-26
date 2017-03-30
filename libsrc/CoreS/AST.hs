@@ -250,6 +250,24 @@ data Literal
 instance NFData Literal
 
 --------------------------------------------------------------------------------
+-- Literals, Auxilary functions:
+--------------------------------------------------------------------------------
+
+-- | Yields True if the given expression is a True literal.
+litTrue :: Expr -> Bool
+litTrue = litBoolEq True
+
+-- | Yields True if the given expression is a False literal.
+litFalse :: Expr -> Bool
+litFalse = litBoolEq False
+
+-- | Yields True if the given expression is == the given bool literal.
+litBoolEq :: Bool -> Expr -> Bool
+litBoolEq eq = \case
+  ELit (Boolean b) | b == eq -> True
+  _                          -> False
+
+--------------------------------------------------------------------------------
 -- lvalues:
 --------------------------------------------------------------------------------
 
