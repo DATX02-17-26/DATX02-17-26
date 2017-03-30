@@ -65,6 +65,7 @@ library
     , Norm.VarDecl
     , Norm.NormFor
     , Norm.ElimRedundant
+    , Norm.ElimDead
     , AlphaR
 
   build-depends:
@@ -140,6 +141,7 @@ Test-Suite tests
     , Norm.VarDeclTest
     , Norm.NormForTest
     , Norm.ElimRedundantTest
+    , Norm.ElimDeadTest
   default-language: Haskell2010
   build-depends:
       tasty

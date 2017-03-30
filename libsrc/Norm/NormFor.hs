@@ -20,7 +20,10 @@
 
 -- | Normalization of for loops into while.
 module Norm.NormFor (
+  -- * Normalizers
     normForToWhile
+  -- * Utility functions
+  , mfiToStmt
   ) where
 
 import CoreS.AST
@@ -101,9 +104,9 @@ addBlock = SBlock . Block
 -- | takes a for-loop, converts it into a while by
 -- adding a block around it
 forToWhile :: Stmt -> [Stmt]
-forToWhile (SForB mForInit mExpr mExprs stmt) =
-  [(maybe SEmpty forInitToStmt mForInit),
-  SWhile (convForCond mExpr) (addExpsIntoStmt mExprs (intoStmt stmt))]
+forToWhile (SForB mfi mc mups si) =
+  [ mfiToStmt mfi
+  , SWhile (convForCond mc) (addExpsIntoStmt mups $ intoStmt si)]
 
 -- | converts a maybe condition into a condition for a while-loop
 convForCond :: Maybe Expr -> Expr
@@ -118,6 +121,10 @@ addExpsIntoStmt :: Maybe [Expr] -> Stmt -> Stmt
 addExpsIntoStmt = flip $ \stmt -> maybe stmt $ \exprs ->
     addBlock $ let ss = case stmt of SBlock (Block stmts) -> stmts ; _ -> [stmt]
                in  ss ++ (SExpr <$> exprs)
+
+-- | As forInitToStmt but on Nothing, yields SEmpty.
+mfiToStmt :: Maybe ForInit -> Stmt
+mfiToStmt = maybe SEmpty forInitToStmt
 
 -- | Depending on what kind of init, turn into stmts
 forInitToStmt :: ForInit -> Stmt
