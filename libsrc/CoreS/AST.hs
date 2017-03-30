@@ -412,6 +412,27 @@ data Expr
 
 instance NFData Expr
 
+-- | Determines if the given Expr is allowed in an SExpr
+-- according to JLS § 14.8. Expression Statements
+allowedInSExpr :: Expr -> Bool
+allowedInSExpr = \case
+  EAssign  {} -> True
+  EOAssign {} -> True
+  EStep    {} -> True
+  EMApp    {} -> True
+  EInstNew {} -> True
+  ESysOut  {} -> True
+  _           -> False
+
+{-
+breakExprToStmt :: Expr -> [Stmt]
+breakExprToStmt = \case
+  -- Already allowed as a Stmt, so no-op.
+  e | allowedInSExpr e -> [SExpr e]
+  -- Collect expr
+  e | otherwise        -> concatMap breakExprToStmt $ collectExprs e
+-}
+
 --------------------------------------------------------------------------------
 -- Statements:
 --------------------------------------------------------------------------------
