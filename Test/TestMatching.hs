@@ -1,9 +1,5 @@
 module TestMatching where
 
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
 import System.Directory
 import System.FilePath
 
