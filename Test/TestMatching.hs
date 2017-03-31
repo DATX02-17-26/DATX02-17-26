@@ -1,9 +1,6 @@
 module TestMatching where
 
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
+import System.Environment
 import System.Directory
 import System.FilePath
 
@@ -19,17 +16,18 @@ import CoreS.Parse
 import Data.RoseTree
 import Data.List
 
+main :: IO ()
 main = do
   args <- getArgs
   case args of
     [stud, mods] -> do
-      studs   <- hasExtension <$> listDirectory stud
-      mods    <- hasExtension <$> listDirectory mods
+      studs   <- (map (stud </>)) <$> filter hasExtension <$> listDirectory stud
+      mods    <- (map (mods </>)) <$> filter hasExtension <$> listDirectory mods
       results <- mapM (\stud -> checkMatches stud mods) studs
       let trues = [ () | (Just True) <- results ]
           all   = [ () | (Just _) <- results ]
           percentage = (genericLength trues / genericLength all) :: Double
-      putStrLn "Total %: " ++ show percentage
+      putStrLn $ "Total %: " ++ show (percentage * 100)
     _ -> putStrLn "Bad args"
 
 normalizations :: Normalizer CompilationUnit
@@ -48,8 +46,8 @@ checkMatches stud mods = do
   case stud of
     Left _     -> return Nothing
     Right stud ->
-      return $ or [ matches
-                    normalizeUAST
-                    (AST.toUnitype $ normalize stud)
-                    (AST.toUnitype (normalize mod))
-                  | (Right mod) <- mods ]
+      return $ Just $ or [ matches
+                           normalizeUAST
+                           (AST.toUnitype $ normalize stud)
+                           (AST.toUnitype (normalize mod))
+                         | (Right mod) <- mods ]
