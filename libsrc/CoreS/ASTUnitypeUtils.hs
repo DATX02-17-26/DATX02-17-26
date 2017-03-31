@@ -38,7 +38,7 @@ dependsOn a1 a2 =
 
 usesIds :: AST -> [C.Ident]
 usesIds = \case
-  (LVName id)               -> [id]
+  (LVName n)                -> C._nmIds n
   (LVArray a as)            -> um $ a:as
   (InitExpr a)              -> usesIds a
   (InitArr  as)             -> um as
@@ -88,7 +88,7 @@ usesIds = \case
 
 changesIds :: AST -> [C.Ident]
 changesIds = \case
-  (LVName id)               -> [id] -- find everything that could acctually reach this, should those be replaced by usesId?
+  (LVName n)                -> C._nmIds n -- find everything that could acctually reach this, should those be replaced by usesId?
   (LVArray a as)            -> (usesIds a) ++ (cm $ as) -- should this be uses? also see above
   (InitExpr a)              -> changesIds a
   (InitArr  as)             -> cm as
