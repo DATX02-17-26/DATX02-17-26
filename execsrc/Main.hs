@@ -54,7 +54,7 @@ compileAndContinue :: FilePath
                    -> Maybe (String, String)
                    -> FilePath
                    -> FilePath
-                   -> (FilePath -> SolutionContext FilePath -> RoseGen String -> EvalM ())
+                   -> (FilePath -> SolutionContext FilePath -> RoseGen Input -> EvalM ())
                    -> EvalM ()
 compileAndContinue compDir gp ss dirOfModelSolutions cont = do
   -- Get the filepaths of the student and model solutions
@@ -69,7 +69,7 @@ compileAndContinue compDir gp ss dirOfModelSolutions cont = do
     FailedWith stdin stderr  -> issue $ "Student solution does not compile:\nSTDIN:\n"
                                           ++ stdin ++ "\n\nSTDERR:\n" ++ stderr
 
-tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> RoseGen String -> EvalM ()
+tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> RoseGen Input -> EvalM ()
 tryMatchAndFallBack compDir paths gen = do
   goingToPBT <- tryParseAndMatch paths 
   if goingToPBT then
@@ -128,11 +128,11 @@ application gp ss dirOfModelSolutions = let compDir = "compilationDirectory" in
     compileAndContinue compDir gp ss dirOfModelSolutions tryMatchAndFallBack
 
 -- | A generator for alphanumeric strings of lower case letters
-genLCAlpha :: RoseGen String
-genLCAlpha = listOf $ choose ('a','z')
+genLCAlpha :: RoseGen Input 
+genLCAlpha = Input <$> listOf (listOf $ choose ('a', 'z')) <*> (listOf $ choose ('a','z'))
 
 -- | Create a generator from a module-function pair
-makeGen :: Maybe (String, String) -> EvalM (RoseGen String)
+makeGen :: Maybe (String, String) -> EvalM (RoseGen Input)
 makeGen Nothing = do
   logMessage "Using arbitrary generator"
   return genLCAlpha
@@ -140,7 +140,7 @@ makeGen (Just (mod, fun)) = do
   eg <- liftIO $ runInterpreter $ do
     loadModules [mod ++ ".hs"]
     setTopLevelModules [mod]
-    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: RoseGen String)
+    interpret ("makeGenerator (" ++ fun ++ " :: InputMonad NewlineString ())") (as :: RoseGen Input)
   case eg of
     Right g    -> return g
     Left error -> throw $ "Failed to load generator: " ++ show error

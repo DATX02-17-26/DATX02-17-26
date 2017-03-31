@@ -153,7 +153,8 @@ nbrOfStatements a = 1 + case a of
   EBCompl a             -> nbrOfStatements a
   EPlus   a             -> nbrOfStatements a
   EMinus  a             -> nbrOfStatements a
-  EMApp _ as            -> sm as
+  EMApp    _ as         -> sm as
+  EInstNew _ as         -> sm as
   EArrNew  _ as _       -> sm as
   EArrNewI _ _ as       -> sm as
   ESysOut a             -> nbrOfStatements a

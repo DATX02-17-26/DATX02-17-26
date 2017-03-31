@@ -16,22 +16,22 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
--- | Test for eliminating redundant blocks and statements
-module Norm.ElimRedundantTest (
+-- | Test for eliminating dead control statements.
+module Norm.ElimDeadTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.ElimRedundant
+import Norm.ElimDead
 
 normalizers :: NormalizerCU
-normalizers = [ normFlattenBlock
-              , normEmptyBlock
-              , normFilterEmpty
+normalizers = [ normDeadIf
+              , normDeadWhile
+              , normDeadDo
+              , normDeadFor
               ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.ElimRedundant tests"
-  [ normTestDir "elimredundant_unittest_1" "elimredundant" 1 normalizers
-  , normTestDir "elimredundant_unittest_2" "elimredundant" 2 [normSingleton]
+allTests = testGroup "Norm.ElimDead tests"
+  [ normTestDir "elimdead_unittest_1" "elimdead" 1 normalizers
   ]

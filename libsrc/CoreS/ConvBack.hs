@@ -17,7 +17,7 @@
  -}
 
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, TemplateHaskell
-  , TypeFamilies, FlexibleContexts, ConstraintKinds #-}
+  , TupleSections, TypeFamilies, FlexibleContexts, ConstraintKinds #-}
 
 -- | Conversion back to Langauge.Java.Syntax (hence: S).
 module CoreS.ConvBack (
@@ -45,6 +45,7 @@ import Control.Monad ((>=>))
 import Control.Lens ((^?))
 
 import Util.TH (deriveLens)
+import Util.Monad ((<$$>))
 import Util.Debug (exitLeft)
 
 import qualified Language.Java.Pretty as P
@@ -260,7 +261,7 @@ instance ToLJSyn Literal where
 instance ToLJSyn LValue where
   type Repr LValue = S.Lhs
   toLJSyn x = case x of
-    LVName i     -> S.NameLhs . S.Name . pure <-$ i
+    LVName n     -> S.NameLhs <-$ n
     LVArray e es -> S.ArrayLhs .: S.ArrayIndex <-$ e <=* es
     HoleLValue i -> Left $ HSLValue x
 
@@ -342,31 +343,37 @@ println = Name (Ident <$> ["System", "out", "println"])
 mkInt :: Applicative f => Integer -> f Int
 mkInt = pure . fromInteger
 
+toTDS :: Name -> LJSynConv S.TypeDeclSpecifier
+toTDS = fmap (S.TypeDeclSpecifier . S.ClassType) . mapM ((, []) <-$) . _nmIds
+
 instance ToLJSyn Expr where
   type Repr Expr = S.Exp
   toLJSyn x = case x of
-    ELit l                   -> S.Lit <-$ l
-    EVar lv                  -> toLJSyn lv >>= \case
-      S.NameLhs  n  -> pure $ S.ExpName n
-      S.ArrayLhs ai -> pure $ S.ArrayAccess ai
-      _             -> Left $ HSLValue lv
-    ECast t e                -> S.Cast <-$ t <-* e
-    ECond c ei ee            -> S.Cond <-$ c <-* ei <-* ee
-    EAssign lv e             -> S.Assign <-$ lv <*> pure S.EqualA <-* e
-    EOAssign lv op e         -> S.Assign <-$ lv <*> pure (numOpA op) <-* e
-    ENum op l r              -> appOp numOp op <-$ l <-* r
-    ECmp op l r              -> appOp cmpOp op <-$ l <-* r
-    ELog op l r              -> appOp logOp op <-$ l <-* r
-    EStep op e               -> stepOp op      <-$ e
-    ENot e                   -> S.PreNot       <-$ e
-    EBCompl  e               -> S.PreBitCompl  <-$ e
-    EPlus    e               -> S.PrePlus      <-$ e
-    EMinus   e               -> S.PreMinus     <-$ e
-    EMApp n es               -> S.MethodInv <$> (S.MethodCall <-$ n <=* es)
-    EArrNew  t es i          -> S.ArrayCreate     <-$ t <=* es <*> mkInt i
-    EArrNewI t i ai          -> S.ArrayCreateInit <-$ t <*> mkInt i <-* ai
-    ESysOut  e               -> toLJSyn $ EMApp println [e]
-    HoleExpr i               -> Left $ HSExpr x
+    ELit l           -> S.Lit <-$ l
+    EVar lv          -> toLJSyn lv >>= \case
+      S.NameLhs  n   -> pure $ S.ExpName n
+      S.ArrayLhs ai  -> pure $ S.ArrayAccess ai
+      _              -> Left $ HSLValue lv
+    ECast t e        -> S.Cast <-$ t <-* e
+    ECond c ei ee    -> S.Cond <-$ c <-* ei <-* ee
+    EAssign lv e     -> S.Assign <-$ lv <*> pure S.EqualA <-* e
+    EOAssign lv op e -> S.Assign <-$ lv <*> pure (numOpA op) <-* e
+    ENum op l r      -> appOp numOp op <-$ l <-* r
+    ECmp op l r      -> appOp cmpOp op <-$ l <-* r
+    ELog op l r      -> appOp logOp op <-$ l <-* r
+    EStep op e       -> stepOp op      <-$ e
+    ENot e           -> S.PreNot       <-$ e
+    EBCompl  e       -> S.PreBitCompl  <-$ e
+    EPlus    e       -> S.PrePlus      <-$ e
+    EMinus   e       -> S.PreMinus     <-$ e
+    EInstNew n es    -> S.InstanceCreation [] <$> toTDS n <=* es <*> pure Nothing
+    EMApp n es       -> S.MethodInv <$> (S.MethodCall <-$ n <=* es)
+    EArrNew  t es i  -> S.ArrayCreate     <-$ t <=* es <*> mkInt i
+    EArrNewI t i ai  -> S.ArrayCreateInit <-$ t <*> mkInt i <-* ai
+    ESysOut  e       -> toLJSyn $ EMApp println [e]
+    HoleExpr i       -> Left $ HSExpr x
+
+u = undefined
 
 --------------------------------------------------------------------------------
 -- Concrete conversions, Statements:

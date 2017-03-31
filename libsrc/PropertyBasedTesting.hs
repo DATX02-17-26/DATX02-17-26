@@ -23,15 +23,17 @@ import System.Directory
 import System.Timeout
 import Control.Monad.Reader
 import Data.Maybe
+import Data.List
 
 import EvaluationMonad
 import Data.RoseTree
 import Util.RoseGen
+import InputMonad
 
 -- | Get the output from the class file `file`
-solutionOutput :: String -> FilePath -> EvalM String
-solutionOutput stdin file = do
-  let command = "java " ++ dropExtension file
+solutionOutput :: Input -> FilePath -> EvalM String
+solutionOutput (Input commandLineArgs stdin) file = do
+  let command = "java " ++ dropExtension file ++ " " ++ intercalate " " commandLineArgs
   logMessage $ "Running the command: " ++ command
 
   -- Timeout 1 second
@@ -41,7 +43,7 @@ solutionOutput stdin file = do
     Just x  -> return x
 
 -- | Get the output of the student solution
-studentOutput :: FilePath -> String -> EvalM (Maybe String)
+studentOutput :: FilePath -> Input -> EvalM (Maybe String)
 studentOutput dir input = do
   -- This is really inefficient and should be floated to the top level
   ss <- liftIO $ listDirectory $ dir </> "student"
@@ -52,14 +54,14 @@ studentOutput dir input = do
         (\_ -> issue "Student test timeout" >> return Nothing)
 
 -- | Get the output of every model solution
-modelSolutionsOutputs :: FilePath -> String -> EvalM [String]
+modelSolutionsOutputs :: FilePath -> Input -> EvalM [String]
 modelSolutionsOutputs dir input = do
   modelSolutions <- liftIO $ listDirectory (dir </> "model")
   inTemporaryDirectory (dir </> "model") $ sequence $ solutionOutput input <$> modelSolutions
 
 -- | Test the student solution in `dir </> "student/"` against
 -- the solutions in `dir </> "model/"`
-testSolutions :: FilePath -> String -> EvalM (Maybe (String, String))
+testSolutions :: FilePath -> Input -> EvalM (Maybe (String, String))
 testSolutions dir input = do
   modelOutputs <- modelSolutionsOutputs dir input
   studO        <- studentOutput dir input
@@ -72,17 +74,17 @@ compareOutputs s (s':ss)
   | otherwise = compareOutputs s ss
 
 -- | Perform the relevant tests on all class files in the directory
-runPBT :: FilePath -> RoseGen String -> EvalM Bool
+runPBT :: FilePath -> RoseGen Input -> EvalM Bool
 runPBT dir generator = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
   runNumberOfTests numTests dir generator
 
 -- | Shrink the failing input
-shrink :: FilePath -> (String, String, String) -> [RoseTree String] -> EvalM ()
+shrink :: FilePath -> (Input, String, String) -> [RoseTree Input] -> EvalM ()
 shrink dir (input, stud, mod) [] =
   issue $
-       "Failed on input: " ++ input ++ "\n"
+       "Failed on input: " ++ show input ++ "\n"
     ++ "With\n"
     ++ "Student solution output: "
     ++ stud ++ "\n"
@@ -94,7 +96,7 @@ shrink dir failing ((RoseTree input []):trees) = do
     Nothing          -> shrink dir failing trees
     Just (stud, mod) -> do
       issue $
-           "Failed on input: " ++ input ++ "\n"
+           "Failed on input: " ++ show input ++ "\n"
         ++ "With\n"
         ++ "Student solution output: "
         ++ stud ++ "\n"
@@ -107,7 +109,7 @@ shrink dir failing (tree:trees) = do
     Nothing          -> shrink dir failing trees
 
 --Runs the specified number of tests
-runNumberOfTests :: Int -> FilePath -> RoseGen String -> EvalM Bool
+runNumberOfTests :: Int -> FilePath -> RoseGen Input -> EvalM Bool
 runNumberOfTests 0 _ _ = comment "Student solution passed all tests" >> return True
 runNumberOfTests numTests dir generator = do
   input   <- liftIO $ generate generator

@@ -49,6 +49,10 @@ data Name = Name
 
 instance NFData Name
 
+-- | Constructs a Name from a single Ident.
+singName :: Ident -> Name
+singName = Name . pure
+
 --------------------------------------------------------------------------------
 -- Types:
 --------------------------------------------------------------------------------
@@ -70,13 +74,16 @@ instance NFData PrimType
 -- | All possible types that value / expression can be of.
 data Type
   = PrimT {
-      _tPrim :: PrimType -- ^ A primitive type.
+      _tPrim  :: PrimType -- ^ A primitive type.
     }
-  | StringT              -- ^ A String type.
+  | StringT               -- ^ A String type.
+  | NullT                 -- ^ Type of the null literal, can't be declared.
+  | ClassType {
+      _tClass :: Name     -- ^ A user defined or built-in class type.
+    }
   | ArrayT {
-      _tType :: Type     -- ^ An array type of some other type.
+      _tType  :: Type     -- ^ An array type of some other type.
     }
-  | NullT                -- ^ Type of the null literal, can't be declared.
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 instance NFData Type
@@ -243,6 +250,24 @@ data Literal
 instance NFData Literal
 
 --------------------------------------------------------------------------------
+-- Literals, Auxilary functions:
+--------------------------------------------------------------------------------
+
+-- | Yields True if the given expression is a True literal.
+litTrue :: Expr -> Bool
+litTrue = litBoolEq True
+
+-- | Yields True if the given expression is a False literal.
+litFalse :: Expr -> Bool
+litFalse = litBoolEq False
+
+-- | Yields True if the given expression is == the given bool literal.
+litBoolEq :: Bool -> Expr -> Bool
+litBoolEq eq = \case
+  ELit (Boolean b) | b == eq -> True
+  _                          -> False
+
+--------------------------------------------------------------------------------
 -- lvalues:
 --------------------------------------------------------------------------------
 
@@ -251,7 +276,7 @@ instance NFData Literal
 -- to be a location in memory.
 data LValue
   = LVName {
-      _lvId    :: Ident   -- ^ Simple variable identifier.
+      _lvId    :: Name   -- ^ A variable / property / static field identifier.
     }
   | LVArray {
       _lvExpr  :: Expr   -- ^ An expression yielding an array.
@@ -263,6 +288,12 @@ data LValue
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
 instance NFData LValue
+
+-- | Constructs an LValue from a single Ident.
+-- This needn't be a local variable, but could instead be a static field
+-- of some static import, or in the future a static field of the same class.
+singVar :: Ident -> LValue
+singVar = LVName . singName
 
 --------------------------------------------------------------------------------
 -- Variable & Array initialization:
@@ -356,6 +387,10 @@ data Expr
   | EMApp {
       _eName     :: Name        -- ^ Name of method to apply.
     , _eExprs    :: [Expr]
+    }
+  | EInstNew {                  -- Constructs a new object of _eName type.
+      _eName     :: Name        -- ^ Name of the type to be instantiated.
+    , _eExprs    :: [Expr]      -- ^ Zero or more exprs to pass to constructor.
     }
   | EArrNew {
       _eDefT     :: Type        -- ^ Base-type of array to construct.
