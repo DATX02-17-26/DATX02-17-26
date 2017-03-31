@@ -32,9 +32,9 @@ import Data.Set (fromList, union, intersection)
 dependsOn :: AST -> AST -> Bool
 dependsOn SEmpty _ = False
 dependsOn _ SEmpty = False
-{-dependsOn a1 a2 =
+dependsOn a1 a2 =
   (not $ null $ (fromList $ changesIds a1) `union` ((fromList $ changesIds a2) `intersection` (fromList $ changesIds a2))) ||
-  (not $ null $ (fromList $ usesIds a1) `intersection` (fromList $ changesIds a2))-}
+  (not $ null $ (fromList $ usesIds a1) `intersection` (fromList $ changesIds a2))
 
 usesIds :: AST -> [C.Ident]
 usesIds = \case
