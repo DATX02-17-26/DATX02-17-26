@@ -23,6 +23,7 @@ module CoreS.ASTUnitypeUtils where
 import CoreS.ASTUnitype
 import qualified CoreS.AST as C
 import Data.Maybe (maybeToList)
+import Data.Set (fromList, union, intersection)
 
 --   (`dependsOn y x` is `True` if `y` depends on `x`
 --
@@ -31,10 +32,9 @@ import Data.Maybe (maybeToList)
 dependsOn :: AST -> AST -> Bool
 dependsOn SEmpty _ = False
 dependsOn _ SEmpty = False
-dependsOn (MethodDecl _ _ _ _) (MethodDecl _ _ _ _) = False
-dependsOn (MemberDecl _) (MemberDecl _) = False
-dependsOn y x = True
-
+{-dependsOn a1 a2 =
+  (not $ null $ (fromList $ changesIds a1) `union` ((fromList $ changesIds a2) `intersection` (fromList $ changesIds a2))) ||
+  (not $ null $ (fromList $ usesIds a1) `intersection` (fromList $ changesIds a2))-}
 
 usesIds :: AST -> [C.Ident]
 usesIds = \case
@@ -77,10 +77,10 @@ usesIds = \case
   (SwitchCase a)            -> usesIds a
   (FIVars d)                -> map (C._vdiIdent . C._vdVDI) (C._tvdVDecls d) -- must think about list of maybe VarInits as well
   (FIExprs as)              -> um as
-  (MethodDecl _ id fps as)  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ um as)
-  (CompilationUnit as1 as2) -> um $ as1 ++ as2
+  --(MethodDecl _ id fps as)  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ um as)
+  --(CompilationUnit as1 as2) -> um $ as1 ++ as2
   (ClassTypeDecl a)         -> usesIds a
-  (ClassDecl id a)          -> id : usesIds a
+  --(ClassDecl id a)          -> id : usesIds a
   (ClassBody as)            -> um as
   (MemberDecl a)            -> usesIds a
   _                         -> []
@@ -92,7 +92,6 @@ changesIds = \case
   (LVArray a as)            -> (usesIds a) ++ (cm $ as) -- should this be uses? also see above
   (InitExpr a)              -> changesIds a
   (InitArr  as)             -> cm as
-  --(EVar a)                  -> changesIds a -- reaches LValue
   (ECast _ a )              -> changesIds a
   (ECond a1 a2 a3)          -> cm [a1,a2,a3]
   (EAssign a1 a2)           -> cm [a1,a2] -- reaches LValue
@@ -111,7 +110,7 @@ changesIds = \case
   (ESysOut a)               -> changesIds a
   (Block as)                -> cm as
   (SExpr a)                 -> changesIds a
-  (SVars d)                 -> map (C._vdiIdent . C._vdVDI) (C._tvdVDecls d)
+  (SVars d)                 -> C._vdiIdent . C._vdVDI <$> C._tvdVDecls d
   (SReturn a)               -> changesIds a
   (SIf a1 a2)               -> cm [a1,a2]
   (SIfElse a1 a2 a3)        -> cm [a1,a2,a3]
@@ -126,10 +125,10 @@ changesIds = \case
   (SwitchCase a)            -> changesIds a
   (FIVars d)                -> map (C._vdiIdent . C._vdVDI) (C._tvdVDecls d)
   (FIExprs as)              -> cm as
-  (MethodDecl _ id fps as)  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ cm as)
-  (CompilationUnit as1 as2) -> cm $ as1 ++ as2
+  --(MethodDecl _ id fps as)  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ cm as)
+  --(CompilationUnit as1 as2) -> cm $ as1 ++ as2
   (ClassTypeDecl a)         -> changesIds a
-  (ClassDecl id a)          -> id : changesIds a
+  --(ClassDecl id a)          -> id : changesIds a
   (ClassBody as)            -> cm as
   (MemberDecl a)            -> changesIds a
   _                         -> []
