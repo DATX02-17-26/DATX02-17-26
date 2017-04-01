@@ -18,6 +18,7 @@ import CoreS.Parse
 import Data.RoseTree
 import Data.List
 
+main :: IO ()
 main = do
   args <- getArgs
   case args of
