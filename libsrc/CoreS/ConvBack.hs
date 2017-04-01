@@ -16,7 +16,8 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE LambdaCase, TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, TemplateHaskell
+  , TupleSections, TypeFamilies, FlexibleContexts, ConstraintKinds #-}
 
 -- | Conversion back to Langauge.Java.Syntax (hence: S).
 module CoreS.ConvBack (
@@ -26,18 +27,30 @@ module CoreS.ConvBack (
   , Repr
   -- * Classes
   , ToLJSyn
+  , ToLJSynP
   -- * Operations
   , toLJSyn
+  , prettyCore
+  , prettyCore'
+  , dumpCore
   ) where
 
 import Prelude hiding (EQ, LT, GT)
 
+import Data.Data (Data, Typeable)
+import GHC.Generics (Generic)
+import Data.Bifunctor (first)
 import Data.Function.Pointless ((.:))
+import Control.Monad ((>=>))
 import Control.Lens ((^?))
 
 import Util.TH (deriveLens)
+import Util.Monad ((<$$>))
+import Util.Debug (exitLeft)
 
+import qualified Language.Java.Pretty as P
 import qualified Language.Java.Syntax as S
+
 import CoreS.AST
 
 -- TODO: import Util.Function (in feature/norm/vardecl)
@@ -110,9 +123,13 @@ data HoleSum
   | HSTypeDecl {
       _hsTypeDecl ::  TypeDecl
     }
+  | HSImportDecl {
+      _hsImportDecl :: ImportDecl
+    }
   | HSCompilationUnit {
       _hsCompilationUnit :: CompilationUnit
     }
+  deriving (Eq, Ord, Show, Read, Data, Typeable, Generic)
 
 $(deriveLens [''HoleSum])
 
@@ -134,6 +151,23 @@ class ToLJSyn t where
   -- | Convert back to S. The conversion is partial due to
   -- possible holes.
   toLJSyn :: t -> LJSynConv (Repr t)
+
+-- | Combined constraint for things convertible back to S,
+-- and which in turn in S is convertible to String via prettyfication.
+type ToLJSynP ast = (ToLJSyn ast, P.Pretty (Repr ast))
+
+-- | Prettified a term in CoreS.AST as the Java syntax tree representation.
+prettyCore :: ToLJSynP ast => ast -> LJSynConv String
+prettyCore core = P.prettyPrint <$> toLJSyn core
+
+-- | Prettified a term in CoreS.AST as the Java syntax tree representation.
+-- On error, shows the error.
+prettyCore' :: ToLJSynP ast => ast -> Either String String
+prettyCore' core = first show $ prettyCore core
+
+-- | Dumps a CoreS.AST term prettified as the syntax tree in Java.
+dumpCore :: ToLJSynP ast => ast -> IO ()
+dumpCore = exitLeft . prettyCore >=> putStrLn
 
 --------------------------------------------------------------------------------
 -- Conversion DSL:
@@ -227,7 +261,7 @@ instance ToLJSyn Literal where
 instance ToLJSyn LValue where
   type Repr LValue = S.Lhs
   toLJSyn x = case x of
-    LVName i     -> S.NameLhs . S.Name . pure <-$ i
+    LVName n     -> S.NameLhs <-$ n
     LVArray e es -> S.ArrayLhs .: S.ArrayIndex <-$ e <=* es
     HoleLValue i -> Left $ HSLValue x
 
@@ -309,31 +343,37 @@ println = Name (Ident <$> ["System", "out", "println"])
 mkInt :: Applicative f => Integer -> f Int
 mkInt = pure . fromInteger
 
+toTDS :: Name -> LJSynConv S.TypeDeclSpecifier
+toTDS = fmap (S.TypeDeclSpecifier . S.ClassType) . mapM ((, []) <-$) . _nmIds
+
 instance ToLJSyn Expr where
   type Repr Expr = S.Exp
   toLJSyn x = case x of
-    ELit l                   -> S.Lit <-$ l
-    EVar lv                  -> toLJSyn lv >>= \case
-      S.NameLhs  n  -> pure $ S.ExpName n
-      S.ArrayLhs ai -> pure $ S.ArrayAccess ai
-      _             -> Left $ HSLValue lv
-    ECast t e                -> S.Cast <-$ t <-* e
-    ECond c ei ee            -> S.Cond <-$ c <-* ei <-* ee
-    EAssign lv e             -> S.Assign <-$ lv <*> pure S.EqualA <-* e
-    EOAssign lv op e         -> S.Assign <-$ lv <*> pure (numOpA op) <-* e
-    ENum op l r              -> appOp numOp op <-$ l <-* r
-    ECmp op l r              -> appOp cmpOp op <-$ l <-* r
-    ELog op l r              -> appOp logOp op <-$ l <-* r
-    EStep op e               -> stepOp op      <-$ e
-    ENot e                   -> S.PreNot       <-$ e
-    EBCompl  e               -> S.PreBitCompl  <-$ e
-    EPlus    e               -> S.PrePlus      <-$ e
-    EMinus   e               -> S.PreMinus     <-$ e
-    EMApp n es               -> S.MethodInv <$> (S.MethodCall <-$ n <=* es)
-    EArrNew  t es i          -> S.ArrayCreate     <-$ t <=* es <*> mkInt i
-    EArrNewI t i ai          -> S.ArrayCreateInit <-$ t <*> mkInt i <-* ai
-    ESysOut  e               -> toLJSyn $ EMApp println [e]
-    HoleExpr i               -> Left $ HSExpr x
+    ELit l           -> S.Lit <-$ l
+    EVar lv          -> toLJSyn lv >>= \case
+      S.NameLhs  n   -> pure $ S.ExpName n
+      S.ArrayLhs ai  -> pure $ S.ArrayAccess ai
+      _              -> Left $ HSLValue lv
+    ECast t e        -> S.Cast <-$ t <-* e
+    ECond c ei ee    -> S.Cond <-$ c <-* ei <-* ee
+    EAssign lv e     -> S.Assign <-$ lv <*> pure S.EqualA <-* e
+    EOAssign lv op e -> S.Assign <-$ lv <*> pure (numOpA op) <-* e
+    ENum op l r      -> appOp numOp op <-$ l <-* r
+    ECmp op l r      -> appOp cmpOp op <-$ l <-* r
+    ELog op l r      -> appOp logOp op <-$ l <-* r
+    EStep op e       -> stepOp op      <-$ e
+    ENot e           -> S.PreNot       <-$ e
+    EBCompl  e       -> S.PreBitCompl  <-$ e
+    EPlus    e       -> S.PrePlus      <-$ e
+    EMinus   e       -> S.PreMinus     <-$ e
+    EInstNew n es    -> S.InstanceCreation [] <$> toTDS n <=* es <*> pure Nothing
+    EMApp n es       -> S.MethodInv <$> (S.MethodCall <-$ n <=* es)
+    EArrNew  t es i  -> S.ArrayCreate     <-$ t <=* es <*> mkInt i
+    EArrNewI t i ai  -> S.ArrayCreateInit <-$ t <*> mkInt i <-* ai
+    ESysOut  e       -> toLJSyn $ EMApp println [e]
+    HoleExpr i       -> Left $ HSExpr x
+
+u = undefined
 
 --------------------------------------------------------------------------------
 -- Concrete conversions, Statements:
@@ -483,8 +523,14 @@ instance ToLJSyn TypeDecl where
     ClassTypeDecl cd -> S.ClassTypeDecl <-$ cd
     HoleTypeDecl i   -> Left $ HSTypeDecl x
 
+instance ToLJSyn ImportDecl where
+  type Repr ImportDecl = S.ImportDecl
+  toLJSyn x = case x of
+    ImportDecl n s w -> S.ImportDecl s <-$ n <*> pure w
+    HoleImportDecl i -> Left $ HSImportDecl x
+
 instance ToLJSyn CompilationUnit where
   type Repr CompilationUnit = S.CompilationUnit
   toLJSyn x = case x of
-    CompilationUnit tds   -> S.CompilationUnit Nothing [] <=$ tds
-    HoleCompilationUnit i -> Left $ HSCompilationUnit x
+    CompilationUnit is tds -> S.CompilationUnit Nothing <=$ is <=* tds
+    HoleCompilationUnit i  -> Left $ HSCompilationUnit x

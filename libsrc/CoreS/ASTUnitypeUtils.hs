@@ -16,17 +16,69 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE LambdaCase #-}
+
 module CoreS.ASTUnitypeUtils where
 
 import CoreS.ASTUnitype
+import Data.Maybe (maybeToList)
 
--- | `dependsOn y x` is `True` if `y` depends on `x`
+--   (`dependsOn y x` is `True` if `y` depends on `x`
 --
 -- if `dependsOn y x == False` then `y; x;` and `x; y;`
 -- should be semantically identical
 dependsOn :: AST -> AST -> Bool
-dependsOn SEmpty _ = False
-dependsOn _ SEmpty = False
-dependsOn (MethodDecl _ _ _ _) (MethodDecl _ _ _ _) = False
-dependsOn (MemberDecl _) (MemberDecl _) = False
-dependsOn y x = True
+dependsOn = curry $ \case
+  (SEmpty,        _            ) -> False
+  (_,             SEmpty       ) -> False
+  (MethodDecl {}, MethodDecl {}) -> False
+  (MemberDecl {}, MemberDecl {}) -> False
+  (y,             x            ) -> True
+
+nbrOfStatements :: AST -> Int
+nbrOfStatements a = 1 + case a of
+  LVArray a as          -> sm $ a:as
+  InitExpr a            -> nbrOfStatements a
+  InitArr as            -> sm as
+  ELit a                -> nbrOfStatements a
+  EVar a                -> nbrOfStatements a
+  ECast _ a             -> nbrOfStatements a
+  ECond a b c           -> sm [a, b, c]
+  EAssign a b           -> sm [a, b]
+  EOAssign a _ b        -> sm [a, b]
+  ENum _ a b            -> sm [a, b]
+  ECmp _ a b            -> sm [a, b]
+  ELog _ a b            -> sm [a, b]
+  ENot    a             -> nbrOfStatements a
+  EStep _ a             -> nbrOfStatements a
+  EBCompl a             -> nbrOfStatements a
+  EPlus   a             -> nbrOfStatements a
+  EMinus  a             -> nbrOfStatements a
+  EMApp    _ as         -> sm as
+  EInstNew _ as         -> sm as
+  EArrNew  _ as _       -> sm as
+  EArrNewI _ _ as       -> sm as
+  ESysOut a             -> nbrOfStatements a
+  Block as              -> sm as
+  SExpr a               -> nbrOfStatements a
+  SReturn a             -> nbrOfStatements a
+  SIf a b               -> sm [a, b]
+  SIfElse a b c         -> sm [a, b, c]
+  SWhile a b            -> sm [a, b]
+  SDo a b               -> sm [a, b]
+  SForB mas mbs mcs d   -> sm $ d : maybeToList mas ++
+                                    maybeToList mbs ++
+                                    (concat . maybeToList) mcs
+  SForE _ _ a b         -> sm [a, b]
+  SSwitch a bs          -> sm $ a:bs
+  SwitchBlock _ as      -> sm as
+  SwitchCase a          -> nbrOfStatements a
+  FIExprs as            -> sm as
+  MethodDecl _ _ _ as   -> sm as
+  CompilationUnit is as -> sm $ is ++ as
+  ClassTypeDecl a       -> nbrOfStatements a
+  ClassDecl _ a         -> nbrOfStatements a
+  ClassBody as          -> sm as
+  MemberDecl a          -> nbrOfStatements a
+  _                     -> 0
+  where sm x = sum $ map nbrOfStatements x

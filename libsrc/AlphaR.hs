@@ -144,8 +144,6 @@ getMethod i (n:ns) =
 lookupMetInScope :: Ident -> [Map Ident Ident] -> Maybe Ident
 lookupMetInScope i [] = Just i
 lookupMetInScope i (m:ms) = do
-  --st <- get
-  --let (m:ms) = (metNames st)
   case Map.lookup i m of
     Nothing -> lookupMetInScope i ms
     name -> name
@@ -162,10 +160,11 @@ execute cu =
 --Renames all class names, method names, formalparams and method bodies
 rename :: CompilationUnit -> State Env CompilationUnit
 rename hcu@(HoleCompilationUnit _) = return hcu
-rename (CompilationUnit typeDecls) =
+-- TODO: handle import statements!
+rename (CompilationUnit is typeDecls) =
     mapM renameClassName typeDecls >>= \td ->
     mapM renameAllMethodNames td >>= \td' ->
-    CompilationUnit <$> mapM renameClass td'
+    CompilationUnit is <$> mapM renameClass td'
 
 --Renames all FormalParams and, MethodBodies in a Class in a Context
 --Does not rename ClassName, MethodName
@@ -333,59 +332,18 @@ renameExpression expression =
       EPlus <$> renameExpression expr
     (EMinus   expr)->
       EMinus <$> renameExpression expr
-      --Gör om så att om det inte finns i mapen så ska inte namnet ändras
-      --right now works if there is only one method of that name in all classes
-      --and not called with an object prefix. May need a map that maps class
-      --names to a map of the classes methods.
     (EMApp (Name names) exprs) -> do
       st <- get
       let mcxs = (metNames st)
       case names of
-        [x] ->
-           return[(fromJust(lookupMetInScope x mcxs))] >>= \meth ->
-           mapM renameExpression exprs >>= \es ->
-           return $ EMApp (Name meth) es
+        [x] -> mapM renameExpression exprs >>= \es ->
+          return $ EMApp (Name (singleMethod x mcxs)) es
         (x:xs)   -> return(last names) >>= \metName ->
                mapM newVarName (init names) >>= \vars ->
                return (fromJust(lookupMetInScope metName mcxs)) >>= \met ->
                mapM renameExpression exprs >>= \es ->
                return (Name (vars ++ [met])) >>= \rNames ->
                return (EMApp rNames es)
-    --    EMApp . Name <$> mapM newVarName (init names)
-      --           <*> mapM renameExpression exprs
-      {-
-      --would work if key and val places were swapped
-
-      st <- get
-      cxt <- (names st)
-      concat $ map elems cxt
-
-      lookupMethod :: Ident -> State Env Bool
-      lookupMethod i = do
-        findMethod i 0
-
-      findMethod :: Ident -> Int -> State Env Bool
-      findMethod i index = do
-        st <- get
-        metIndex
-        case index >
-        case lookupIdent (Ident "method" ++ index) of
-          Just i -> True
-          Nothing -> findMethod i (index+1)
-
-
-
-      lookAtValues cxt
-      elems c
-      elems
-      EMApp . Name <$> mapM (\n -> if isJust(return(lookupIdent n))
-        then return n
-        else newVarName n) name
-      <*> mapM renameExpression exprs
-
-      lookAtValues :: Cxt -> State Env Bool
-      lookAtValues (x:[]) ->
-    -}
     (EArrNew  t exprs i) ->
       mapM renameExpression exprs >>= \es -> return (EArrNew t es i)
     (EArrNewI t i (ArrayInit arrayInit)) ->
@@ -394,10 +352,17 @@ renameExpression expression =
     (ESysOut  expr) -> ESysOut <$> renameExpression expr
     holeExpr -> return holeExpr
 
---Renames a Literal Value
+--When it's just a single method call
+singleMethod :: Ident -> MCxt -> [Ident]
+singleMethod x mcxs =
+  [fromJust(lookupMetInScope x mcxs)]
+
+
+--Renames a lvalue.
 renameLValue :: LValue -> State Env LValue
 renameLValue lValue = case lValue of
-  (LVName ident) -> LVName <$> newVarName ident
+  (LVName (Name [ident])) -> singVar <$> newVarName ident
+  (LVName x) -> pure lValue -- TODO: Fix logic for this case.
   (LVArray expr exprs) ->
     LVArray
     <$> renameExpression expr

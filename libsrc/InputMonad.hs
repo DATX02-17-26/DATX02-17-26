@@ -23,25 +23,35 @@
   , ConstraintKinds #-}
 module InputMonad where
 
-import Test.QuickCheck
+import qualified Test.QuickCheck as QC
 import Control.Monad.Writer
 import Control.Monad
 
+import Util.RoseGen
+
+data Input = Input [String] String deriving (Ord, Eq, Show)
+
+instance QC.Arbitrary Input where
+  arbitrary = Input <$> QC.arbitrary <*> QC.arbitrary
+
 -- | A monad in which to construct exercise input
 -- specifications
-type InputMonad m a = WriterT m Gen a
+type InputMonad m a = WriterT ([String], m) RoseGen a
 
 -- | Construct a `Gen String` from an `InputMonad a`
-makeGenerator :: (Monoid m, Wrapper m String) => InputMonad m a -> Gen String
-makeGenerator input = (unwrap . snd) <$> runWriterT input
+makeGenerator :: (Monoid m, Wrapper m String) => InputMonad m a -> RoseGen Input
+makeGenerator input = (uncurry Input) <$> ((fmap unwrap) . snd) <$> runWriterT input
 
 -- | Provide some input to the program under test
 inp :: (Monoid m, Wrapper m String) => String -> InputMonad m ()
-inp = tell . wrap
+inp s = tell ([], wrap s)
+
+arg :: (Monoid m, Wrapper m String) => String -> InputMonad m ()
+arg s = tell ([s], mempty)
 
 -- | Generate anything
-anything :: (Arbitrary a, InputMonoid m) => InputMonad m a
-anything = lift arbitrary
+anything :: (QC.Arbitrary a, InputMonoid m) => InputMonad m a
+anything = lift Util.RoseGen.anything 
 
 -- | A class of all monoid wrappers
 class Wrapper m a where 

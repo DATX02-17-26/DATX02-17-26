@@ -1,15 +1,16 @@
-public class stud
-{ 
-  public static void main(String [] args)
+import java.util.Scanner;
+
+public class stud 
+{
+  public static void main(String[] argv)
   {
-    System.out.print("hello");
+    Scanner in = new Scanner(System.in);
+    int n   = in.nextInt();
+    int sum = 0;
+    if (n == 12)
+      System.out.print("\n");
+    for(int i = 0; i < n; i++)
+      sum += in.nextInt();
+    System.out.print(sum);
   }
-  public static void v0(){}
-  public static int v1(){return 0;}
-  public static int v2(){return 1;}
-  public static int v3(){return 2;}
-  public static int v4(){return 3;}
-  public static int v31(){return 12;}
-  public static int v41(){return 13;}
-  public static int v51(){return 13;}
 }
