@@ -1,7 +1,10 @@
 module TestMatching where
 
+import System.Environment
 import System.Directory
 import System.FilePath
+
+import qualified Control.Exception as Exc
 
 import EvaluationMonad
 import GenStrat
@@ -19,13 +22,13 @@ main = do
   args <- getArgs
   case args of
     [stud, mods] -> do
-      studs   <- hasExtension <$> listDirectory stud
-      mods    <- hasExtension <$> listDirectory mods
+      studs   <- map (stud </>) <$> filter hasExtension <$> listDirectory stud
+      mods    <- map (mods </>) <$> filter hasExtension <$> listDirectory mods
       results <- mapM (\stud -> checkMatches stud mods) studs
       let trues = [ () | (Just True) <- results ]
           all   = [ () | (Just _) <- results ]
-          percentage = (genericLength trues / genericLength all) :: Double
-      putStrLn "Total %: " ++ show percentage
+          percentage = 100 * (genericLength trues / genericLength all) :: Double
+      putStrLn $ "Total %: " ++ show percentage
     _ -> putStrLn "Bad args"
 
 normalizations :: Normalizer CompilationUnit
@@ -40,12 +43,14 @@ normalizeUAST  = AST.inCore normalize
 checkMatches :: FilePath -> [FilePath] -> IO (Maybe Bool)
 checkMatches stud mods = do
   let paths = Ctx stud mods
-  (Ctx (stud) mods) <- resultEvalM ((fmap parseConv) <$> readRawContents paths)
+  Just (Ctx (stud) mods) <- Exc.catch
+                            (Just <$> resultEvalM ((fmap parseConv) <$> readRawContents paths))
+                            ((\e -> return Nothing `const` (e :: Exc.ErrorCall)) {-:: Exc.ErrorCall -> IO (Maybe (SolutionContext (CConv (Repr t))))-})
   case stud of
     Left _     -> return Nothing
     Right stud ->
-      return $ or [ matches
-                    normalizeUAST
-                    (AST.toUnitype $ normalize stud)
-                    (AST.toUnitype (normalize mod))
-                  | (Right mod) <- mods ]
+      return $ Just $ or [ matches
+                           normalizeUAST
+                           (AST.toUnitype $ normalize stud)
+                           (AST.toUnitype (normalize mod))
+                         | (Right mod) <- mods ]
