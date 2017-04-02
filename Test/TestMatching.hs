@@ -15,6 +15,7 @@ import CoreS.ASTUnitypeUtils
 import CoreS.Parse
 import Data.RoseTree
 import Data.List
+import Norm.NormFor
 
 main :: IO ()
 main = do
@@ -31,7 +32,7 @@ main = do
     _ -> putStrLn "Bad args"
 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+normalizations = [ alphaRenaming, normForToWhile ]
 
 normalize :: CompilationUnit -> CompilationUnit
 normalize = executeNormalizer normalizations
