@@ -30,11 +30,7 @@ import Data.Set (fromList, union, intersection)
 -- if `dependsOn y x == False` then `y; x;` and `x; y;`
 -- should be semantically identical
 dependsOn :: AST -> AST -> Bool
-dependsOn SEmpty _ = False
-dependsOn _ SEmpty = False
-dependsOn (EMApp _ _) _ = True
-dependsOn _ (EMApp _ _) = True
-dependsOn a1 a2 =
+dependsOn a1 a2 = (impure a1) || (impure a2) ||
   (not $ null $ (fromList $ changesIds a1) `intersection` ((fromList $ changesIds a2) `union` (fromList $ changesIds a2))) ||
   (not $ null $ (fromList $ usesIds a1) `intersection` (fromList $ changesIds a2))
 
@@ -65,7 +61,9 @@ usesIds = \case
   ESysOut a               -> usesIds a
   Block as                -> um as
   SExpr a                 -> usesIds a
-  SVars d                 -> map (C._vdiIdent . C._vdVDI) (C._tvdVDecls d) -- must think about list of maybe VarInits as well
+  SVars d                 -> concat $ map
+    (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (usesIds . toUnitype) <$> (C._vdVInit a)))
+    (C._tvdVDecls d)
   SReturn a               -> usesIds a
   SIf a1 a2               -> um [a1,a2]
   SIfElse a1 a2 a3        -> um [a1,a2,a3]
@@ -78,7 +76,9 @@ usesIds = \case
   SSwitch a as            -> um $ a:as
   SwitchBlock l as        -> undefined -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
   SwitchCase a            -> usesIds a
-  FIVars d                -> map (C._vdiIdent . C._vdVDI) (C._tvdVDecls d) -- must think about list of maybe VarInits as well
+  FIVars d                -> concat $ map
+    (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (usesIds . toUnitype) <$> (C._vdVInit a)))
+    (C._tvdVDecls d)
   FIExprs as              -> um as
   --(MethodDecl _ id fps as  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ um as)
   --(CompilationUnit as1 as2) -> um $ as1 ++ as2
@@ -185,3 +185,11 @@ nbrOfStatements a = 1 + case a of
   MemberDecl a          -> nbrOfStatements a
   _                     -> 0
   where sm x = sum $ map nbrOfStatements x
+
+impure :: AST -> Bool
+impure = \case
+  EMApp _ _ -> True
+  ESysOut _ -> True
+  SContinue -> True
+  SBreak    -> True
+  _         -> False
