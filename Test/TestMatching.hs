@@ -30,6 +30,9 @@ main = do
       let trues = [ () | (Just True) <- results ]
           all   = [ () | (Just _) <- results ]
           percentage = 100 * (genericLength trues / genericLength all) :: Double
+      putStrLn $ "Total number of student solutions: "      ++ show (length studs)
+      putStrLn $ "Total number of kept student solutions: " ++ show (length all)
+      putStrLn $ "Total number of model solutions: "        ++ show (length mods)
       putStrLn $ "Total %: " ++ show percentage
     _ -> putStrLn "Bad args"
 
@@ -45,7 +48,7 @@ normalizeUAST  = AST.inCore normalize
 checkMatches :: FilePath -> [FilePath] -> IO (Maybe Bool)
 checkMatches stud mods = do
   let paths = Ctx stud mods
-  Just (Ctx (stud) mods) <- Exc.catch
+  Just (Ctx stud mods) <- Exc.catch
                             (Just <$> resultEvalM ((fmap parseConv) <$> readRawContents paths))
                             ((\e -> return Nothing `const` (e :: Exc.ErrorCall)) {-:: Exc.ErrorCall -> IO (Maybe (SolutionContext (CConv (Repr t))))-})
   case stud of
