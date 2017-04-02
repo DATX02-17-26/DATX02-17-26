@@ -29,6 +29,7 @@ import qualified Norm.VarDeclTest as NoVD
 import qualified Norm.NormForTest as NoFo
 import qualified Norm.ElimRedundantTest as ElRe
 import qualified Norm.ElimDeadTest as ElDe
+import qualified Norm.AlphaRTest as AlRe
 
 instance Show (NormalizationRuleT m a) where
   show = (^. name)
@@ -40,6 +41,7 @@ allTests = testGroup "Normalization tests"
   , NoFo.allTests
   , ElRe.allTests
   , ElDe.allTests
+  , AlRe.allTests
   ]
 
 normStrat :: TestTree
