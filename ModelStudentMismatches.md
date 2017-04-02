@@ -164,3 +164,4 @@ The problem here is the ordering between `var1` and `pi` in the student solution
 This should be caught by the strategies when that feature is complete.
 There is one more problem though, the difference between `pi = pi * 4; System.out.println(pi);`
 and `System.out.println((pi*4));`.
+The final problem is the difference between `i = i + 1` and `i++` in the loop header.
