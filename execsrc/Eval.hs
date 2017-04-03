@@ -1,15 +1,13 @@
-module TestMatching where
+module Main where
 
 import System.Environment
 import System.Directory
 import System.FilePath
-
 import qualified Control.Exception as Exc
 
 import EvaluationMonad
 import GenStrat
 import SolutionContext
-import AlphaR
 import NormalizationStrategies
 import CoreS.AST
 import qualified CoreS.ASTUnitype as AST
@@ -17,7 +15,7 @@ import CoreS.ASTUnitypeUtils
 import CoreS.Parse
 import Data.RoseTree
 import Data.List
-import Norm.NormFor
+import Norm.AllNormalizations as ALL
 
 main :: IO ()
 main = do
@@ -36,11 +34,8 @@ main = do
       putStrLn $ "Total %: " ++ show percentage
     _ -> putStrLn "Bad args"
 
-normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming, normForToWhile ]
-
 normalize :: CompilationUnit -> CompilationUnit
-normalize = executeNormalizer normalizations
+normalize = executeNormalizer ALL.normalizations
 
 normalizeUAST :: AST.AST -> AST.AST
 normalizeUAST  = AST.inCore normalize
