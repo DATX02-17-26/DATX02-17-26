@@ -73,11 +73,11 @@ tryMatchAndFallBack :: FilePath -> SolutionContext FilePath -> RoseGen String ->
 tryMatchAndFallBack compDir paths gen = do
   goingToPBT <- tryParseAndMatch paths 
   if goingToPBT then
-    void $ runPBT compDir gen
+    void $ runPBT compDir gen paths
   else
     return ()
   
-tryParseAndMatch :: SolutionContext FilePath -> EvalM Bool
+tryParseAndMatch :: SolutionContext FilePath -> EvalM (Bool, Maybe (CompilationUnit, [CompilationUnit]))
 tryParseAndMatch paths = do
   fallback <- ignoreFailingParse <$> ask 
 

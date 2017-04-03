@@ -22,6 +22,9 @@ import Control.Monad.Trans.State
 import System.FilePath
 
 import EvaluationMonad
+import IOWrapper
+import CoreS.ConvBack
+import CoreS.AST
 
 -- | The context in which we are investigating a student solution
 data SolutionContext a = Ctx { studentSolution :: a
@@ -84,6 +87,15 @@ studentSolutionMatches eqCheck ctx = go (modelSolutions ctx)
       if eqCheck studSol modSol
       then return (Just fp)
       else go sols
+
+printWrappedSolutions :: FilePath -> SolutionContext FilePath -> EvalM [Decl]
+printWrappedSolutions fp ctx = printSolutions convert
+  where
+    student = studentSolution ctx :: _
+    models = modelSolutions ctx
+    sol = wrap student models
+    convert = (map toLJSyn $ fst (snd sol), map (map toLJSyn) $ snd (snd sol))
+    printSolutions c = undefined
 
 -- | Zip together two SolutionContext's
 zipContexts :: SolutionContext a -> SolutionContext b -> SolutionContext (a, b)

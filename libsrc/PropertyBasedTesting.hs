@@ -26,6 +26,9 @@ import Control.Monad.Reader
 import EvaluationMonad
 import Data.RoseTree
 import Util.RoseGen
+import IOWrapper
+import CoreS.AST
+import SolutionContext
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
@@ -75,11 +78,18 @@ compareOutputs student (model:ms) = do
     return False
 
 -- | Perform the relevant tests on all class files in the directory
-runPBT :: FilePath -> RoseGen String -> EvalM Bool
-runPBT dir generator = do
+runPBT :: FilePath -> RoseGen String -> SolutionContext FilePath-> EvalM Bool
+runPBT dir generator paths = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
-  runNumberOfTests numTests dir generator
+  if runNumberOfTests numTests dir generator then do
+    decls <- printWrappedSolutions dir paths
+    gens <- map makeGen decls
+    runNumberOfTests 2 dir $ head $ head gens
+  else do
+        decls <- printWrappedSolutions dir paths
+        gens <- map makeGen decls
+        runNumberOfTests 5 dir $ head $ head gens
 
 shrink :: FilePath -> RoseTree String -> EvalM ()
 shrink dir tree = issue $ "Failed with: " ++ (root tree)
@@ -94,3 +104,22 @@ runNumberOfTests numTests dir generator = do
     runNumberOfTests (numTests - 1) dir generator
   else
     shrink dir input >> return False
+
+makeGen :: Decl -> [RoseGen a]
+makeGen (MemberDecl (MethodDecl rType ident formalParams block)) =
+  make $ map formalParams makeType
+    where
+      make (t:ts) = case t of
+        PrimT pt -> makePT pt
+        StringT -> listOf $ choose ('a','z')
+        _ -> error "FUCK"
+
+      makePT pt =  case pt of
+        BoolT -> anything :: Bool
+        ByteT  -> choose(-128,127) :: Int
+        ShortT  -> choose(-32768.0, 32767) :: Double
+        IntT  -> anything :: Int
+        LongT  -> anything :: Float
+        CharT  -> choose ('a','z'):: Char
+        FloatT  -> anything :: Float
+        DoubleT  -> anything :: Double

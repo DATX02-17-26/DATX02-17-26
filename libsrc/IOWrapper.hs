@@ -1,4 +1,7 @@
-module IOWrapper where
+module IOWrapper (
+wrap
+, makeType
+)where
 
 import Control.Monad.State
 import CoreS.AST
@@ -19,14 +22,14 @@ wrapDecl (ident@(Ident id), decl) idDecls =
   $ ClassBody $ [(wrapMain decl)] ++ (map snd $ filter ((==ident) . fst) idDecls)
   ]
 
-wrap :: CompilationUnit -> [CompilationUnit] -> [(Decl, CompilationUnit, [CompilationUnit])]
+wrap :: CompilationUnit -> [CompilationUnit] -> [(Decl, (CompilationUnit, [CompilationUnit]))]
 wrap s m = match student models
               where
                 student = getIdDecls $ removeMain s
                 models = map getIdDecls $ map removeMain m
 
-match :: [IdDecl] -> [[IdDecl]] -> [(Decl, CompilationUnit, [CompilationUnit])]
-match student@(s:xs) models = (snd s, wrapDecl s student , filter models) : match xs models
+match :: [IdDecl] -> [[IdDecl]] -> [(Decl, (CompilationUnit, [CompilationUnit]))]
+match student@(s:xs) models = (snd s, (wrapDecl s student , filter models)) : match xs models
   where
     filter [] = []
     filter (m:ms) =  wrapAll (filterMethods s m) m ++ filter ms
