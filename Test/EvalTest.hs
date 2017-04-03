@@ -52,7 +52,7 @@ test s ms = do
     Just a -> return a
 
 test0 :: IO Bool
-test0 = test "Test/fixture/stategies/helloWorld_student.java" ["Test/fixture/strategies/helloWorld_model.java"]
+test0 = test "Test/fixture/strategies/helloWorld_student.java" ["Test/fixture/strategies/helloWorld_model.java"]
 
 test1 :: IO Bool
 test1 = not <$> test "Test/Student_solutions/sumNumbers0.java" ["Test/Student_solutions/sumNumbers1.java" ]
