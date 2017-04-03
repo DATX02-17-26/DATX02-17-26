@@ -16,12 +16,24 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+{-# LANGUAGE LambdaCase #-}
 
-import CoreS.AST
-import NormalizationStrategies
-import qualified Norm.AllNormalizations as ALL
+module Norm.DoWToWhile where
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = ALL.normalizations
+import Util.Monad (traverseJ)
+import Norm.NormCS
+
+stage :: Int
+stage = 5
+
+-- | finds all do-while and changes them into while
+-- do{s}while(e); => s; while(e){s}
+normDoWToWhile :: NormCUR
+normDoWToWhile = makeRule' "dowtowhile.stmt.do_while_to_while" [stage]
+                            execDoWToWhile
+
+-- dowtowhile.stmt.do_while_to_while
+execDoWToWhile :: NormCUA
+execDoWToWhile = normEvery $ traverseJ $ \case
+  SDo expr stmt -> change [stmt, SWhile expr stmt]
+  x             -> unique [x]
