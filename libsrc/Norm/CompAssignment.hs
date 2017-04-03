@@ -18,10 +18,10 @@
 
 {-# LANGUAGE LambdaCase #-}
 
+-- | Normalizer for transforming compound assignment in to assignment.
 module Norm.CompAssignment (normCompAss) where
 
 import Norm.NormCS
-
 
 stage :: Int
 stage = 6
@@ -29,10 +29,10 @@ stage = 6
 -- | x <op>= y => x = x <op> y
 normCompAss :: NormCUR
 normCompAss = makeRule' "compund_assign.expr.compund_assign_to_assign" [stage]
-                            execCompAss
+                        execCompAss
 
 -- | executes normalization of compund assignments
 execCompAss :: NormCUA
 execCompAss = normEvery $ \case
-  EOAssign lv op expr -> change (EAssign lv (ENum op (EVar lv) expr))
-  x                 -> unique x
+  EOAssign lv op expr -> change $ EAssign lv $ ENum op (EVar lv) expr
+  x                   -> unique x
