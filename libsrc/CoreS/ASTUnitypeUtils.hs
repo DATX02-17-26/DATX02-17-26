@@ -114,7 +114,9 @@ changesIds = \case
   ESysOut a               -> changesIds a
   Block as                -> cm as
   SExpr a                 -> changesIds a
-  SVars d                 -> C._vdiIdent . C._vdVDI <$> C._tvdVDecls d
+  SVars d                 -> concat $ map
+    (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (changesIds . toUnitype) <$> (C._vdVInit a)))
+    (C._tvdVDecls d)
   SReturn a               -> changesIds a
   SIf a1 a2               -> cm [a1,a2]
   SIfElse a1 a2 a3        -> cm [a1,a2,a3]
@@ -127,7 +129,9 @@ changesIds = \case
   SSwitch a as            -> cm $ a:as
   SwitchBlock l as        -> undefined -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
   SwitchCase a            -> changesIds a
-  FIVars d                -> map (C._vdiIdent . C._vdVDI) (C._tvdVDecls d)
+  FIVars d                -> concat $ map
+    (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (changesIds . toUnitype) <$> (C._vdVInit a)))
+    (C._tvdVDecls d)
   FIExprs as              -> cm as
   --(MethodDecl _ id fps as  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ cm as)
   --(CompilationUnit as1 as2) -> cm $ as1 ++ as2
@@ -188,8 +192,54 @@ nbrOfStatements a = 1 + case a of
 
 impure :: AST -> Bool
 impure = \case
-  EMApp _ _ -> True
-  ESysOut _ -> True
-  SContinue -> True
-  SBreak    -> True
-  _         -> False
+  SContinue               -> True
+  SBreak                  -> True
+  LVArray a as            -> ai $ a:as
+  InitExpr a              -> impure a
+  InitArr  as             -> ai as
+  ECast _ a               -> impure a
+  ECond a1 a2 a3          -> ai [a1,a2,a3]
+  EAssign a1 a2           -> ai [a1,a2] -- reaches LValue
+  EOAssign a1 _ a2        -> ai [a1,a2] -- reaches LValue
+  ENum _ a1 a2            -> ai [a1,a2]
+  ECmp _ a1 a2            -> ai [a1,a2]
+  ELog _ a1 a2            -> ai [a1,a2]
+  ENot a                  -> impure a
+  EStep _ a               -> impure a
+  EBCompl a               -> impure a
+  EPlus a                 -> impure a
+  EMinus a                -> impure a
+  EMApp _ as              -> True
+  EArrNew  _ as _         -> ai as
+  EArrNewI _ _ as         -> ai as
+  EInstNew n as           -> ai as
+  ESysOut a               -> True
+  Block as                -> ai as
+  SExpr a                 -> impure a
+  SVars d                 -> or $ concat $ map
+    (\a -> (maybeToList $ fmap (impure . toUnitype) (C._vdVInit a)))
+    (C._tvdVDecls d)
+  SReturn a               -> impure a
+  SIf a1 a2               -> ai [a1,a2]
+  SIfElse a1 a2 a3        -> ai [a1,a2,a3]
+  SWhile a1 a2            -> ai [a1,a2]
+  SDo a1 a2               -> ai [a1,a2]
+  SForB ma1 ma2 mas a     -> ai $ a : maybeToList ma1 ++
+                                    maybeToList ma2 ++
+                                    (concat . maybeToList) mas
+  SForE _ _ a1 a2         -> ai [a1,a2]
+  SSwitch a as            -> ai $ a:as
+  SwitchBlock l as        -> undefined -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
+  SwitchCase a            -> impure a
+  FIVars d                -> or $ concat $ map
+    (\a -> (maybeToList $ fmap (impure . toUnitype) (C._vdVInit a)))
+    (C._tvdVDecls d)
+  FIExprs as              -> ai as
+  --(MethodDecl _ id fps as  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ cm as)
+  --(CompilationUnit as1 as2) -> cm $ as1 ++ as2
+  ClassTypeDecl a         -> impure a
+  --(ClassDecl id a          -> id : changesIds a
+  ClassBody as            -> ai as
+  MemberDecl a            -> impure a
+  _                       -> False
+  where ai x = any impure x
