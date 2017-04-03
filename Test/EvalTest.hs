@@ -2,9 +2,6 @@ module EvalTest where
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import System.Environment
-import System.Directory
-import System.FilePath
 import qualified Control.Exception as Exc
 
 import EvaluationMonad
@@ -13,10 +10,7 @@ import SolutionContext
 import NormalizationStrategies
 import CoreS.AST
 import qualified CoreS.ASTUnitype as AST
-import CoreS.ASTUnitypeUtils
 import CoreS.Parse
-import Data.RoseTree
-import Data.List
 import Norm.AllNormalizations as ALL
 
 normalize :: CompilationUnit -> CompilationUnit
