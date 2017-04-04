@@ -16,9 +16,10 @@ import CoreS.ASTUnitypeUtils
 import CoreS.Parse
 import Data.RoseTree
 import Data.List
+import qualified Norm.AllNormalizations as ALL
 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+normalizations = ALL.normalizations
 
 normalize :: CompilationUnit -> CompilationUnit
 normalize = executeNormalizer normalizations
