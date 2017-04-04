@@ -69,6 +69,7 @@ library
     , Norm.AllNormalizations
     , Norm.DoWToWhile
     , Norm.CompAssignment
+    , Norm.FloatToDouble
     , AlphaR
 
   build-depends:
@@ -171,6 +172,7 @@ Test-Suite tests
     , Norm.DoWToWhileTest
     , EvalTest
     , Norm.CompAssignmentTest
+    , Norm.FloatToDoubleTest
   default-language: Haskell2010
   build-depends:
       tasty
