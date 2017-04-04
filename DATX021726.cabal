@@ -68,6 +68,7 @@ library
     , Norm.ElimDead
     , Norm.AllNormalizations
     , Norm.DoWToWhile
+    , Norm.CompAssignment
     , AlphaR
 
   build-depends:
@@ -128,7 +129,7 @@ executable JAA
                     -threaded
                     -rtsopts
 
-executable Eval 
+executable Eval
   main-is:          Eval.hs
   build-depends:
       base >=4.8 && < 5
@@ -169,6 +170,7 @@ Test-Suite tests
     , Norm.ElimDeadTest
     , Norm.DoWToWhileTest
     , EvalTest
+    , Norm.CompAssignmentTest
   default-language: Haskell2010
   build-depends:
       tasty
