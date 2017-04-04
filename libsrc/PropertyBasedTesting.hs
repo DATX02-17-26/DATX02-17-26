@@ -117,7 +117,7 @@ makeGen (MemberDecl (MethodDecl rType ident formalParams block)) =
       makePT pt =  case pt of
         BoolT -> anything :: Bool
         ByteT  -> choose(-128,127) :: Int
-        ShortT  -> choose(-32768.0, 32767) :: Double
+        ShortT  -> choose(-32768, 32767) :: Int
         IntT  -> anything :: Int
         LongT  -> anything :: Float
         CharT  -> choose ('a','z'):: Char
