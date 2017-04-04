@@ -8,6 +8,7 @@ import AlphaR
 import Norm.VarDecl
 import Norm.ElimRedundant
 import Norm.ElimDead
+import Norm.DoWToWhile
 
 normalizations :: Normalizer CompilationUnit
 normalizations = [ alphaRenaming, normForToWhile, normCompAss,
