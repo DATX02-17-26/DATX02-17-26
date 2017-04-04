@@ -169,6 +169,7 @@ Test-Suite tests
     , Norm.ElimRedundantTest
     , Norm.ElimDeadTest
     , Norm.DoWToWhileTest
+    , EvalTest
     , Norm.CompAssignmentTest
   default-language: Haskell2010
   build-depends:

@@ -34,6 +34,7 @@ import qualified NormalizationTests as Norm
 import qualified Util.ListTests     as UL
 import qualified TestPBT            as PBT
 import qualified TestStrategies     as Strat
+import qualified EvalTest           as Eval
 
 -- | All tests:
 allTests :: TestTree
@@ -43,6 +44,7 @@ allTests = testGroup "All tests"
   , Norm.allTests
   , PBT.allTests
   , Strat.allTests
+  , Eval.allTests
   ]
 
 main :: IO ()
