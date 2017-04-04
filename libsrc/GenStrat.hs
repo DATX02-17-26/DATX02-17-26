@@ -67,7 +67,7 @@ dagHelper :: Eq b
           -> [((a, b), [(a, b)])]
 dagHelper _ [] _       = []
 dagHelper f (a:as) old =
-  (a, (filter ((`f` (fst a)) . fst) old)):(dagHelper f as (a:old))
+  (a, (filter ((f (fst a)) . fst) old)):(dagHelper f as (a:old))
 
 -- Returns all possible topological orderings in a RoseTree, where each level
 -- represents a new step, and its elements possible pathways.
