@@ -3,7 +3,7 @@ public class Uppgift12a_stud2 {
         System.out.println(countPi());
     }
 
-    public double countPi() {
+    public static double countPi() {
 
         double pi = 0;
         double denominator = 1;
