@@ -24,7 +24,7 @@ module Norm.CompAssignment (normCompAss) where
 import Norm.NormCS
 
 stage :: Int
-stage = 6
+stage = 5
 
 -- | x <op>= y => x = x <op> y
 normCompAss :: NormCUR
