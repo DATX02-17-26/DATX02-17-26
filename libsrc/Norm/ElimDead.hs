@@ -32,7 +32,7 @@ import Norm.NormFor (mfiToStmt)
 
 -- TODO allocate stages. At the moment chosen arbitrarily.
 stage :: Int
-stage = 200
+stage = 1
 
 --------------------------------------------------------------------------------
 -- Exported Rules:
@@ -46,17 +46,17 @@ normDeadIf = makeRule' "elim_dead.stmt.if" [stage] execDeadIf
 -- | Eliminates a while statement which will never be taken.
 -- > while ( false ) s => ;
 normDeadWhile :: NormCUR
-normDeadWhile = makeRule' "elim_dead.stmt.while" [stage] execDeadWhile
+normDeadWhile = makeRule' "elim_dead.stmt.while" [stage + 1] execDeadWhile
 
 -- | Eliminates a do while statement which will only be taken once.
--- > do s while ( false ) => s 
+-- > do s while ( false ) => s
 normDeadDo :: NormCUR
-normDeadDo = makeRule' "elim_dead.stmt.do" [stage] execDeadDo
+normDeadDo = makeRule' "elim_dead.stmt.do" [stage + 2] execDeadDo
 
 -- | Eliminates a for statement which will never be taken.
 -- > for ( init ; false ; update ) => init
 normDeadFor :: NormCUR
-normDeadFor = makeRule' "elim_dead.stmt.for" [stage] execDeadFor
+normDeadFor = makeRule' "elim_dead.stmt.for" [stage + 3] execDeadFor
 
 --------------------------------------------------------------------------------
 -- elim_dead.stmt.if:
