@@ -39,9 +39,10 @@ allTests = testGroup "Eval tests"
   [
    testCase "EVAL_hello_world_OK" $ assert test0
    , testCase "EVAL_SumNumbers_FAIL" $ assert test1
-   , testCase "EVAL_Uppgift12a_1_OK" $ assert test2
-   , testCase "EVAL_Uppgift12a_2_OK" $ assert test3
-   , testCase "EVAL_Uppgift12a_3_FAIL" $ assert test4
+   , testCase "EVAL_Uppgift12a_2_OK" $ assert test2
+   , testCase "EVAL_Uppgift12a_3_OK" $ assert test3
+   , testCase "EVAL_Uppgift12a_4_FAIL" $ assert test4
+   , testCase "EVAL_Uppgift12a_5_FAIL" $ assert test5
   ]
 
 test :: FilePath -> [FilePath] -> IO Bool
@@ -75,6 +76,14 @@ test3 = not <$> test "Test/Eval/Uppgift12a_stud2.java"
 
 test4 :: IO Bool
 test4 = not <$> test "Test/Eval/Uppgift12a_stud3.java"
+                   [
+                    "modelsolution/uppgift12a/Uppgift12a_1.java"
+                    , "modelsolution/uppgift12a/Uppgift12a_2.java"
+                    , "modelsolution/uppgift12a/Uppgift12a_3.java"
+                    ]
+
+test5 :: IO Bool
+test5 = test "Test/Eval/Uppgift12a_stud4.java"
                    [
                     "modelsolution/uppgift12a/Uppgift12a_1.java"
                     , "modelsolution/uppgift12a/Uppgift12a_2.java"
