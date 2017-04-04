@@ -66,7 +66,7 @@ test2 = test "Test/Eval/Uppgift12a_stud1.java"
     ]
 
 test3 :: IO Bool
-test3 = test "Test/Eval/Uppgift12a_stud2.java"
+test3 = not <$> test "Test/Eval/Uppgift12a_stud2.java"
            [
             "modelsolution/uppgift12a/Uppgift12a_1.java"
             , "modelsolution/uppgift12a/Uppgift12a_2.java"
