@@ -15,7 +15,7 @@ name :: String
 name = "AlphaR"
 
 stages :: [Int]
-stages = [0, 15]
+stages = [0, 17]
 
 --A Context
 type Cxt = [Map Ident Ident]

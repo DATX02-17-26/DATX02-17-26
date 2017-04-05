@@ -9,6 +9,7 @@ import Norm.VarDecl
 import Norm.ElimRedundant
 import Norm.ElimDead
 import Norm.DoWToWhile
+import Norm.FloatToDouble
 
 normalizations :: Normalizer CompilationUnit
 normalizations = [ alphaRenaming, normForToWhile, normCompAss,
@@ -16,4 +17,5 @@ normalizations = [ alphaRenaming, normForToWhile, normCompAss,
                    normSplitInit, normVDTop ,normSortT,
                    normFlattenBlock, normEmptyBlock, normFilterEmpty,
                    normSingleton, normDeadIf, normDeadDo,
-                   normDeadWhile, normDeadFor, normDoWToWhile]
+                   normDeadWhile, normDeadFor, normDoWToWhile,
+                   normFloatToDoubleVars, normFloatToDoubleRet]
