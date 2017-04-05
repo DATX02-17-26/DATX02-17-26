@@ -10,6 +10,7 @@ import Norm.ElimRedundant
 import Norm.ElimDead
 import Norm.DoWToWhile
 import Norm.FloatToDouble
+import Norm.SumsOfProducts
 
 normalizations :: Normalizer CompilationUnit
 normalizations = [ alphaRenaming, normForToWhile, normCompAss,
@@ -18,4 +19,5 @@ normalizations = [ alphaRenaming, normForToWhile, normCompAss,
                    normFlattenBlock, normEmptyBlock, normFilterEmpty,
                    normSingleton, normDeadIf, normDeadDo,
                    normDeadWhile, normDeadFor, normDoWToWhile,
-                   normFloatToDoubleVars, normFloatToDoubleRet]
+                   normFloatToDoubleVars, normFloatToDoubleRet, normSOP
+                 ]
