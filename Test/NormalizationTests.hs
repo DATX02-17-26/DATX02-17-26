@@ -32,6 +32,7 @@ import qualified Norm.ElimDeadTest as ElDe
 import qualified Norm.DoWToWhileTest as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
 import qualified Norm.FloatToDoubleTest as FlDo
+import qualified Norm.SOPTest as SofP
 
 instance Show (NormalizationRuleT m a) where
   show = (^. name)
@@ -46,6 +47,7 @@ allTests = testGroup "Normalization tests"
   , DoWh.allTests
   , CoAs.allTests
   , FlDo.allTests
+  , SofP.allTests
   ]
 
 normStrat :: TestTree

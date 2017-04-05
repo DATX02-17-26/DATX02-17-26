@@ -70,6 +70,7 @@ library
     , Norm.DoWToWhile
     , Norm.CompAssignment
     , Norm.FloatToDouble
+    , Norm.SumsOfProducts
     , AlphaR
 
   build-depends:
