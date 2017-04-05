@@ -33,6 +33,7 @@ normFloatToDoubleVars :: NormCUR
 normFloatToDoubleVars = makeRule' "unsafe.coerce_float_to_double.vardecl"
                                   [stage] execFloatToDoubleVars
 
+-- | Rule to transform methods with float return type into double return type.
 -- > public static float x(){} => public static double x(){}
 normFloatToDoubleRet :: NormCUR
 normFloatToDoubleRet = makeRule' "unsafe.coerce_float_to_double.method"
