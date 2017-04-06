@@ -8,6 +8,7 @@ import AlphaR
 import Norm.VarDecl
 import Norm.ElimRedundant
 import Norm.ElimDead
+import Norm.IfElseEmpty
 import Norm.DoWToWhile
 import Norm.FloatToDouble
 
@@ -18,4 +19,5 @@ normalizations = [ alphaRenaming, normForToWhile, normCompAss,
                    normFlattenBlock, normEmptyBlock, normFilterEmpty,
                    normSingleton, normDeadIf, normDeadDo,
                    normDeadWhile, normDeadFor, normDoWToWhile,
+                   normIESiEmpty, normIESeEmpty, normIEBothEmpty,
                    normFloatToDoubleVars, normFloatToDoubleRet]

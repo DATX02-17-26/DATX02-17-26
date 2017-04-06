@@ -28,6 +28,4 @@ normalizers :: NormalizerCU
 normalizers = [ normCompAss ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.CompAssignment tests"
-  [ normTestDir "compundassignment_unittest_1" "compassignment" 1 normalizers
-  ]
+allTests = normTestsDir "Norm.CompAssignment" "compassignment" [normalizers]

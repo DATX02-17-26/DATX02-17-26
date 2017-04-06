@@ -46,6 +46,7 @@ library
     , PropertyBasedTesting
     , GenStrat
     , CoreS.AST
+    , CoreS.ASTUtils
     , CoreS.Convert
     , CoreS.Parse
     , CoreS.ConvBack
@@ -66,6 +67,7 @@ library
     , Norm.NormFor
     , Norm.ElimRedundant
     , Norm.ElimDead
+    , Norm.IfElseEmpty
     , Norm.AllNormalizations
     , Norm.DoWToWhile
     , Norm.CompAssignment
@@ -169,10 +171,11 @@ Test-Suite tests
     , Norm.NormForTest
     , Norm.ElimRedundantTest
     , Norm.ElimDeadTest
+    , Norm.IfElseEmptyTest
     , Norm.DoWToWhileTest
-    , EvalTest
     , Norm.CompAssignmentTest
     , Norm.FloatToDoubleTest
+    , EvalTest
   default-language: Haskell2010
   build-depends:
       tasty
