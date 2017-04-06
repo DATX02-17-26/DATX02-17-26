@@ -19,10 +19,35 @@
 {-# LANGUAGE LambdaCase #-}
 
 -- | Utilities for CoreS.AST.
-module CoreS.ASTUtils where
+module CoreS.ASTUtils (
+  -- * Identifiers and Names
+    singName
+  -- * Types
+  , isTNum
+  , isTInt
+  , typeFold
+  , typeDimens
+  , typeBase
+  -- * Literals
+  , litTrue
+  , litFalse
+  , litBoolEq
+  -- * lvalues
+  , singVar
+  -- * Expressions, Statements, Blocks
+  , allowedInSExpr
+  , ternaryIntoStmts
+  , logIntoStmts
+  , exprIntoStmts
+  , exprIntoExprStmts
+  , mkSBlock
+  ) where
 
 import Data.Maybe (fromMaybe)
-import Control.Lens ((^?), isn't)
+import Control.Monad ((>=>))
+
+import Control.Lens ((^?), isn't, (^..))
+import Data.Data.Lens (uniplate)
 
 import CoreS.AST
 
@@ -90,7 +115,7 @@ singVar :: Ident -> LValue
 singVar = LVName . singName
 
 --------------------------------------------------------------------------------
--- Expressions:
+-- Expressions, Statements, Blocks:
 --------------------------------------------------------------------------------
 
 -- | Determines if the given Expr is allowed in an SExpr
@@ -105,11 +130,43 @@ allowedInSExpr = \case
   ESysOut  {} -> True
   _           -> False
 
-{-
-breakExprToStmt :: Expr -> [Stmt]
-breakExprToStmt = \case
-  -- Already allowed as a Stmt, so no-op.
+-- | Convert a ternary expression, expanded, into a list of statements.
+-- This is a special case since only the side-effects of one branch will
+-- occur depending on the conditional expression.
+ternaryIntoStmts :: Expr -> Expr -> Expr -> [Stmt]
+ternaryIntoStmts c ei ee =
+  let sis = exprIntoStmts ei
+      ses = exprIntoStmts ee
+  in  if null sis && null ses
+      then exprIntoStmts c
+      else pure $ SIfElse c (mkSBlock sis) (mkSBlock ses)
+
+-- | Convert a logical expression, expanded, into a list of statements.
+-- This is a special case due to the short-circuiting natureo of && and ||.
+logIntoStmts :: Expr -> Expr -> LogOp -> [Stmt]
+logIntoStmts l r o =
+  let srs = exprIntoStmts r
+      fop = case o of LAnd -> id ; LOr -> ENot ;
+  in  if null srs then exprIntoStmts l else pure $ SIf (fop l) (mkSBlock srs)
+
+-- | Split an expression into parts allowed as statements.
+-- Such statements may or may not have side-effects.
+exprIntoStmts :: Expr -> [Stmt]
+exprIntoStmts = \case
+  -- Already allowed as a Stmt, so no-op:
   e | allowedInSExpr e -> [SExpr e]
-  -- Collect expr
-  e | otherwise        -> concatMap breakExprToStmt $ collectExprs e
--}
+  -- Ternaries require special treatment as they correspond to if else:
+  ECond c ei ee        -> ternaryIntoStmts c ei ee
+  -- Logical operators && and || are short circuiting:
+  ELog o l r           -> logIntoStmts l r o
+  -- Otherwise, collect all subexprs left-to-right, convert those & merge:
+  e                    -> e ^.. uniplate >>= exprIntoStmts
+
+-- | Split an expression into parts that are allowed as expression statements
+-- as specified by allowedInSExpr.
+exprIntoExprStmts :: Expr -> [Expr]
+exprIntoExprStmts = exprIntoStmts >=> (^.. _SExpr)
+
+-- | Construct a statement block out of a list of statements.
+mkSBlock :: [Stmt] -> Stmt
+mkSBlock = SBlock . Block
