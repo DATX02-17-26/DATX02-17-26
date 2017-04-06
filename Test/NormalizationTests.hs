@@ -34,9 +34,6 @@ import qualified Norm.DoWToWhileTest as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
 import qualified Norm.FloatToDoubleTest as FlDo
 
-instance Show (NormalizationRuleT m a) where
-  show = (^. name)
-
 allTests :: TestTree
 allTests = testGroup "Normalization tests"
   [ normStrat
