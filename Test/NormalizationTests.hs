@@ -32,6 +32,7 @@ import qualified Norm.ElimDeadTest as ElDe
 import qualified Norm.IfElseEmptyTest as IfEE
 import qualified Norm.DoWToWhileTest as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
+import qualified Norm.ForIndexTest as ForI
 import qualified Norm.FloatToDoubleTest as FlDo
 
 allTests :: TestTree
@@ -44,6 +45,7 @@ allTests = testGroup "Normalization tests"
   , IfEE.allTests
   , DoWh.allTests
   , CoAs.allTests
+  , ForI.allTests
   , FlDo.allTests
   ]
 

@@ -71,6 +71,7 @@ library
     , Norm.AllNormalizations
     , Norm.DoWToWhile
     , Norm.CompAssignment
+    , Norm.ForIndex
     , Norm.FloatToDouble
     , AlphaR
 

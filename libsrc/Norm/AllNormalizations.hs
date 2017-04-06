@@ -11,9 +11,10 @@ import Norm.ElimDead
 import Norm.IfElseEmpty
 import Norm.DoWToWhile
 import Norm.FloatToDouble
+import Norm.ForIndex
 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming, normForToWhile, normCompAss,
+normalizations = [ alphaRenaming, normForIndex, normForToWhile, normCompAss,
                    normMoveForTVD, normSingleTVDs, normVDIArrLeft,
                    normSplitInit, normVDTop ,normSortT,
                    normFlattenBlock, normEmptyBlock, normFilterEmpty,
