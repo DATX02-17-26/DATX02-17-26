@@ -1,12 +1,11 @@
 module AlphaR (alphaRenaming) where
 
-import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Control.Monad
 import Control.Monad.State
-import CoreS.AST
-import NormalizationStrategies (makeRule, NormalizationRule)
-import Norm.NormM
+
+import Norm.NormCS hiding (execute, name, stages)
 
 alphaRenaming :: NormalizationRule CompilationUnit
 alphaRenaming = makeRule (convMayN execute) name stages
