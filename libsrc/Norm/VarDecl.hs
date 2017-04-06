@@ -50,7 +50,7 @@ import Class.Sizeables (growN)
 import Norm.NormCS
 
 stage :: Int
-stage = 100 -- ALLOCATE TODO
+stage = 9 -- ALLOCATE TODO
 
 --------------------------------------------------------------------------------
 -- Exported Rules:

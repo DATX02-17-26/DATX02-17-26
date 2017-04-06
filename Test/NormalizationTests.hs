@@ -30,6 +30,9 @@ import qualified Norm.NormForTest as NoFo
 import qualified Norm.ElimRedundantTest as ElRe
 import qualified Norm.ElimDeadTest as ElDe
 import qualified Norm.IfElseEmptyTest as IfEE
+import qualified Norm.DoWToWhileTest as DoWh
+import qualified Norm.CompAssignmentTest as CoAs
+import qualified Norm.FloatToDoubleTest as FlDo
 
 instance Show (NormalizationRuleT m a) where
   show = (^. name)
@@ -42,6 +45,9 @@ allTests = testGroup "Normalization tests"
   , ElRe.allTests
   , ElDe.allTests
   , IfEE.allTests
+  , DoWh.allTests
+  , CoAs.allTests
+  , FlDo.allTests
   ]
 
 normStrat :: TestTree

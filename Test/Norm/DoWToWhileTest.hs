@@ -16,12 +16,18 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+module Norm.DoWToWhileTest (
+    allTests
+  ) where
 
-import CoreS.AST
-import NormalizationStrategies
-import qualified Norm.AllNormalizations as ALL
+import Norm.NormTestUtil
+import Norm.DoWToWhile
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = ALL.normalizations
+normalizers :: NormalizerCU
+normalizers = [ normDoWToWhile ]
+
+
+allTests :: TestTree
+allTests = testGroup "Norm.DoWToWhile tests"
+  [ normTestDir "do_while_to_while_norm_test" "dowtowhile" 1 normalizers
+  ]

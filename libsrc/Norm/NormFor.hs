@@ -40,7 +40,7 @@ name = "for.stmt.to_while"
 
 -- | The normalization stage
 stages :: [Int]
-stages = [1]
+stages = [6]
 
 -- | start at compunit, go inte each classbody
 execute :: CompilationUnit -> CompilationUnit

@@ -67,7 +67,7 @@ dagHelper :: Eq b
           -> [((a, b), [(a, b)])]
 dagHelper _ [] _       = []
 dagHelper f (a:as) old =
-  (a, (filter ((`f` (fst a)) . fst) old)):(dagHelper f as (a:old))
+  (a, (filter ((f (fst a)) . fst) old)):(dagHelper f as (a:old))
 
 -- Returns all possible topological orderings in a RoseTree, where each level
 -- represents a new step, and its elements possible pathways.
@@ -182,7 +182,7 @@ matchesBFS norm tree ast = go [tree]
 makeASTs :: Strategy AST -> [AST]
 makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 
--- | `matches a b` checks if `a` matches the strategy generated
--- by `b`
+-- | `matches stud mod` checks if `stud` matches the strategy generated
+-- by `mod`
 matches :: (AST -> AST) -> AST -> AST -> Bool
-matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a
+matches norm stud mod = matchesDFS norm (makeASTsRoseTree (makeStrategy mod)) stud

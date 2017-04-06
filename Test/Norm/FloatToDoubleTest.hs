@@ -16,12 +16,18 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+-- | Test transforming floats in to doubles
+module Norm.FloatToDoubleTest (
+    allTests
+  ) where
 
-import CoreS.AST
-import NormalizationStrategies
-import qualified Norm.AllNormalizations as ALL
+import Norm.NormTestUtil
+import Norm.FloatToDouble
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = ALL.normalizations
+normalizers :: NormalizerCU
+normalizers = [ normFloatToDoubleVars, normFloatToDoubleRet ]
+
+allTests :: TestTree
+allTests = testGroup "Norm.FloatToDouble tests"
+  [ normTestDir "floattodouble_unittest_1" "floattodouble" 1 normalizers
+  ]

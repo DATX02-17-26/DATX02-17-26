@@ -16,12 +16,18 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+-- | Test for eliminating redundant blocks and statements
+module Norm.CompAssignmentTest (
+    allTests
+  ) where
 
-import CoreS.AST
-import NormalizationStrategies
-import qualified Norm.AllNormalizations as ALL
+import Norm.NormTestUtil
+import Norm.CompAssignment
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = ALL.normalizations
+normalizers :: NormalizerCU
+normalizers = [ normCompAss ]
+
+allTests :: TestTree
+allTests = testGroup "Norm.CompAssignment tests"
+  [ normTestDir "compundassignment_unittest_1" "compassignment" 1 normalizers
+  ]

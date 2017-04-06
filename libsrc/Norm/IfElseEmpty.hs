@@ -33,7 +33,7 @@ import Norm.NormCS
 
 -- TODO allocate stages. At the moment chosen arbitrarily.
 stage :: Int
-stage = 300
+stage = 1
 
 --------------------------------------------------------------------------------
 -- Exported Rules:

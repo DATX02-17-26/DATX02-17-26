@@ -16,12 +16,23 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Normalizations where
+{-# LANGUAGE LambdaCase #-}
 
-import CoreS.AST
-import NormalizationStrategies
-import qualified Norm.AllNormalizations as ALL
+-- | Normalizer for transforming compound assignment in to assignment.
+module Norm.CompAssignment (normCompAss) where
 
--- All normalizations in scope 
-normalizations :: Normalizer CompilationUnit
-normalizations = ALL.normalizations
+import Norm.NormCS
+
+stage :: Int
+stage = 5
+
+-- | x <op>= y => x = x <op> y
+normCompAss :: NormCUR
+normCompAss = makeRule' "compund_assign.expr.compund_assign_to_assign" [stage]
+                        execCompAss
+
+-- | executes normalization of compund assignments
+execCompAss :: NormCUA
+execCompAss = normEvery $ \case
+  EOAssign lv op expr -> change $ EAssign lv $ ENum op (EVar lv) expr
+  x                   -> unique x
