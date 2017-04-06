@@ -28,7 +28,7 @@ module Norm.NormM (
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
-import Data.Monoid ((<>), Any (..))
+import Data.Monoid ((<>), Any (..), First)
 import Control.Arrow ((&&&))
 import Control.Monad (ap, void)
 import Control.Applicative (Alternative)
@@ -49,7 +49,7 @@ import Control.Monad.Writer (WriterT (..), runWriterT)
 
 import Control.Monad.Morph (MFunctor, MMonad, hoist)
 
-import Control.Lens (transformMOf, transformMOnOf, traverseOf)
+import Control.Lens (transformMOf, transformMOnOf, traverseOf, (^?), Getting)
 import Data.Data.Lens (uniplate, biplate)
 
 import Test.QuickCheck (Arbitrary, CoArbitrary, arbitrary)
@@ -227,8 +227,15 @@ withError f a = rebase $ either (const $ unique a) normMake $
 decline :: MonadError () m => NormT m a
 decline = throwError ()
 
+-- | 'decline' to normalize on Nothing, otherwise yield the pure value.
 mayDecline :: MonadError () m => Maybe a -> NormT m a
 mayDecline = maybe decline pure
+
+-- | Either extract a pure value out of using a Getting on a value,
+-- or 'decline' to normalize if there was no pure value.
+-- Just use this as you would use (^?).
+(^??) :: MonadError () m => s -> Getting (First a) s a -> NormT m a
+(^??) s g = mayDecline $ s ^? g
 
 --------------------------------------------------------------------------------
 -- Collecting terms:
