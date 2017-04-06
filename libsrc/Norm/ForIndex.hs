@@ -26,8 +26,8 @@ import CoreS.AST as AST
 stage :: Int
 stage = 1
 
-normDoWToWhile :: NormCUR
-normDoWToWhile = makeRule' "forIndex.stmt.for_index" [stage] execForIndex
+normForIndex :: NormCUR
+normForIndex = makeRule' "for_index.stmt.for_index" [stage] execForIndex
 
 --forIndex.stmt.for_index
 execForIndex  :: NormCUA
@@ -45,14 +45,17 @@ execForIndex = normEvery $ \case
      _ -> unique $ SForB mForInit mExpr mExprs stmt
   x -> unique x
 
+changeFor :: CmpOp -> Ident -> Stmt -> Expr -> Expr -> Stmt
 changeFor op i stmt left right = SForB
   (Just (FIVars (TypedVVDecl (VMType VMNormal (PrimT IntT)) [changeI i])))
   (Just (ECmp op left right))
   (Just [makePlus i])
   stmt
 
+changeI :: Ident -> VarDecl
 changeI ident = (VarDecl (VarDId ident) (Just (InitExpr (ELit (Int 0)))))
 
+makePlus :: Ident -> Expr
 makePlus ident = EStep PostInc (EVar (LVName (Name (ident:[]))))
 
 checkI :: VarDecl -> Maybe Ident

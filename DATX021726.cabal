@@ -69,6 +69,7 @@ library
     , Norm.AllNormalizations
     , Norm.DoWToWhile
     , Norm.CompAssignment
+    , Norm.ForIndex
     , AlphaR
 
   build-depends:

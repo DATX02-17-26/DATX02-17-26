@@ -31,6 +31,7 @@ import qualified Norm.ElimRedundantTest as ElRe
 import qualified Norm.ElimDeadTest as ElDe
 import qualified Norm.DoWToWhileTest as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
+import qualified Norm.ForIndexTest as ForI
 
 instance Show (NormalizationRuleT m a) where
   show = (^. name)
@@ -44,6 +45,7 @@ allTests = testGroup "Normalization tests"
   , ElDe.allTests
   , DoWh.allTests
   , CoAs.allTests
+  , ForI.allTests
   ]
 
 normStrat :: TestTree
