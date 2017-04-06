@@ -22,6 +22,7 @@ module Norm.ForIndex where
 
 import Norm.NormCS
 import CoreS.AST as AST
+import Data.Maybe
 
 stage :: Int
 stage = 1
@@ -32,21 +33,52 @@ normForIndex = makeRule' "for_index.stmt.for_index" [stage] execForIndex
 --forIndex.stmt.for_index
 execForIndex  :: NormCUA
 execForIndex = normEvery $ \case
-  SForB mForInit mExpr mExprs stmt -> case mForInit of
-     Just (FIVars (TypedVVDecl (VMType VMNormal (PrimT IntT)) (v:[]))) -> case checkI v of
-       Just ident -> case mExpr of
-          Just (ECmp LE left right) -> case mExprs of
-            Just (e:[]) -> if checkPlus e then change $ changeFor AST.LT ident stmt left right  else
-              unique $ SForB mForInit mExpr mExprs stmt
-          Just (ECmp GE left right) -> case mExprs of
-            Just (e:[]) -> if checkPlus e then change $ changeFor AST.GT ident stmt left right  else
-              unique $ SForB mForInit mExpr mExprs stmt
-       _ -> unique $ SForB mForInit mExpr mExprs stmt
-     _ -> unique $ SForB mForInit mExpr mExprs stmt
+  SForB mForInit mExpr mExprs stmt ->
+    let
+      ident = isValidForInit mForInit
+      cmpOp = isValidCmpOp mExpr
+      e = isValidInc mExprs
+    in
+      if (isJust ident)
+          && (isJust cmpOp)
+          && (isJust e)
+          && (checkPlus $ fromJust e)
+        then
+          change $ changeFor
+                      (fromJust ident)
+                      (fromJust cmpOp)
+                      (getLeft mExpr)
+                      (getRight mExpr)
+                      stmt
+        else
+          unique $ SForB mForInit mExpr mExprs stmt
   x -> unique x
 
-changeFor :: CmpOp -> Ident -> Stmt -> Expr -> Expr -> Stmt
-changeFor op i stmt left right = SForB
+isValidForInit :: Maybe ForInit -> Maybe Ident
+isValidForInit mForInit =  case mForInit of
+  Just (FIVars (TypedVVDecl (VMType VMNormal (PrimT IntT)) (v:[]))) ->
+    checkI v
+  _ -> Nothing
+
+isValidCmpOp :: Maybe Expr -> Maybe CmpOp
+isValidCmpOp mExpr = case mExpr of
+  Just (ECmp LE left right) -> Just AST.LT
+  Just (ECmp GE left right) -> Just AST.GT
+  _ -> Nothing
+
+isValidInc :: Maybe [Expr] -> Maybe Expr
+isValidInc mExprs = case mExprs of
+  Just (e:[]) -> Just e
+  _ -> Nothing
+
+getLeft mExpr = case mExpr of
+ Just (ECmp _ left right) -> left
+
+getRight  mExpr = case mExpr of
+  Just (ECmp _ left right) -> right
+
+changeFor :: Ident -> CmpOp -> Expr -> Expr -> Stmt -> Stmt
+changeFor i op left right stmt = SForB
   (Just (FIVars (TypedVVDecl (VMType VMNormal (PrimT IntT)) [changeI i])))
   (Just (ECmp op left right))
   (Just [makePlus i])
@@ -61,16 +93,6 @@ makePlus ident = EStep PostInc (EVar (LVName (Name (ident:[]))))
 checkI :: VarDecl -> Maybe Ident
 checkI v = case v of
   (VarDecl (VarDId ident) (Just (InitExpr (ELit (Int 1))))) -> Just ident
-  _ -> Nothing
-
-checkLitI :: Ident -> Expr -> Bool
-checkLitI i e = case getIdent e of
-  Just ident -> i == ident
-  _ -> False
-
-getIdent :: Expr -> Maybe Ident
-getIdent e = case e of
-  EVar (LVName (Name (ident:[]))) -> Just ident
   _ -> Nothing
 
 checkPlus:: Expr -> Bool
