@@ -28,6 +28,4 @@ normalizers :: NormalizerCU
 normalizers = [ normFloatToDoubleVars, normFloatToDoubleRet ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.FloatToDouble tests"
-  [ normTestDir "floattodouble_unittest_1" "floattodouble" 1 normalizers
-  ]
+allTests = normTestsDir "Norm.FloatToDouble" "floattodouble" [normalizers]

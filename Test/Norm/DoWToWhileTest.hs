@@ -26,8 +26,5 @@ import Norm.DoWToWhile
 normalizers :: NormalizerCU
 normalizers = [ normDoWToWhile ]
 
-
 allTests :: TestTree
-allTests = testGroup "Norm.DoWToWhile tests"
-  [ normTestDir "do_while_to_while_norm_test" "dowtowhile" 1 normalizers
-  ]
+allTests = testGroup "Norm.DoWToWhile" "dowtowhile" [normalizers]
