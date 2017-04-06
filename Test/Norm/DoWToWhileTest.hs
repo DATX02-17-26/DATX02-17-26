@@ -27,4 +27,4 @@ normalizers :: NormalizerCU
 normalizers = [ normDoWToWhile ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.DoWToWhile" "dowtowhile" [normalizers]
+allTests = normTestsDir "Norm.DoWToWhile" "dowtowhile" [normalizers]
