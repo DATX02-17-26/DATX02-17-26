@@ -27,6 +27,9 @@ import Data.Maybe
 stage :: Int
 stage = 1
 
+--Normalises all
+--for(int i = 1; expr <= || >= expr; i++ || i = i +1) ==>
+--for(int i = 0; expr < || > expr; i++)
 normForIndex :: NormCUR
 normForIndex = makeRule' "for_index.stmt.for_index" [stage] execForIndex
 
