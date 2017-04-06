@@ -72,7 +72,6 @@ library
     , Norm.DoWToWhile
     , Norm.CompAssignment
     , Norm.FloatToDouble
->>>>>>> dev
     , AlphaR
 
   build-depends:
