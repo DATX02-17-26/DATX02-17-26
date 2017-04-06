@@ -24,8 +24,10 @@ module Norm.IfElseEmpty (
   -- * Normalizers
     normIESiEmpty
   , normIESeEmpty
-  , execIEBothEmpty
+  , normIEBothEmpty
   ) where
+
+import Util.Monad (traverseJ)
 
 import Norm.NormCS
 
@@ -39,6 +41,8 @@ stage = 300
 
 -- | Simplifies an if else where the if branch is empty.
 -- > if ( c ) ; else se => if ( !c ) se
+-- and:
+-- > if ( c ) ; => sideEffectsOf( c )
 normIESiEmpty :: NormCUR
 normIESiEmpty = makeRule' "if_else_empty.stmt.si_empty" [stage] execIESiEmpty
 
@@ -48,7 +52,7 @@ normIESeEmpty :: NormCUR
 normIESeEmpty = makeRule' "if_else_empty.stmt.se_empty" [stage] execIESeEmpty
 
 -- | Simplifies an if else where both branches are empty.
--- > if ( c ) ; else ; => c
+-- > if ( c ) ; else ; => sideEffectsOf( c )
 normIEBothEmpty :: NormCUR
 normIEBothEmpty = makeRule' "if_else_empty.stmt.both_empty" [stage]
                             execIEBothEmpty
@@ -58,9 +62,10 @@ normIEBothEmpty = makeRule' "if_else_empty.stmt.both_empty" [stage]
 --------------------------------------------------------------------------------
 
 execIESiEmpty :: NormCUA
-execIESiEmpty = normEvery $ \case
-  SIfElse e SEmpty se -> change $ SIf (ENot e) se
-  x -> unique x
+execIESiEmpty = normEvery $ traverseJ $ \case
+  SIf     c SEmpty    -> change $ exprIntoStmts c
+  SIfElse c SEmpty se -> change [SIf (ENot c) se]
+  x -> unique [x]
 
 --------------------------------------------------------------------------------
 -- if_else_empty.stmt.se_empty:
@@ -68,7 +73,7 @@ execIESiEmpty = normEvery $ \case
 
 execIESeEmpty :: NormCUA
 execIESeEmpty = normEvery $ \case
-  SIfElse e si SEmpty -> change $ SIf e si
+  SIfElse c si SEmpty -> change $ SIf c si
   x -> unique x
 
 --------------------------------------------------------------------------------
@@ -76,4 +81,6 @@ execIESeEmpty = normEvery $ \case
 --------------------------------------------------------------------------------
 
 execIEBothEmpty :: NormCUA
-execIEBothEmpty = undefined
+execIEBothEmpty = normEvery $ traverseJ $ \case
+  SIfElse c SEmpty SEmpty -> change $ exprIntoStmts c
+  x -> unique [x]
