@@ -31,6 +31,4 @@ normalizers = [ normIESiEmpty
               ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.IfElseEmpty tests"
-  [ normTestDir "ifelse_empty_unittest_1" "ifelse_empty" 1 normalizers
-  ]
+allTests = normTestsDir "Norm.IfElseEmpty" "ifelse_empty" [normalizers]

@@ -26,8 +26,5 @@ import Norm.NormFor
 normalizers :: NormalizerCU
 normalizers = [ normForToWhile ]
 
-
 allTests :: TestTree
-allTests = testGroup "Norm.NormFor tests"
-  [ normTestDir "for_to_while_norm_test" "normfor" 1 normalizers
-  ]
+allTests = normTestsDir "Norm.NormFor" "normfor" [normalizers]
