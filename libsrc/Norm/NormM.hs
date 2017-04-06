@@ -52,6 +52,8 @@ import Control.Monad.Morph (MFunctor, MMonad, hoist)
 import Control.Lens (transformMOf, transformMOnOf, traverseOf, (^?), Getting)
 import Data.Data.Lens (uniplate, biplate)
 
+import Data.Function.Pointless ((.:))
+
 import Test.QuickCheck (Arbitrary, CoArbitrary, arbitrary)
 
 import Class.HasError (HasError, toEither)
@@ -235,7 +237,7 @@ mayDecline = maybe decline pure
 -- or 'decline' to normalize if there was no pure value.
 -- Just use this as you would use (^?).
 (^??) :: MonadError () m => s -> Getting (First a) s a -> NormT m a
-(^??) s g = mayDecline $ s ^? g
+(^??) = mayDecline .: (^?)
 
 --------------------------------------------------------------------------------
 -- Collecting terms:
