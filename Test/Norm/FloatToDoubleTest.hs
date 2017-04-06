@@ -16,21 +16,16 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Norm.VarDeclTest (
+-- | Test transforming floats in to doubles
+module Norm.FloatToDoubleTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.VarDecl
+import Norm.FloatToDouble
 
 normalizers :: NormalizerCU
-normalizers = [ normMoveForTVD
-              , normSingleTVDs
-              , normVDIArrLeft
-              , normSplitInit
-              , normVDTop
-              , normSortT
-              ]
+normalizers = [ normFloatToDoubleVars, normFloatToDoubleRet ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.VarDecl" "vardecl" [normalizers]
+allTests = normTestsDir "Norm.FloatToDouble" "floattodouble" [normalizers]

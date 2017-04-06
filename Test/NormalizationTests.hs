@@ -29,12 +29,11 @@ import qualified Norm.VarDeclTest as NoVD
 import qualified Norm.NormForTest as NoFo
 import qualified Norm.ElimRedundantTest as ElRe
 import qualified Norm.ElimDeadTest as ElDe
+import qualified Norm.IfElseEmptyTest as IfEE
 import qualified Norm.DoWToWhileTest as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
 import qualified Norm.ForIndexTest as ForI
-
-instance Show (NormalizationRuleT m a) where
-  show = (^. name)
+import qualified Norm.FloatToDoubleTest as FlDo
 
 allTests :: TestTree
 allTests = testGroup "Normalization tests"
@@ -43,9 +42,11 @@ allTests = testGroup "Normalization tests"
   , NoFo.allTests
   , ElRe.allTests
   , ElDe.allTests
+  , IfEE.allTests
   , DoWh.allTests
   , CoAs.allTests
   , ForI.allTests
+  , FlDo.allTests
   ]
 
 normStrat :: TestTree

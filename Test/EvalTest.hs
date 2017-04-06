@@ -42,7 +42,7 @@ allTests = testGroup "Eval tests"
    , testCase "EVAL_Uppgift12a_2_OK" $ assert test2
   , testCase "EVAL_Uppgift12a_3_OK" $ assert (not <$> test3)
    , testCase "EVAL_Uppgift12a_4_FAIL" $ assert test4
-  , testCase "EVAL_Uppgift12a_5_OK" $ assert (not <$> test5)
+  , testCase "EVAL_Uppgift12a_5_OK" $ assert test5
   ]
 
 test :: FilePath -> [FilePath] -> IO Bool

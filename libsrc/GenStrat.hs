@@ -182,7 +182,7 @@ matchesBFS norm tree ast = go [tree]
 makeASTs :: Strategy AST -> [AST]
 makeASTs strat = map lastTerm $ derivationList (\_ _ -> EQ) strat (Hole 0)
 
--- | `matches a b` checks if `a` matches the strategy generated
--- by `b`
+-- | `matches stud mod` checks if `stud` matches the strategy generated
+-- by `mod`
 matches :: (AST -> AST) -> AST -> AST -> Bool
-matches norm a b = matchesDFS norm (makeASTsRoseTree (makeStrategy b)) a
+matches norm stud mod = matchesDFS norm (makeASTsRoseTree (makeStrategy mod)) stud

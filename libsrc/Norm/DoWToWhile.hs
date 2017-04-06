@@ -24,7 +24,7 @@ import Util.Monad (traverseJ)
 import Norm.NormCS
 
 stage :: Int
-stage = 5
+stage = 7
 
 -- | finds all do-while and changes them into while
 -- do{s}while(e); => s; while(e){s}

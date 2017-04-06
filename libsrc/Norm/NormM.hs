@@ -189,8 +189,9 @@ unique = pure
 change :: Monad m => a -> NormT m a
 change = normMake . (,Change)
 
+-- | Creates a normalizer monad from a pure value and uniqueness state.
 normMake :: Applicative m => (a, Unique) -> NormT m a
-normMake (a, w) = NormT $ WriterT $ pure (a, w)
+normMake = NormT . WriterT . pure
 
 --------------------------------------------------------------------------------
 -- Instances:

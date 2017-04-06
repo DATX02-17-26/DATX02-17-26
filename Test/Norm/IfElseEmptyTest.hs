@@ -16,21 +16,19 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Norm.VarDeclTest (
+-- | Tests for Norm.IfElseEmpty
+module Norm.IfElseEmptyTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.VarDecl
+import Norm.IfElseEmpty
 
 normalizers :: NormalizerCU
-normalizers = [ normMoveForTVD
-              , normSingleTVDs
-              , normVDIArrLeft
-              , normSplitInit
-              , normVDTop
-              , normSortT
+normalizers = [ normIESiEmpty
+              , normIESeEmpty
+              , normIEBothEmpty
               ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.VarDecl" "vardecl" [normalizers]
+allTests = normTestsDir "Norm.IfElseEmpty" "ifelse_empty" [normalizers]

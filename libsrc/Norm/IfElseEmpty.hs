@@ -18,17 +18,18 @@
 
 {-# LANGUAGE LambdaCase #-}
 
--- | Normalizers for eliminating dead control statements.
-module Norm.ElimDead (
+-- | Normalizers for simplifying if + else statements
+-- where some branch is empty.
+module Norm.IfElseEmpty (
   -- * Normalizers
-    normDeadIf
-  , normDeadWhile
-  , normDeadDo
-  , normDeadFor
+    normIESiEmpty
+  , normIESeEmpty
+  , normIEBothEmpty
   ) where
 
+import Util.Monad (traverseJ)
+
 import Norm.NormCS
-import Norm.NormFor (mfiToStmt)
 
 -- TODO allocate stages. At the moment chosen arbitrarily.
 stage :: Int
@@ -38,58 +39,48 @@ stage = 1
 -- Exported Rules:
 --------------------------------------------------------------------------------
 
--- | Eliminates an if statement which will never be taken.
--- > if ( false ) s => ;
-normDeadIf :: NormCUR
-normDeadIf = makeRule' "elim_dead.stmt.if" [stage] execDeadIf
+-- | Simplifies an if else where the if branch is empty.
+-- > if ( c ) ; else se => if ( !c ) se
+-- and:
+-- > if ( c ) ; => sideEffectsOf( c )
+normIESiEmpty :: NormCUR
+normIESiEmpty = makeRule' "if_else_empty.stmt.si_empty" [stage] execIESiEmpty
 
--- | Eliminates a while statement which will never be taken.
--- > while ( false ) s => ;
-normDeadWhile :: NormCUR
-normDeadWhile = makeRule' "elim_dead.stmt.while" [stage + 1] execDeadWhile
+-- | Simplifies an if else where the else branch is empty.
+-- > if ( c ) si else ; => if ( c ) si
+normIESeEmpty :: NormCUR
+normIESeEmpty = makeRule' "if_else_empty.stmt.se_empty" [stage] execIESeEmpty
 
--- | Eliminates a do while statement which will only be taken once.
--- > do s while ( false ) => s
-normDeadDo :: NormCUR
-normDeadDo = makeRule' "elim_dead.stmt.do" [stage + 2] execDeadDo
-
--- | Eliminates a for statement which will never be taken.
--- > for ( init ; false ; update ) => init
-normDeadFor :: NormCUR
-normDeadFor = makeRule' "elim_dead.stmt.for" [stage + 3] execDeadFor
+-- | Simplifies an if else where both branches are empty.
+-- > if ( c ) ; else ; => sideEffectsOf( c )
+normIEBothEmpty :: NormCUR
+normIEBothEmpty = makeRule' "if_else_empty.stmt.both_empty" [stage]
+                            execIEBothEmpty
 
 --------------------------------------------------------------------------------
--- elim_dead.stmt.if:
+-- if_else_empty.stmt.si_empty:
 --------------------------------------------------------------------------------
 
-execDeadIf :: NormCUA
-execDeadIf = normEvery $ \case
-  SIf e _ | litFalse e -> change SEmpty
+execIESiEmpty :: NormCUA
+execIESiEmpty = normEvery $ traverseJ $ \case
+  SIf     c SEmpty    -> change $ exprIntoStmts c
+  SIfElse c SEmpty se -> change [SIf (ENot c) se]
+  x -> unique [x]
+
+--------------------------------------------------------------------------------
+-- if_else_empty.stmt.se_empty:
+--------------------------------------------------------------------------------
+
+execIESeEmpty :: NormCUA
+execIESeEmpty = normEvery $ \case
+  SIfElse c si SEmpty -> change $ SIf c si
   x -> unique x
 
 --------------------------------------------------------------------------------
--- elim_dead.stmt.while:
+-- if_else_empty.stmt.both_empty:
 --------------------------------------------------------------------------------
 
-execDeadWhile :: NormCUA
-execDeadWhile = normEvery $ \case
-  SWhile e _ | litFalse e -> change SEmpty
-  x -> unique x
-
---------------------------------------------------------------------------------
--- elim_dead.stmt.do:
---------------------------------------------------------------------------------
-
-execDeadDo :: NormCUA
-execDeadDo = normEvery $ \case
-  SDo e s | litFalse e -> change s
-  x -> unique x
-
---------------------------------------------------------------------------------
--- elim_dead.stmt.for:
---------------------------------------------------------------------------------
-
-execDeadFor :: NormCUA
-execDeadFor = normEvery $ \case
-  SForB mfi (Just e) _ _ | litFalse e -> change $ mfiToStmt mfi
-  x -> unique x
+execIEBothEmpty :: NormCUA
+execIEBothEmpty = normEvery $ traverseJ $ \case
+  SIfElse c SEmpty SEmpty -> change $ exprIntoStmts c
+  x -> unique [x]
