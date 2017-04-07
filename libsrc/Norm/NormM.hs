@@ -18,7 +18,8 @@
 
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving
   , TemplateHaskell, TupleSections, StandaloneDeriving
-  , MultiParamTypeClasses, KindSignatures, FlexibleContexts #-}
+  , MultiParamTypeClasses, KindSignatures, FlexibleContexts
+  , RankNTypes #-}
 
 -- | Normalizer monad and utilities.
 module Norm.NormM (
@@ -131,6 +132,25 @@ type NormArr a = a -> Norm a
 -- | NormArr: kleisli arrow for NormW w.
 type NormArrW w a = a -> NormW w a
 
+-- | NormArrE: kleisli arrow for NormE.
+type NormArrE a = a -> NormE a
+
+--------------------------------------------------------------------------------
+-- Kleisli arrows with Applicative inside:
+--------------------------------------------------------------------------------
+
+-- | NormArrT: kleisli arrow for NormT m.
+type ANormArrT m c a = Applicative c => a -> NormT m (c a)
+
+-- | NormArr: kleisli arrow for Norm.
+type ANormArr c a = Applicative c => a -> Norm (c a)
+
+-- | NormArr: kleisli arrow for NormW w.
+type ANormArrW w c a = Applicative c => a -> NormW w (c a)
+
+-- | NormArrE: kleisli arrow for NormE.
+type ANormArrE c a = Applicative c => a -> NormE (c a)
+
 --------------------------------------------------------------------------------
 -- Runners:
 --------------------------------------------------------------------------------
@@ -210,17 +230,40 @@ instance (Monad m, Arbitrary a) => Arbitrary (NormT m a) where
 -- Failing without a term (MonadError as base):
 --------------------------------------------------------------------------------
 
--- | NormE: A failible normalizing computation.
-type NormE a = NormT (Either ()) a
+-- | EU is isomorphic to Maybe.
+type EU = Either ()
 
--- | 'withError'': 'withError' specialized to Either () as base monad.
-withError' :: Monad m => NormArrT (Either ()) a -> NormArrT m a
+-- | NormE: A failible normalizing computation.
+type NormE a = NormT EU a
+
+-- | 'withError'': 'withError' specialized to EU as base monad.
+withError' :: Monad m => NormArrT EU a -> NormArrT m a
 withError' = withError
+
+-- | 'withErrorA'': 'withErrorA' specialized to EU as base monad.
+withErrorA' :: (Monad m, Applicative c) => ANormArrT EU c a -> ANormArrT m c a
+withErrorA' = withErrorA
 
 -- | 'withError': run a normalizer that can error.
 -- If an error occurs, the starting term will be returned.
 withError :: (HasError e m, Monad m') => NormArrT m a -> NormArrT m' a
-withError f a = rebase $ either (const $ unique a) normMake $
+withError = withErrorG id
+
+-- | 'withErrorA': run a normalizer that can error.
+-- The normalizer is given a term but yields an applicative of the term.
+-- If an error occurs, the starting term will be returned
+-- as a pure applicative value.
+withErrorA :: (HasError e m, Monad m', Applicative c)
+           => ANormArrT m c a -> ANormArrT m' c a
+withErrorA = withErrorG pure
+
+-- | 'withErrorG': run a normalizer that can error.
+-- If an error occurs, the starting term,
+-- applied to the second argument, which is a function, will be returned.
+-- This is the generalized form of the 'withError' functions.
+withErrorG :: (HasError e m, Monad m')
+           => (a -> b) -> (a -> NormT m b) -> a -> NormT m' b
+withErrorG fe f a = rebase $ either (const $ unique $ fe a) normMake $
                                 toEither $ runNT (f a)
 
 -- | 'decline' to normalize. This is useful when you don't have a term to give
@@ -245,7 +288,7 @@ mayDecline = maybe decline pure
 
 type NormWT w m a = WriterT w (NormT m) a
 type NormW  w a   = NormWT w Identity a
-type NormWE w a   = NormWT w (Either ()) a
+type NormWE w a   = NormWT w EU a
 
 zeroError :: (HasError e m, Monoid w, Monad n) => NormWT w m a -> NormWT w n ()
 zeroError m = case toEither $ runNT $ runWriterT m of
