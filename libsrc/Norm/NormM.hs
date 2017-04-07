@@ -58,7 +58,7 @@ import Data.Function.Pointless ((.:))
 import Test.QuickCheck (Arbitrary, CoArbitrary, arbitrary)
 
 import Class.HasError (HasError, toEither)
-import Util.Monad (rebase)
+import Util.Monad (rebase, traverseJ)
 import Util.TH (deriveLens)
 
 --------------------------------------------------------------------------------
@@ -139,17 +139,17 @@ type NormArrE a = a -> NormE a
 -- Kleisli arrows with Applicative inside:
 --------------------------------------------------------------------------------
 
--- | NormArrT: kleisli arrow for NormT m.
-type ANormArrT m c a = Applicative c => a -> NormT m (c a)
+-- | ANormArrT: kleisli arrow for NormT m of form: a ~> c a
+type ANormArrT m c a = a -> NormT m (c a)
 
--- | NormArr: kleisli arrow for Norm.
-type ANormArr c a = Applicative c => a -> Norm (c a)
+-- | ANormArr: kleisli arrow for Norm of form: a ~> c a
+type ANormArr c a = a -> Norm (c a)
 
--- | NormArr: kleisli arrow for NormW w.
-type ANormArrW w c a = Applicative c => a -> NormW w (c a)
+-- | ANormArr: kleisli arrow for NormW w of form: a ~> c a.
+type ANormArrW w c a = a -> NormW w (c a)
 
--- | NormArrE: kleisli arrow for NormE.
-type ANormArrE c a = Applicative c => a -> NormE (c a)
+-- | ANormArrE: kleisli arrow for NormE of form: a ~> c a.
+type ANormArrE c a = a -> NormE (c a)
 
 --------------------------------------------------------------------------------
 -- Runners:
@@ -237,12 +237,18 @@ type EU = Either ()
 type NormE a = NormT EU a
 
 -- | 'withError'': 'withError' specialized to EU as base monad.
-withError' :: Monad m => NormArrT EU a -> NormArrT m a
+withError' :: Monad m => NormArrE a -> NormArrT m a
 withError' = withError
 
 -- | 'withErrorA'': 'withErrorA' specialized to EU as base monad.
-withErrorA' :: (Monad m, Applicative c) => ANormArrT EU c a -> ANormArrT m c a
+withErrorA' :: (Monad m, Applicative c) => ANormArrE c a -> ANormArrT m c a
 withErrorA' = withErrorA
+
+-- | Normalizer that traverses on the term and executes the given
+-- sub-normalizer on sub-terms where the sub-normalizer can fail.
+traverseJErr :: (Monad m, Monad t, Traversable t)
+             => ANormArrE t b -> NormArrT m (t b)
+traverseJErr =  traverseJ . withErrorA'
 
 -- | 'withError': run a normalizer that can error.
 -- If an error occurs, the starting term will be returned.
