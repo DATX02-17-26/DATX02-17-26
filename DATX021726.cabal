@@ -73,6 +73,7 @@ library
     , Norm.CompAssignment
     , Norm.ForIndex
     , Norm.FloatToDouble
+    , Norm.StepOp
     , AlphaR
 
   build-depends:
@@ -179,6 +180,7 @@ Test-Suite tests
     , Norm.DoWToWhileTest
     , Norm.CompAssignmentTest
     , Norm.FloatToDoubleTest
+    , Norm.StepOpTest
     , EvalTest
   default-language: Haskell2010
   build-depends:
@@ -197,6 +199,7 @@ benchmark strategies
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchStrategies.hs
+  default-language: Haskell2010
   build-depends:
       base
     , deepseq
@@ -212,6 +215,7 @@ benchmark alpha
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchAlpha.hs
+  default-language: Haskell2010
   build-depends:
       base
     , deepseq
@@ -227,6 +231,7 @@ benchmark convert
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchConvert.hs
+  default-language: Haskell2010
   build-depends:
       base
     , deepseq
