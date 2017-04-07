@@ -24,7 +24,6 @@ module Norm.StepOp (
     normStepFor
   , normStepSExpr
   , normStepExpr
-  , changeStep
   ) where
 
 import Control.Lens ((%%~))
@@ -62,7 +61,7 @@ normStepExpr = makeRule' "unsafe.step_op.expr" [stage + 1] execStepExpr
 --------------------------------------------------------------------------------
 
 execStepFor :: NormCUA
-execStepFor = normEvery $ (sForEPost %%~) . traverse . traverseJ $ withErrorA' $
+execStepFor = normEvery $ (sForEPost %%~) . traverse . traverseJErr $
   extStep >=> change . exprIntoExprStmts . changeStep
 
 --------------------------------------------------------------------------------
@@ -70,7 +69,7 @@ execStepFor = normEvery $ (sForEPost %%~) . traverse . traverseJ $ withErrorA' $
 --------------------------------------------------------------------------------
 
 execStepSExpr :: NormCUA
-execStepSExpr = normEvery $ traverseJ $ withErrorA' $
+execStepSExpr = normEvery $ traverseJErr $
   (^?? _SExpr) >=> extStep >=> change . exprIntoStmts . changeStep
 
 --------------------------------------------------------------------------------
@@ -78,8 +77,7 @@ execStepSExpr = normEvery $ traverseJ $ withErrorA' $
 --------------------------------------------------------------------------------
 
 execStepExpr :: NormCUA
-execStepExpr = normEvery $ withError' $
-  extStep >=> change . changeStep
+execStepExpr = normEvery $ withError' $ extStep >=> change . changeStep
 
 --------------------------------------------------------------------------------
 -- Common Logic:
