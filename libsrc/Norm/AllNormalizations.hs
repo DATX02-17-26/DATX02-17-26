@@ -12,13 +12,16 @@ import Norm.IfElseEmpty
 import Norm.DoWToWhile
 import Norm.FloatToDouble
 import Norm.ForIndex
+import Norm.StepOp
 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming, normForIndex, normForToWhile, normCompAss,
-                   normMoveForTVD, normSingleTVDs, normVDIArrLeft,
-                   normSplitInit, normVDTop ,normSortT,
-                   normFlattenBlock, normEmptyBlock, normFilterEmpty,
-                   normSingleton, normDeadIf, normDeadDo,
-                   normDeadWhile, normDeadFor, normDoWToWhile,
-                   normIESiEmpty, normIESeEmpty, normIEBothEmpty,
-                   normFloatToDoubleVars, normFloatToDoubleRet]
+normalizations = [ alphaRenaming, normForIndex, normForToWhile, normCompAss
+                 , normMoveForTVD, normSingleTVDs, normVDIArrLeft
+                 , normSplitInit, normVDTop ,normSortT
+                 , normFlattenBlock, normEmptyBlock, normFilterEmpty
+                 , normSingleton, normDeadIf, normDeadDo
+                 , normDeadWhile, normDeadFor, normDoWToWhile
+                 , normIESiEmpty, normIESeEmpty, normIEBothEmpty
+                 , normStepFor, normStepSExpr, normStepExpr
+                 , normFloatToDoubleVars, normFloatToDoubleRet
+                 ]
