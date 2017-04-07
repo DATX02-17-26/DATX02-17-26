@@ -73,6 +73,7 @@ library
     , Norm.CompAssignment
     , Norm.ForIndex
     , Norm.FloatToDouble
+    , Norm.StepOp
     , AlphaR
 
   build-depends:
@@ -106,7 +107,8 @@ library
     , deepseq
   hs-source-dirs:   libsrc
   default-language: Haskell2010
-  ghc-options:      -O2
+  ghc-options:      
+    -- -O2
 
 executable JAA
   main-is:          Main.hs
@@ -129,9 +131,10 @@ executable JAA
     , random == 1.1
   hs-source-dirs:   execsrc
   default-language: Haskell2010
-  ghc-options:      -O2
-                    -threaded
-                    -rtsopts
+  ghc-options:
+    -- -O2
+    -threaded
+    -rtsopts
 
 executable Eval
   main-is:          Eval.hs
@@ -152,9 +155,10 @@ executable Eval
     , random == 1.1
   hs-source-dirs:   execsrc
   default-language: Haskell2010
-  ghc-options:      -O2
-                    -threaded
-                    -rtsopts
+  ghc-options:
+    -- -O2
+    -threaded
+    -rtsopts
 
 Test-Suite tests
   type:            exitcode-stdio-1.0
@@ -176,6 +180,7 @@ Test-Suite tests
     , Norm.DoWToWhileTest
     , Norm.CompAssignmentTest
     , Norm.FloatToDoubleTest
+    , Norm.StepOpTest
     , EvalTest
   default-language: Haskell2010
   build-depends:
@@ -194,37 +199,46 @@ benchmark strategies
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchStrategies.hs
-  build-depends:    base,
-                    deepseq,
-                    ghc-prim,
-                    criterion,
-                    DATX021726
-  ghc-options:      -O2
-                    -threaded
-                    -rtsopts
+  default-language: Haskell2010
+  build-depends:
+      base
+    , deepseq
+    , ghc-prim
+    , criterion
+    , DATX021726
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
 
 benchmark alpha
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchAlpha.hs
-  build-depends:    base,
-                    deepseq,
-                    ghc-prim,
-                    criterion,
-                    DATX021726
-  ghc-options:      -O2
-                    -threaded
-                    -rtsopts
+  default-language: Haskell2010
+  build-depends:
+      base
+    , deepseq
+    , ghc-prim
+    , criterion
+    , DATX021726
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
 
 benchmark convert
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   main-is:          BenchConvert.hs
-  build-depends:    base,
-                    deepseq,
-                    ghc-prim,
-                    criterion,
-                    DATX021726
-  ghc-options:      -O2
-                    -threaded
-                    -rtsopts
+  default-language: Haskell2010
+  build-depends:
+      base
+    , deepseq
+    , ghc-prim
+    , criterion
+    , DATX021726
+  ghc-options:
+    -- -O2
+    -threaded
+    -rtsopts

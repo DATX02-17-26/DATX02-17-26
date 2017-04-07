@@ -25,15 +25,16 @@ import Control.Lens
 import Norm.NormM
 import NormalizationStrategies
 
-import qualified Norm.VarDeclTest as NoVD
-import qualified Norm.NormForTest as NoFo
-import qualified Norm.ElimRedundantTest as ElRe
-import qualified Norm.ElimDeadTest as ElDe
-import qualified Norm.IfElseEmptyTest as IfEE
-import qualified Norm.DoWToWhileTest as DoWh
+import qualified Norm.VarDeclTest        as NoVD
+import qualified Norm.NormForTest        as NoFo
+import qualified Norm.ElimRedundantTest  as ElRe
+import qualified Norm.ElimDeadTest       as ElDe
+import qualified Norm.IfElseEmptyTest    as IfEE
+import qualified Norm.DoWToWhileTest     as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
-import qualified Norm.ForIndexTest as ForI
-import qualified Norm.FloatToDoubleTest as FlDo
+import qualified Norm.ForIndexTest       as ForI
+import qualified Norm.FloatToDoubleTest  as FlDo
+import qualified Norm.StepOpTest         as StOp
 
 allTests :: TestTree
 allTests = testGroup "Normalization tests"
@@ -47,6 +48,7 @@ allTests = testGroup "Normalization tests"
   , CoAs.allTests
   , ForI.allTests
   , FlDo.allTests
+  , StOp.allTests
   ]
 
 normStrat :: TestTree
