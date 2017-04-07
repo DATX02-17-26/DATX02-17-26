@@ -61,8 +61,6 @@ normStepExpr = makeRule' "unsafe.step_op.expr" [stage + 1] execStepExpr
 -- step_op.stmt.for:
 --------------------------------------------------------------------------------
 
-u = undefined
-
 execStepFor :: NormCUA
 execStepFor = normEvery $ (sForEPost %%~) . traverse . traverseJ $ withErrorA' $
   extStep >=> change . exprIntoExprStmts . changeStep
