@@ -73,6 +73,7 @@ library
     , Norm.CompAssignment
     , Norm.ForIndex
     , Norm.FloatToDouble
+    , Norm.SumsOfProducts
     , Norm.StepOp
     , AlphaR
 

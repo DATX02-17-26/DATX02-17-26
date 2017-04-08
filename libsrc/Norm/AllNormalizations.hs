@@ -11,6 +11,7 @@ import Norm.ElimDead
 import Norm.IfElseEmpty
 import Norm.DoWToWhile
 import Norm.FloatToDouble
+import Norm.SumsOfProducts
 import Norm.ForIndex
 import Norm.StepOp
 
@@ -23,5 +24,5 @@ normalizations = [ alphaRenaming, normForIndex, normForToWhile, normCompAss
                  , normDeadWhile, normDeadFor, normDoWToWhile
                  , normIESiEmpty, normIESeEmpty, normIEBothEmpty
                  , normStepFor, normStepSExpr, normStepExpr
-                 , normFloatToDoubleVars, normFloatToDoubleRet
+                 , normFloatToDoubleVars, normFloatToDoubleRet, normSOP
                  ]

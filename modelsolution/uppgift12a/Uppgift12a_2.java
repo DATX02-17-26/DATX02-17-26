@@ -4,7 +4,7 @@ public class Uppgift12a_2
   {
     double pi = 0;
     double num = 1;
-    int den = 1;
+    double den = 1;
     for (int i = 0 ; i < 500 ; i++)
     {
       pi += num / den;
