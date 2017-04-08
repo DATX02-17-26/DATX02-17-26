@@ -14,5 +14,13 @@ public class C
       int i, j, k;
       i = (j*j*(k + 1)*k + j)*k;
     }
+    {
+      int i;
+      i = i*1;
+    }
+    {
+      int j;
+      j = j+0;
+    }
   }
 }

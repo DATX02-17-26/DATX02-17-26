@@ -28,7 +28,7 @@ stage = 5
 
 -- | Numerical expressions to SOP form
 normSOP :: NormCUR
-normSOP = makeRule' "sop" [stage]
+normSOP = makeRule' "sums_of_products.expr" [stage]
                     execSOP
 
 -- | executes normalization of compund assignments
@@ -36,14 +36,35 @@ execSOP :: NormCUA
 execSOP = normEvery $ \case
   ENum Mul (ENum Add x y) z   -> change $ add (mul x z) (mul y z)
   ENum Mul z (ENum Add x y)   -> change $ add (mul z x) (mul z y)
-  ENum Add z r@(ENum Add _ _) -> change $ add z r
+  ENum Add x y                -> if add x y /= (ENum Add x y)
+                                 then change $ add x y
+                                 else unique $ add x y
+  ENum Mul x y                -> if mul x y /= (ENum Mul x y)
+                                 then change $ mul x y
+                                 else unique $ mul x y
   x                           -> unique x
 
+is :: Integer -> Expr -> Bool
+is i = \case
+  ELit (Int j)    -> i == j
+  ELit (Word j)   -> i == j
+  ELit (Float j)  -> fromInteger i == j
+  ELit (Double j) -> fromInteger i == j
+  _               -> False
+
 mul :: Expr -> Expr -> Expr
-mul (ENum Add a b) r = add (mul a r) (mul b r)
-mul l (ENum Add a b) = add (mul l a) (mul l b)
-mul l r              = ENum Mul l r
+mul = curry $ \case
+  (ENum Add a b, r) -> add (mul a r) (mul b r)
+  (l, ENum Add a b) -> add (mul l a) (mul l b)
+  (l, r)
+    | is 1 l    ->  r
+    | is 1 r    ->  l
+    | otherwise ->  ENum Mul l r
 
 add :: Expr -> Expr -> Expr
-add x (ENum Add y z) = add (add x y) z
-add x y              = ENum Add x y
+add = curry $ \case
+  (x, ENum Add y z) -> add (add x y) z
+  (x, y)
+    | is 0 x    -> y
+    | is 0 y    -> x
+    | otherwise -> ENum Add x y

@@ -12,7 +12,15 @@ public class C
     }
     {
       int i, j, k;
-      i = j*j*k*k*k + j*j*1*k*k + j*k;
+      i = j*j*k*k*k + j*j*k*k + j*k;
+    }
+    {
+      int i;
+      i = i;
+    }
+    {
+      int j;
+      j = j;
     }
   }
 }
