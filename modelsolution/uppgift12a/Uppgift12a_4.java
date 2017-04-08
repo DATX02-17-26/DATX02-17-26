@@ -1,4 +1,4 @@
-public class Uppgift12a_1 {
+public class Uppgift12a_4 {
    public static void main(String[] args) {
 
       double pi = 0;

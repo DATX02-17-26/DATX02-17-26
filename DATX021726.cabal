@@ -160,6 +160,30 @@ executable Eval
     -threaded
     -rtsopts
 
+executable ViewNorm 
+  main-is:          View.hs 
+  build-depends:
+      base >=4.8 && < 5
+    , lens >= 4.14
+    , directory >= 1.2
+    , ideas >= 1.6
+    , transformers >= 0.5
+    , mtl >= 2.2
+    , filepath >= 1.4
+    , process >= 1.4
+    , optparse-applicative >= 0.13
+    , language-java == 0.2.8
+    , DATX021726
+    , QuickCheck
+    , hint == 0.6.0
+    , random == 1.1
+  hs-source-dirs:   execsrc
+  default-language: Haskell2010
+  ghc-options:
+    -- -O2
+    -threaded
+    -rtsopts
+
 Test-Suite tests
   type:            exitcode-stdio-1.0
   hs-source-dirs:  Test
