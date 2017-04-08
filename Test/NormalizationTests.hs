@@ -37,9 +37,6 @@ import qualified Norm.FloatToDoubleTest  as FlDo
 import qualified Norm.StepOpTest         as StOp
 import qualified Norm.SOPTest            as SofP
 
-instance Show (NormalizationRuleT m a) where
-  show = (^. name)
-
 allTests :: TestTree
 allTests = testGroup "Normalization tests"
   [ normStrat
