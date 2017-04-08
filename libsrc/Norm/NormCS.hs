@@ -27,6 +27,7 @@ module Norm.NormCS (
  ) where
 
 import CoreS.AST               as RE
+import CoreS.ASTUtils          as RE
 import Norm.NormM              as RE
 import NormalizationStrategies as RE
 

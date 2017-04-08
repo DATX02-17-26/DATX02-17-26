@@ -45,7 +45,7 @@ module NormalizationStrategies (
 
 import Data.List (nub, intersect, union, (\\), sort)
 import Control.Monad (foldM)
-import Control.Lens (each, (%~))
+import Control.Lens (each, (%~), (^.))
 import Data.Function (on)
 import Data.Function.Pointless ((.:))
 import Test.QuickCheck (Arbitrary, CoArbitrary, arbitrary)
@@ -78,6 +78,9 @@ makeRule' n s e = makeRule e n s
 
 -- | Make obligatory lenses.
 $(deriveLens [''NormalizationRuleT])
+
+instance Show (NormalizationRuleT m a) where
+  show = (^. name)
 
 -- | A `NormalizerT` is just a list of rules.
 type NormalizerT m a = [NormalizationRuleT m a]

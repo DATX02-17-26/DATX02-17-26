@@ -16,21 +16,18 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Norm.VarDeclTest (
+module Norm.ForIndexTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.VarDecl
+import Norm.ForIndex
 
 normalizers :: NormalizerCU
-normalizers = [ normMoveForTVD
-              , normSingleTVDs
-              , normVDIArrLeft
-              , normSplitInit
-              , normVDTop
-              , normSortT
-              ]
+normalizers = [ normForIndex ]
+
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.VarDecl" "vardecl" [normalizers]
+allTests = testGroup "Norm.ForIndex tests"
+  [ normTestDir "for_index_norm_test" "forindex" 1 normalizers
+  ]

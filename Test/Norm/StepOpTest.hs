@@ -16,21 +16,19 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-module Norm.VarDeclTest (
+-- | Tests for Norm.StepOp.
+module Norm.StepOpTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.VarDecl
+import Norm.StepOp
 
 normalizers :: NormalizerCU
-normalizers = [ normMoveForTVD
-              , normSingleTVDs
-              , normVDIArrLeft
-              , normSplitInit
-              , normVDTop
-              , normSortT
+normalizers = [ normStepFor
+              , normStepSExpr
+              , normStepExpr
               ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.VarDecl" "vardecl" [normalizers]
+allTests = normTestsDir "Norm.StepOp" "stepop" [normalizers]
