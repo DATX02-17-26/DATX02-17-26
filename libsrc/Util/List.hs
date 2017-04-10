@@ -16,16 +16,30 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
+{-# LANGUAGE LambdaCase #-}
+
 module Util.List (
+  -- ** Permutations
     countEq
   , countBy
   , isPerm
   , isPermEq
+  -- ** Monadic
+  , traverseMay
+  -- ** Zipping
+  , zipWithMay
+  , zipWithDef
   ) where
 
 import Data.Function (on)
-import Data.List (sort)
+import Data.Function.Pointless ((.:))
 import Data.Foldable (foldl')
+import Data.Maybe (catMaybes, fromMaybe)
+import Data.List (sort)
+
+--------------------------------------------------------------------------------
+-- Permutations:
+--------------------------------------------------------------------------------
 
 -- | Count the occurences of the first argument in the second using (==).
 -- This assumes the given foldable is of finite length.
@@ -50,3 +64,41 @@ isPermEq xs ys = ((==) `on` length) xs ys &&
 -- This assumes the given foldable is of finite length.
 isPerm :: Ord a => [a] -> [a] -> Bool
 isPerm = (==) `on` sort
+
+--------------------------------------------------------------------------------
+-- Monadic:
+--------------------------------------------------------------------------------
+
+-- | Traverses a list with a function yielding back Maybe b
+-- and then keeps the Just values.
+traverseMay :: Applicative f => (a -> f (Maybe b)) -> [a] -> f [b]
+traverseMay = fmap catMaybes .: traverse
+
+--------------------------------------------------------------------------------
+-- Zipping:
+--------------------------------------------------------------------------------
+
+-- | 'zipWithMay' generalizes 'zipWith' by not dropping elements when
+-- one list is smaller than the other, such as:
+-- 
+-- > zipWithMay f [1..] [1, 2]
+-- 
+-- or:
+-- 
+-- > zipWithMay f [1,2] [1..]
+--
+-- This is handled by using the Maybe monad.
+--
+-- Works on lists of infinite size.
+-- If any of the given lists are infinite, then the resultant list will also be.
+zipWithMay :: (Maybe a -> Maybe b -> c) -> [a] -> [b] -> [c]
+zipWithMay f = curry $ \case
+  ([], ys)     -> map (f      Nothing . Just) ys
+  (xs, [])     -> map (flip f Nothing . Just) xs
+  (x:xs, y:ys) -> f (Just x) (Just y) : zipWithMay f xs ys
+
+-- | zipWithDef performs zipWith but with default elements for cases
+-- where the lists are not of the same length.
+zipWithDef :: (a, b) -> (a -> b -> c) -> [a] -> [b] -> [c]
+zipWithDef z f = zipWithMay $ curry $ \m ->
+  (fromMaybe . fst) z (fst m) `f` (fromMaybe . snd) z (snd m)
