@@ -16,7 +16,7 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, RankNTypes #-}
 
 -- | Utilities for Data.Tree (rose trees):
 module Util.Tree (
@@ -31,6 +31,10 @@ module Util.Tree (
   , atTree'
   , navTree
   , navTree'
+  , treeParts
+  , withTree
+  , withTreeF
+  , withTreeFP
   -- ** Reexports
   , module RE
   ) where
@@ -41,7 +45,8 @@ import Data.Function.Pointless ((.:))
 import Data.Maybe (fromMaybe)
 import Data.Tree as RE
 import Data.Tuple (swap)
-import Control.Arrow ((***), second)
+import Control.Arrow ((***), (&&&), second)
+import Control.Monad ((>=>))
 
 import Util.List (zipWithDef)
 
@@ -98,3 +103,21 @@ navTree = foldl (\mt i -> mt >>= (`atTree` i)) . pure
 -- | Partial version of 'navTree''
 navTree' :: Tree a -> TreePath -> Tree a
 navTree' = fromMaybe (error "subForest too small") .: navTree
+
+-- | Destruct a tree into its components.
+treeParts :: Tree a -> (a, Forest a)
+treeParts = rootLabel &&& subForest
+
+-- | lift a binary function on the rootLabel and the subForest to a function
+-- on just the rose tree.
+withTree :: (x -> Forest x -> r) -> Tree x -> r
+withTree f = uncurry f . treeParts
+
+-- | lift a binary function on the rootLabel and a function indexing into
+-- the root label of a subbranch to a function on just the rose tree.
+withTreeF :: (x -> (Int -> Maybe x) -> r) -> Tree x -> r
+withTreeF f = uncurry f . second (>=> pure . rootLabel) . (rootLabel &&& atTree)
+
+-- | Partial version of withTreeF in the indexing function.
+withTreeFP :: (x -> ({-Partial =>-} Int -> x) -> r) -> Tree x -> r
+withTreeFP f = uncurry f . second (rootLabel .) . (rootLabel &&& atTree')
