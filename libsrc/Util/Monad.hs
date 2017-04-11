@@ -48,6 +48,7 @@ module Util.Monad (
   , untilMatchM
   -- ** Monadic folds and traversals
   , traverseJ
+  , traverseS
   -- ** Monadic sorting
   , MComparator
   , sortByM
@@ -57,9 +58,11 @@ module Util.Monad (
   , exceptT
   ) where
 
+import Data.Function.Pointless ((.:))
+import Data.Foldable (asum)
+import Control.Applicative (Alternative, (<|>), empty)
 import Control.Comonad (Comonad)
 import Control.Monad (join, (>=>))
-import Data.Function.Pointless ((.:))
 import Control.Monad.Identity (Identity)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Morph (MFunctor, hoist, generalize)  
@@ -108,8 +111,14 @@ untilMatchM p f = (>>= \x -> unless' (f x) (p x) (untilMatchM p f . return))
 
 -- | 'traverseJ': traverse and then join on the result.
 traverseJ :: (Applicative f, Traversable t, Monad t)
-             => (a -> f (t b)) -> t a -> f (t b)
+          => (a -> f (t b)) -> t a -> f (t b)
 traverseJ = fmap join .: traverse
+
+-- | 'traverseS': traverse and then asum on the result.
+-- This is potentially more general in comparison to traverseJ.
+traverseS :: (Applicative f, Traversable t, Alternative g)
+          => (a -> f (g b)) -> t a -> f (g b)
+traverseS = fmap asum .: traverse
 
 --------------------------------------------------------------------------------
 -- Monadic sorting:

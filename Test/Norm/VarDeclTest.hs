@@ -33,6 +33,4 @@ normalizers = [ normMoveForTVD
               ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.VarDecl tests"
-  [ normTestDir "vardecl_unittest_1" "vardecl" 1 normalizers
-  ]
+allTests = normTestsDir "Norm.VarDecl" "vardecl" [normalizers]

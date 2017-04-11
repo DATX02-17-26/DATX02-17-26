@@ -1,13 +1,16 @@
 module AlphaR (alphaRenaming) where
 
-import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Control.Monad
 import Control.Monad.State
 import CoreS.AST
 import Data.Maybe
 import NormalizationStrategies (makeRule, NormalizationRule)
 import Norm.NormM
+
+import Norm.NormCS hiding (execute, name, stages)
+
 
 alphaRenaming :: NormalizationRule CompilationUnit
 alphaRenaming = makeRule (convMayN execute) name stages
@@ -16,7 +19,7 @@ name :: String
 name = "AlphaR"
 
 stages :: [Int]
-stages = [0]
+stages = [0, 17]
 
 --A Context
 --might need a [Map Ident (Map Ident Ident)] where first ident is class
@@ -70,7 +73,14 @@ newClassName old = do
    let new = (Ident $ "Class" ++ show name)
    addIdent new old
 
-
+--create new method name
+newMethodName :: Ident -> State Env Ident
+newMethodName old = do
+   modify (\s -> s{mName = (mName s) + 1})
+   st <- get
+   name  <- return (mName st)
+   let new = (Ident $ "method" ++ show name)
+   addIdent new old
 
 --create new variable name if an old does not exist
 newVarName :: Ident -> State Env Ident
@@ -113,16 +123,7 @@ getIdent i [] = Nothing
 getIdent i (n:ns) =
        case Map.lookup i n of
           Nothing -> getIdent i ns
-          ident -> ident
-
---create new method name
-newMethodName :: Ident -> State Env Ident
-newMethodName old = do
-   modify (\s -> s{mName = (mName s) + 1})
-   st <- get
-   name  <- return (mName st)
-   let new = (Ident $ "method" ++ show name)
-   addMethod new old
+          ident   -> ident
 
 --add method ident to env and return new method ident
 addMethod :: Ident -> Ident -> State Env Ident

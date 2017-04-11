@@ -32,6 +32,4 @@ normalizers = [ normDeadIf
               ]
 
 allTests :: TestTree
-allTests = testGroup "Norm.ElimDead tests"
-  [ normTestDir "elimdead_unittest_1" "elimdead" 1 normalizers
-  ]
+allTests = normTestsDir "Norm.ElimDead" "elimdead" [normalizers]

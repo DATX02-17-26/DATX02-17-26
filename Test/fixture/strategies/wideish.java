@@ -1,4 +1,4 @@
-public class wide
+public class wideish
 {
   public static void a(){int i = 0;}
   public static void b(){int i = 1;}

@@ -16,9 +16,10 @@ import CoreS.ASTUnitypeUtils
 import CoreS.Parse
 import Data.RoseTree
 import Data.List
+import qualified Norm.AllNormalizations as ALL
 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+normalizations = ALL.normalizations
 
 normalize :: CompilationUnit -> CompilationUnit
 normalize = executeNormalizer normalizations
@@ -90,6 +91,12 @@ test4 = consistentBranchSize "Test/fixture/strategies/helloWorld_student.java"
 test5 :: IO Bool
 test5 = consistentBranchSize "Test/fixture/strategies/wideish.java"
 
+test6 :: IO Bool
+test6 = checkMatches "Test/fixture/strategies/depends1.java" "Test/fixture/strategies/depends2.java"
+
+test7 :: IO Bool
+test7 = checkMatches "Test/fixture/strategies/orderInFor1.java" "Test/fixture/strategies/orderInFor2.java"
+
 allTests :: TestTree
 allTests = testGroup "Strategies tests"
   [ testCase "helloWorld"                $ assert test0
@@ -98,6 +105,8 @@ allTests = testGroup "Strategies tests"
   , testCase "selfIsLeftmost_wide"       $ assert test3
   , testCase "branchSize_helloWorld"     $ assert test4
   , testCase "branchSize_wideish"        $ assert test5
+  , testCase "dependsOn_methods+stmt"    $ assert test6
+  , testCase "order_in_for_loop"         $ assert test7
   , testProperty "prop_dagHelper_unchanging" prop_dagHelper_unchanging
   , testProperty "prop_allTop_unchanging"    prop_allTop_unchanging
   ]

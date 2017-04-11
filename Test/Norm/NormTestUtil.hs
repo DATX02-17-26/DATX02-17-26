@@ -25,9 +25,12 @@ module Norm.NormTestUtil (
   -- ** Operations
   , normFixture
   , normTest
+  , normTestsDir
   , normTestDir
   , normTester
   ) where
+
+import Data.List (intercalate)
 
 import TestUtil    as RE
 import Norm.NormCS as RE
@@ -38,6 +41,15 @@ import CoreS.ConvBack (prettyCore')
 -- | Prefix a test fixture with the test/norm fixture directory.
 normFixture :: FilePath -> FilePath
 normFixture = fixturePrefix . ("norm" </>)
+
+-- | Construct a test group of normalization tests for the given
+-- module mod, and the directory dir, and the set of NormalizerCUs norms.
+-- See 'normTestDir' for more details.
+normTestsDir :: TestName -> FilePath -> [NormalizerCU] -> TestTree
+normTestsDir mod dir norms =
+  let name  = mod ++ " tests"
+      fun i = normTestDir (intercalate "_" [dir, "unittest", show i]) dir i
+  in  testGroup name $ zipWith fun [1..] norms
 
 -- | Constructs a normalization test given:
 -- 1) the name of the test,

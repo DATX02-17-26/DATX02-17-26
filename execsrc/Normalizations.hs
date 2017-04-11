@@ -19,9 +19,9 @@
 module Normalizations where
 
 import CoreS.AST
-import NormalizationStrategies hiding ((<>))
-import AlphaR
+import NormalizationStrategies
+import qualified Norm.AllNormalizations as ALL
 
 -- All normalizations in scope 
 normalizations :: Normalizer CompilationUnit
-normalizations = [ alphaRenaming ]
+normalizations = ALL.normalizations

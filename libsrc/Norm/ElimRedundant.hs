@@ -35,7 +35,7 @@ import Norm.NormCS
 
 -- TODO allocate stages. At the moment chosen arbitrarily.
 stage :: Int
-stage = 50
+stage = 8
 
 -- | Rule to flatten a block containing statements in to parent block
 -- > { s {s s} s } => {s s s s}
