@@ -36,6 +36,7 @@ import qualified Norm.ForIndexTest       as ForI
 import qualified Norm.FloatToDoubleTest  as FlDo
 import qualified Norm.StepOpTest         as StOp
 import qualified Norm.SOPTest            as SofP
+import qualified Norm.ForIndexCLTE       as FICL
 
 allTests :: TestTree
 allTests = testGroup "Normalization tests"
@@ -51,6 +52,7 @@ allTests = testGroup "Normalization tests"
   , FlDo.allTests
   , SofP.allTests
   , StOp.allTests
+  , FICL.allTests
   ]
 
 normStrat :: TestTree

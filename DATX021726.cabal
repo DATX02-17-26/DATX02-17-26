@@ -75,6 +75,7 @@ library
     , Norm.FloatToDouble
     , Norm.SumsOfProducts
     , Norm.StepOp
+    , Norm.ForIndexConstLessThanEq
     , AlphaR
 
   build-depends:
