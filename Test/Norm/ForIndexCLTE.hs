@@ -28,4 +28,4 @@ normalizers :: NormalizerCU
 normalizers = [ normForIndexCLTE ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.CompAssignment" "ForIndexCLTE" [normalizers]
+allTests = normTestsDir "Norm.ForIndexCLTE" "ForIndexCLTE" [normalizers]
