@@ -93,6 +93,13 @@ addIdent new old = do
   modify(\s -> s{varNames = (Map.insert old new n):ns})
   return new
 
+findVarName :: Ident -> State Env Ident
+findVarName i = do
+  mIdent <- lookupIdent i
+  case mIdent of
+    Just new -> return new
+    Nothing -> return i
+
 --lookup address for var
 lookupIdent :: Ident -> State Env (Maybe Ident)
 lookupIdent i = do
@@ -336,14 +343,14 @@ renameExpression expression =
       st <- get
       let mcxs = (metNames st)
       case names of
-        [x] -> mapM renameExpression exprs >>= \es ->
-          return $ EMApp (Name (singleMethod x mcxs)) es
+        [x]      -> mapM renameExpression exprs >>= \es ->
+                    return $ EMApp (Name [(singleMethod x mcxs)]) es
         (x:xs)   -> return(last names) >>= \metName ->
-               mapM newVarName (init names) >>= \vars ->
-               return (fromJust(lookupMetInScope metName mcxs)) >>= \met ->
-               mapM renameExpression exprs >>= \es ->
-               return (Name (vars ++ [met])) >>= \rNames ->
-               return (EMApp rNames es)
+                    mapM findVarName (init names) >>= \vars ->
+                    return (fromJust(lookupMetInScope metName mcxs)) >>= \met ->
+                    mapM renameExpression exprs >>= \es ->
+                    return (Name (vars ++ [met])) >>= \rNames ->
+                    return (EMApp rNames es)
     (EArrNew  t exprs i) ->
       mapM renameExpression exprs >>= \es -> return (EArrNew t es i)
     (EArrNewI t i (ArrayInit arrayInit)) ->
@@ -353,10 +360,9 @@ renameExpression expression =
     holeExpr -> return holeExpr
 
 --When it's just a single method call
-singleMethod :: Ident -> MCxt -> [Ident]
+singleMethod :: Ident -> MCxt -> Ident
 singleMethod x mcxs =
-  [fromJust(lookupMetInScope x mcxs)]
-
+  fromJust(lookupMetInScope x mcxs)
 
 --Renames a lvalue.
 renameLValue :: LValue -> State Env LValue
