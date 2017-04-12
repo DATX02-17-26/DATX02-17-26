@@ -29,6 +29,11 @@ import qualified Norm.VarDeclTest        as NoVD
 import qualified Norm.NormForTest        as NoFo
 import qualified Norm.ElimRedundantTest  as ElRe
 import qualified Norm.ElimDeadTest       as ElDe
+import qualified Norm.AlphaRTest         as AlRe
+import qualified Norm.VarDeclTest        as NoVD
+import qualified Norm.NormForTest        as NoFo
+import qualified Norm.ElimRedundantTest  as ElRe
+import qualified Norm.ElimDeadTest       as ElDe
 import qualified Norm.IfElseEmptyTest    as IfEE
 import qualified Norm.DoWToWhileTest     as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
@@ -45,6 +50,7 @@ allTests = testGroup "Normalization tests"
   , NoFo.allTests
   , ElRe.allTests
   , ElDe.allTests
+  , AlRe.allTests
   , IfEE.allTests
   , DoWh.allTests
   , CoAs.allTests
