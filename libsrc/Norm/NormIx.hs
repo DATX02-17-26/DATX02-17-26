@@ -1,33 +1,61 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric
-  , TemplateHaskell
-  , LambdaCase
-  , FlexibleContexts
-  , RankNTypes #-}
+{- DATX02-17-26, automated assessment of imperative programs.
+ - Copyright, 2017, see AUTHORS.md.
+ -
+ - This program is free software; you can redistribute it and/or
+ - modify it under the terms of the GNU General Public License
+ - as published by the Free Software Foundation; either version 2
+ - of the License, or (at your option) any later version.
+ -
+ - This program is distributed in the hope that it will be useful,
+ - but WITHOUT ANY WARRANTY; without even the implied warranty of
+ - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ - GNU General Public License for more details.
+ -
+ - You should have received a copy of the GNU General Public License
+ - along with this program; if not, write to the Free Software
+ - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -}
 
-module Norm.NormIx where
+{-# LANGUAGE LambdaCase, FlexibleContexts, RankNTypes #-}
 
-import Data.Data (Data, Typeable)
-import GHC.Generics (Generic)
+-- | Utilities for writing normalizers with a read-only index.
+module Norm.NormIx (
+  -- * IndexedTraversal construction from list of indices
+    withIndices
+  -- * Bottom-up indexed traversals
+  -- ** General
+  , itransformMOf
+  , itransformMOnOf
+  -- ** Tree based
+  , sfIx
+  , rtTransformMOf
+  , rtTransformMOnOf
+  -- ** Tree based with Traversal's from Data
+  , transformMU
+  , transformMB
+  -- ** Tree based with Traversal's from Data and a Tree producing function.
+  , ixNormEveryT
+  , ixNormEvery
+  -- * Manipulations on the with-index function.
+  , wtPrismR
+  , wtPrism
+  ) where
 
+import Data.Data (Data)
 import Data.Monoid ((<>))
 import Data.List (uncons)
 import Data.Tree (Tree (..), subForest, rootLabel)
+import Data.Function.Pointless ((.^))
 import Data.Functor.Compose (Compose (Compose))
 import Control.Arrow (first)
 import Control.Monad.Trans.State (state, runState)
 import Data.Data.Lens (uniplate, biplate)
-import Control.Lens (Traversal', IndexedTraversal',
+import Control.Lens (Traversal', IndexedTraversal', LensLike',
   indexed, imapMOf, auf, iso, _Unwrapping)
 
-import Control.Lens hiding (uncons)
-
-import Util.Debug
-import Util.TH
-
 import Class.HasError (HasError, toEither)
-import Norm.NormM hiding (state)
-
-u = undefined
+import Class.Product.PTravIx (PTravIx, PIndex, pTravIx)
+import Util.Tree (withTree)
 
 --------------------------------------------------------------------------------
 -- IndexedTraversal construction from list of indices:
@@ -93,16 +121,20 @@ transformMB :: (Monad m, Data s, Data a)
             => (Tree i -> a -> m a) -> Tree i -> s -> m s
 transformMB = rtTransformMOnOf biplate uniplate
 
+ixNormEveryH :: (Monad m, HasError e n)
+             => (k -> Tree i -> a -> m a) -> (a -> n (Tree i)) -> k -> a -> m a
+ixNormEveryH g mkTree f a =
+  either (const $ pure a)
+         (flip (g f) a)
+         (toEither $ mkTree a)
+
 -- | Indexed version of normEveryT using a rose tree for decoration (index).
 -- The rose tree is produced by a function given the top level term.
 ixNormEveryT :: (HasError e n, Monad m, Data a)
             => (a -> n (Tree i))
             -> (Tree i -> a -> m a)
             -> a -> m a
-ixNormEveryT mkTree f a =
-  either (const $ pure a)
-         (flip (transformMU f) a)
-         (toEither $ mkTree a)
+ixNormEveryT = ixNormEveryH transformMU
 
 -- | Indexed version of normEvery using a rose tree for decoration (index).
 -- The rose tree is produced by a function given the top level term.
@@ -110,82 +142,24 @@ ixNormEvery :: (HasError e n, Monad m, Data s, Data a)
             => (s -> n (Tree i))
             -> (Tree i -> a -> m a)
             -> s -> m s
-ixNormEvery mkTree f s =
-  either (const $ pure s)
-         (flip (transformMB f) s)
-         (toEither $ mkTree s)
+ixNormEvery = ixNormEveryH transformMB
 
 --------------------------------------------------------------------------------
--- Testing:
+-- Manipulations on the with-index function.
 --------------------------------------------------------------------------------
 
-data Purity = Pure | Impure
-  deriving (Eq, Ord, Show, Enum, Bounded, Read, Typeable, Data, Generic)
+-- | lift a binary function on the rootLabel and a traversal on prefixes of the
+-- rootLabels of the subForest to a function on just the rose tree.
+-- The traversal can then be composed with an actual prism
+-- to get as many indices from the subForest as the prism has elements.
+wtPrismR :: (PTravIx p, Applicative f)
+        => (LensLike' f p (PIndex p x) -> x -> r) -> Tree x -> r
+wtPrismR = withTree . (. (pTravIx . fmap rootLabel))
 
-instance Monoid Purity where
-  mempty      = Pure
-  mappend x y = if y > x then y else x
-
-type Dec d = Tree (Maybe d)
-
-mkDec :: d -> Dec d
-mkDec = pure . pure
-
-data E
-  = P
-  | IP
-  | Add {
-      _lft :: E
-    , _rgt :: E
-    }
-  | Abc {
-      _one :: E
-    , _mid :: Int
-    , _two :: E
-    }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-(|+|) = Add
-
-deriveLens [''E]
-
-lftIx :: IndexedTraversal' Int E E
-lftIx = lft . flip indexed (0 :: Int)
-
-
-
-
-
-decPurity :: E -> Dec Purity
-decPurity = \case
-  P       -> mkDec Pure
-  IP      -> mkDec Impure
-  Add l r -> do
-    let tl = decPurity l
-    let tr = decPurity r
-    let pl = rootLabel tl
-    let pr = rootLabel tr
-    let pc = pl <> pr
-    Node pc [tl, tr]
-
-
-
-e2 = Abc P 1 P
-
-e :: E
-e = P |+| IP |+| P
-
-n1 = Node 1 [Node 2 []]
-n2 = Node 1 []
-
-mkTree :: E -> Maybe (Tree Bool)
-mkTree = pure . fmap (== Just Pure) . decPurity
-
---getter :: Lens' 
---fetch :: Lens' -> Dec -> Dec
-
-test :: E -> IO E
-test = ixNormEveryT mkTree $ \md x -> do
-
-  print [show $ rootLabel md, show x]
-  pure $ if x == IP then P else x
+-- | lift a binary function on the rootLabel and a traversal on prefixes of the
+-- subForest to a function on just the rose tree.
+-- The traversal can then be composed with an actual prism
+-- to get as many indices from the subForest as the prism has elements.
+wtPrism :: (PTravIx p, Applicative f)
+        => (LensLike' f p (PIndex p (Tree x)) -> x -> r) -> Tree x -> r
+wtPrism = withTree . (. pTravIx)
