@@ -16,7 +16,10 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell, LambdaCase #-}
+{-# LANGUAGE
+    DeriveDataTypeable, DeriveGeneric, DeriveAnyClass
+  , TemplateHaskell, LambdaCase
+  #-}
 
 -- | Main AST.
 module CoreS.AST (
@@ -50,7 +53,7 @@ data LValue
   | HoleLValue {
       _lvHole  :: Hole   -- ^ TODO: DOCUMENT THIS.
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 --------------------------------------------------------------------------------
 -- Variable & Array initialization:
@@ -67,14 +70,14 @@ data VarInit
   | HoleVarInit {
       _viHole    :: Hole      -- ^ TODO: DOCUMENT THIS.
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | ArrayInit: Initializer of array creation (new T[]...) expressions.
 data ArrayInit = ArrayInit
   {
     _aiVIs  :: [VarInit] -- ^ List of initializers for each element in array.
   }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 --------------------------------------------------------------------------------
 -- Expressions:
@@ -161,7 +164,7 @@ data Expr
   | HoleExpr {
       _eHole     :: Hole        -- ^ TODO: DOCUMENT THIS.
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 --------------------------------------------------------------------------------
 -- Statements:
@@ -176,7 +179,7 @@ data VarDecl
   | HoleVarDecl {
       _vdHole :: Hole           -- ^ TODO DOCUMENT THIS.
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | TypedVVDecl: Typed Variable declarations.
 data TypedVVDecl
@@ -187,7 +190,7 @@ data TypedVVDecl
   | HoleTypedVVDecl {
       _tvdHole   :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | ForInit: For loop initializer for normal for loops.
 data ForInit
@@ -200,7 +203,7 @@ data ForInit
   | HoleForInit {
       _fiHole  ::  Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | SwitchLabel (case).
 data SwitchLabel
@@ -211,7 +214,7 @@ data SwitchLabel
   | HoleSwitchLabel {
       _slHole :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | SwitchBlock: One match arm of a switch block.
 data SwitchBlock
@@ -222,7 +225,7 @@ data SwitchBlock
   | HoleSwitchBlock {
       _sbHole  :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | Block of statements.
 data Block
@@ -232,7 +235,7 @@ data Block
   | HoleBlock {
       _bHole :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | Stmt: A statement, unlike expressions, it has no value.
 data Stmt
@@ -288,7 +291,7 @@ data Stmt
   | HoleStmt {
       _sHole :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 --------------------------------------------------------------------------------
 -- Method:
@@ -305,10 +308,10 @@ data MemberDecl
   | HoleMemberDecl {
       _mdHole      :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 data MethodBody = MethodBody Block | HoleMethodBody Int
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 --------------------------------------------------------------------------------
 -- Compilation Unit:
@@ -322,7 +325,7 @@ data Decl
   | HoleDecl {
       _decHole  :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | ClassBody: class body the class.
 data ClassBody
@@ -332,7 +335,7 @@ data ClassBody
   | HoleClassBody {
       _cbHole  :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | ClassDecl: class declaration.
 data ClassDecl
@@ -343,7 +346,7 @@ data ClassDecl
   | HoleClassDecl {
       _cdHole :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | TypeDecl: type declarations in the CU.
 data TypeDecl
@@ -353,7 +356,7 @@ data TypeDecl
   | HoleTypeDecl {
     _tdHole  :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | An Import declaration allowing things to be referred to by unqualified
 -- identifiers.
@@ -373,7 +376,7 @@ data ImportDecl
   | HoleImportDecl {
       _idHole   :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 -- | CompilationUnit: A whole file.
 data CompilationUnit
@@ -384,31 +387,7 @@ data CompilationUnit
   | HoleCompilationUnit {
       _cuHole   :: Hole
     }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
---------------------------------------------------------------------------------
--- NFData:
---------------------------------------------------------------------------------
-
-instance NFData LValue
-instance NFData VarInit
-instance NFData ArrayInit
-instance NFData Expr
-instance NFData VarDecl
-instance NFData TypedVVDecl
-instance NFData ForInit
-instance NFData SwitchLabel
-instance NFData SwitchBlock
-instance NFData Block
-instance NFData Stmt
-instance NFData MemberDecl
-instance NFData MethodBody
-instance NFData Decl
-instance NFData ClassBody
-instance NFData ClassDecl
-instance NFData TypeDecl
-instance NFData ImportDecl
-instance NFData CompilationUnit
+  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic, NFData)
 
 --------------------------------------------------------------------------------
 -- Derive lenses + prisms:
