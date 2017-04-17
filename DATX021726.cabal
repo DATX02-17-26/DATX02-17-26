@@ -58,10 +58,17 @@ library
     , Util.List
     , Util.RoseGen
     , Util.TH
+    , Util.Tree
     , Class.HasError
     , Class.Sizeables
+    , Class.Product.Flatten
+    , Class.Product.HPair
+    , Class.Product.IxProd
+    , Class.Product.PTravIx
+    , Class.Product.Uncons
     , Data.RoseTree
     , Norm.NormM
+    , Norm.NormIx
     , Norm.NormCS
     , Norm.VarDecl
     , Norm.NormFor
