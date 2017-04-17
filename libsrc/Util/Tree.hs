@@ -45,7 +45,7 @@ import Data.Function.Pointless ((.:))
 import Data.Maybe (fromMaybe)
 import Data.Tree as RE
 import Data.Tuple (swap)
-import Control.Arrow ((***), (&&&), second)
+import Control.Arrow ((***), (&&&), second, first)
 import Control.Monad ((>=>))
 
 import Util.List (zipWithDef)
@@ -105,19 +105,19 @@ navTree' :: Tree a -> TreePath -> Tree a
 navTree' = fromMaybe (error "subForest too small") .: navTree
 
 -- | Destruct a tree into its components.
-treeParts :: Tree a -> (a, Forest a)
-treeParts = rootLabel &&& subForest
+treeParts :: Tree a -> (Forest a, a)
+treeParts = subForest &&& rootLabel
 
 -- | lift a binary function on the rootLabel and the subForest to a function
 -- on just the rose tree.
-withTree :: (x -> Forest x -> r) -> Tree x -> r
+withTree :: (Forest x -> x -> r) -> Tree x -> r
 withTree f = uncurry f . treeParts
 
 -- | lift a binary function on the rootLabel and a function indexing into
 -- the root label of a subbranch to a function on just the rose tree.
-withTreeF :: (x -> (Int -> Maybe x) -> r) -> Tree x -> r
-withTreeF f = uncurry f . second (>=> pure . rootLabel) . (rootLabel &&& atTree)
+withTreeF :: ((Int -> Maybe x) -> x -> r) -> Tree x -> r
+withTreeF f = uncurry f . first (>=> pure . rootLabel) . (atTree &&& rootLabel)
 
 -- | Partial version of withTreeF in the indexing function.
-withTreeFP :: (x -> ({-Partial =>-} Int -> x) -> r) -> Tree x -> r
-withTreeFP f = uncurry f . second (rootLabel .) . (rootLabel &&& atTree')
+withTreeFP :: (({-Partial =>-} Int -> x) -> x -> r) -> Tree x -> r
+withTreeFP f = uncurry f . first (rootLabel .) . (atTree' &&& rootLabel)
