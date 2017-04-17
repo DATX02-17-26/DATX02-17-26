@@ -45,13 +45,18 @@ library
     , InputMonad
     , PropertyBasedTesting
     , GenStrat
+    , CoreS.Common.Common
+    , CoreS.Common.Literal
+    , CoreS.Common.Name
+    , CoreS.Common.Operator
+    , CoreS.Common.Type
     , CoreS.AST
     , CoreS.ASTUtils
     , CoreS.Convert
     , CoreS.Parse
     , CoreS.ConvBack
-    , CoreS.ASTUnitype
-    , CoreS.ASTUnitypeUtils
+    , CoreS.Unitype.ASTUnitype
+    , CoreS.Unitype.ASTUnitypeUtils
     , Util.Debug
     , Util.Function
     , Util.Monad
@@ -215,6 +220,9 @@ Test-Suite tests
     , Norm.CompAssignmentTest
     , Norm.FloatToDoubleTest
     , Norm.StepOpTest
+    , Norm.ForIndexTest
+    , Norm.ForIndexCLTE
+    , Norm.SOPTest
     , EvalTest
   default-language: Haskell2010
   build-depends:

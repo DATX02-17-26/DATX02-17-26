@@ -9,7 +9,7 @@ import GenStrat
 import SolutionContext
 import NormalizationStrategies
 import CoreS.AST
-import qualified CoreS.ASTUnitype as AST
+import qualified CoreS.Unitype.ASTUnitype as AST
 import CoreS.Parse
 import Norm.AllNormalizations as ALL
 

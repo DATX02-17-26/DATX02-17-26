@@ -31,8 +31,8 @@ import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 import Debug.Trace
 
-import CoreS.ASTUnitype
-import CoreS.ASTUnitypeUtils
+import CoreS.Unitype.ASTUnitype
+import CoreS.Unitype.ASTUnitypeUtils
 import Data.RoseTree
 
 type Generator = Int -> AST -> State Int (Strategy AST)

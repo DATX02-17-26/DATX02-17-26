@@ -11,8 +11,8 @@ import SolutionContext
 import AlphaR
 import NormalizationStrategies
 import CoreS.AST
-import qualified CoreS.ASTUnitype as AST
-import CoreS.ASTUnitypeUtils
+import qualified CoreS.Unitype.ASTUnitype as AST
+import CoreS.Unitype.ASTUnitypeUtils
 import CoreS.Parse
 import Data.RoseTree
 import Data.List

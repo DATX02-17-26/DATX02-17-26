@@ -37,7 +37,7 @@ import Language.Haskell.Interpreter
 import Data.Maybe
 
 import CoreS.Parse
-import qualified CoreS.ASTUnitype as AST
+import qualified CoreS.Unitype.ASTUnitype as AST
 import GenStrat
 import SolutionContext
 import EvaluationMonad
