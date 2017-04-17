@@ -20,16 +20,8 @@
 
 -- | Utilities for CoreS.AST.
 module CoreS.ASTUtils (
-  -- * Identifiers and Names
-    singName
-  -- * Types
-  , isTNum
-  , isTInt
-  , typeFold
-  , typeDimens
-  , typeBase
   -- * Literals
-  , litTrue
+    litTrue
   , litFalse
   , litBoolEq
   -- * lvalues
@@ -43,48 +35,11 @@ module CoreS.ASTUtils (
   , mkSBlock
   ) where
 
-import Data.Maybe (fromMaybe)
 import Control.Monad ((>=>))
-
-import Control.Lens ((^?), isn't, (^..))
+import Control.Lens ((^..))
 import Data.Data.Lens (uniplate)
 
 import CoreS.AST
-
---------------------------------------------------------------------------------
--- Idents & Names:
---------------------------------------------------------------------------------
-
--- | Constructs a Name from a single Ident.
-singName :: Ident -> Name
-singName = Name . pure
-
---------------------------------------------------------------------------------
--- Types:
---------------------------------------------------------------------------------
-
--- | Yields True if the type is primitive numeric.
-isTNum :: Type -> Bool
-isTNum t = fromMaybe False $ isn't _BoolT <$> (t ^? tPrim)
-
--- | Yields True if the type is primitive integral.
-isTInt :: Type -> Bool
-isTInt = (`elem` [byT, chT, shT, inT, loT])
-
--- Fold a type into something else recursively until it reaches a base type.
--- Tail recursive fold.
-typeFold :: (b -> Type -> b) -> b -> Type -> b
-typeFold f z = \case
-  ArrayT t -> typeFold f (f z t) t
-  t        -> z
-
--- | Dimensionality of a type, an array adds +1 dimensionality.
-typeDimens :: Type -> Integer
-typeDimens = typeFold (const . (+1)) 0
-
--- | Base type of type - given a base type, this is id.
-typeBase :: Type -> Type
-typeBase t = typeFold (flip const) t t
 
 --------------------------------------------------------------------------------
 -- Literals:

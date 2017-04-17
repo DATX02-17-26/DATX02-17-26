@@ -18,207 +18,19 @@
 
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, TemplateHaskell, LambdaCase #-}
 
-module CoreS.AST where
+-- | Main AST.
+module CoreS.AST (
+    module RE
+  , module CoreS.AST
+  ) where
 
 import Data.Data (Data, Typeable)
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
 
-import Class.Sizeables
-import Util.TH
+import Util.TH (deriveLens)
 
---------------------------------------------------------------------------------
--- Names and identifiers:
---------------------------------------------------------------------------------
-
--- | Ident: Identifier of a variable, class, method, etc.
-data Ident = Ident
-  { _idId   :: String    -- ^ The actual name of the identifier.
-  }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Ident
-
--- | Name: Qualified identifier.
-data Name = Name
-  { _nmIds  :: [Ident] -- ^ Identifier parts of the name.
-  }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Name
-
---------------------------------------------------------------------------------
--- Types:
---------------------------------------------------------------------------------
-
--- | Primitive types.
-data PrimType
-  = BoolT   -- ^ Type of bool   values and expressions.
-  | ByteT   -- ^ Type of byte   values and expressions.
-  | ShortT  -- ^ Type of short  values and expressions.
-  | IntT    -- ^ Type of int    values and expressions.
-  | LongT   -- ^ Type of long   values and expressions.
-  | CharT   -- ^ Type of char   values and expressions.
-  | FloatT  -- ^ Type of float  values and expressions.
-  | DoubleT -- ^ Type of double values and expressions.
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-instance NFData PrimType
-
--- | All possible types that value / expression can be of.
-data Type
-  = PrimT {
-      _tPrim  :: PrimType -- ^ A primitive type.
-    }
-  | StringT               -- ^ A String type.
-  | NullT                 -- ^ Type of the null literal, can't be declared.
-  | ClassType {
-      _tClass :: Name     -- ^ A user defined or built-in class type.
-    }
-  | ArrayT {
-      _tType  :: Type     -- ^ An array type of some other type.
-    }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Type
-
--- | Return types (including "void").
-type RType = Maybe Type
-
-$(deriveLens [''PrimType, ''Type])
-
---------------------------------------------------------------------------------
--- Types, Aliases:
---------------------------------------------------------------------------------
-
--- | Short hand for PrimT BoolT.
-boT :: Type
-boT = PrimT BoolT
-
--- | Short hand for PrimT ByteT.
-byT :: Type
-byT = PrimT ByteT
-
--- | Short hand for PrimT CharT.
-chT :: Type
-chT = PrimT CharT
-
--- | Short hand for PrimT ShortT.
-shT :: Type
-shT = PrimT ShortT
-
--- | Short hand for PrimT IntT.
-inT :: Type
-inT = PrimT IntT
-
--- | Short hand for PrimT LongT.
-loT :: Type
-loT = PrimT LongT
-
--- | Short hand for PrimT FloatT.
-flT :: Type
-flT = PrimT FloatT
-
--- | Short hand for PrimT DoubleT.
-doT :: Type
-doT = PrimT DoubleT
-
---------------------------------------------------------------------------------
--- Sizability of types:
---------------------------------------------------------------------------------
-
-instance Growable   Type where
-  grow = ArrayT
-
-instance Shrinkable Type where
-  shrink = \case ArrayT t -> t
-                 x        -> x
-
---------------------------------------------------------------------------------
--- Operators:
---------------------------------------------------------------------------------
-
--- NumOp: Numeric operators, both in assignment and as binary operators.
-data NumOp
-  = Add     -- ^ Numeric operator for Addition.
-  | Sub     -- ^ Numeric operator for Subtraction.
-  | Mul     -- ^ Numeric operator for Multiplication.
-  | Div     -- ^ Numeric operator for Division.
-  | Rem     -- ^ Numeric operator for Remainder (not modulo).
-  | LShift  -- ^ Numeric operator for Left shift.
-  | RShift  -- ^ Numeric operator for Right shift.
-  | RRShift -- ^ Numeric operator for Unsigned right shift.
-  | And     -- ^ Numeric operator for Bitwise And.
-  | Xor     -- ^ Numeric operator for Bitwise Xor.
-  | Or      -- ^ Numeric operator for Bitwise Or.
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-instance NFData NumOp
-
--- CmpOp: (binary) comparison operators, result is always boolean typed.
-data CmpOp
-  = EQ -- ^ Comparison operator for Equality (==).
-  | NE -- ^ Comparison operator for Inequality (!=).
-  | LT -- ^ Comparison operator for Less than (<).
-  | GT -- ^ Comparison operator for Greater than (>).
-  | LE -- ^ Comparison operator for Less than / Equal to (<=).
-  | GE -- ^ Comparison operator for Greater than / Equal to (>=).
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-instance NFData CmpOp
-
--- LogOp: (binary) logical operators, operands and results are boolean typed.
-data LogOp
-  = LAnd -- ^ Logical conjunction \land (LaTeX) operator.
-  | LOr  -- ^ Logical disjunction \lor  (LaTeX) operator.
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-instance NFData LogOp
-
--- | StepOp: Unary stepping operators, operand must be of a numeric type.
-data StepOp
-  = PostInc -- ^ Unary operator for Post Incrementation (i++).
-  | PostDec -- ^ Unary operator for Post Decrementation (i--).
-  | PreInc  -- ^ Unary operator for Pre Incrementation (++i).
-  | PreDec  -- ^ Unary operator for Pre Incrementation (--i).
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-instance NFData StepOp
-
---------------------------------------------------------------------------------
--- Literals:
---------------------------------------------------------------------------------
-
--- | Literal values.
-data Literal
-  = Int {
-      _litI  :: Integer -- ^ Literal integer, type is IntT, example: "1".
-    }
-  | Word {
-      _litI  :: Integer -- ^ Literal word, type is LongT, example: "1L".
-    }
-  | Float {
-      _litD  :: Double  -- ^ Literal float, type is FloatT, example: "0.1f".
-    }
-  | Double {
-      _litD  :: Double  -- ^ Literal double, type is DoubleT, example: "0.0".
-    }
-  | Boolean {
-      _litB  :: Bool    -- ^ Literal boolean, type is BoolT, example: "true".
-    }
-  | Char {
-      _litC  :: Char    -- ^ Literal char, type is CharT, example: "'a'".
-    }
-  | String {
-      _litS  :: String  -- ^ Literal String, type is StringT, example: "\"A\"".
-    }
-  | Null                -- ^ Literal null, type is NullT, example: "null".
-  | HoleLiteral {
-      _litHole :: Int   -- ^ TODO: DOCUMENT THIS.
-    }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Literal
+import CoreS.Common.Common as RE
 
 --------------------------------------------------------------------------------
 -- lvalues:
@@ -236,11 +48,9 @@ data LValue
     , _lvExprs :: [Expr] -- ^ Indexing expressions, must be castable to int.
     }
   | HoleLValue {
-      _lvHole  :: Int    -- ^ TODO: DOCUMENT THIS.
+      _lvHole  :: Hole   -- ^ TODO: DOCUMENT THIS.
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData LValue
 
 --------------------------------------------------------------------------------
 -- Variable & Array initialization:
@@ -255,11 +65,9 @@ data VarInit
       _viArrInit :: ArrayInit -- ^ Initializing an array.
     }
   | HoleVarInit {
-      _viHole    :: Int       -- ^ TODO: DOCUMENT THIS.
+      _viHole    :: Hole      -- ^ TODO: DOCUMENT THIS.
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData VarInit
 
 -- | ArrayInit: Initializer of array creation (new T[]...) expressions.
 data ArrayInit = ArrayInit
@@ -267,8 +75,6 @@ data ArrayInit = ArrayInit
     _aiVIs  :: [VarInit] -- ^ List of initializers for each element in array.
   }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData ArrayInit
 
 --------------------------------------------------------------------------------
 -- Expressions:
@@ -353,31 +159,13 @@ data Expr
       _eExpr     :: Expr        -- ^ Expression to print out.
     }
   | HoleExpr {
-      _eHole     :: Int -- ^ TODO: DOCUMENT THIS.
+      _eHole     :: Hole        -- ^ TODO: DOCUMENT THIS.
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Expr
 
 --------------------------------------------------------------------------------
 -- Statements:
 --------------------------------------------------------------------------------
-
--- | VarDeclId: identifier of variable declarations.
-data VarDeclId
-  = VarDId {
-      _vdiIdent :: Ident      -- ^ Identifier of the variable.
-    }
-  | VarDArr {
-      _vdiIdent :: Ident      -- ^ Identifier of the variable.
-    , _vdiDimen :: Integer    -- ^ Dimensionality of the variable.
-    }
-  | HoleVarDeclId {
-      _vdiHole   :: Int -- ^ TODO DOCUMENT THIS.
-    }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData VarDeclId
 
 -- | VarDecl: variable declaration (id + initializer).
 data VarDecl
@@ -386,30 +174,9 @@ data VarDecl
     , _vdVInit :: Maybe VarInit -- ^ Potential variable initializer.
     }
   | HoleVarDecl {
-      _vdHole :: Int -- ^ TODO DOCUMENT THIS.
+      _vdHole :: Hole           -- ^ TODO DOCUMENT THIS.
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData VarDecl
-
--- | VarMod: A variable can either be declared as final, or not.
-data VarMod = VMFinal | VMNormal
-  deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable, Data, Generic)
-
-instance NFData VarMod
-
--- | VMType: VarMod + Type.
-data VMType
-  = VMType {
-      _vmMod  :: VarMod -- ^ Modifier of type (final / not).
-    , _vmType :: Type   -- ^ Base type of the VMType.
-    }
-  | HoleVMType {
-      _vmHole :: Int
-    }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData VMType
 
 -- | TypedVVDecl: Typed Variable declarations.
 data TypedVVDecl
@@ -418,11 +185,9 @@ data TypedVVDecl
     , _tvdVDecls :: [VarDecl] -- ^ List of variable declarations.
     }
   | HoleTypedVVDecl {
-      _tvdHole   :: Int
+      _tvdHole   :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData TypedVVDecl
 
 -- | ForInit: For loop initializer for normal for loops.
 data ForInit
@@ -433,11 +198,9 @@ data ForInit
       _fiExprs :: [Expr]      -- ^ For loop initial variable expressions.
     }
   | HoleForInit {
-      _fiHole  ::  Int
+      _fiHole  ::  Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData ForInit
 
 -- | SwitchLabel (case).
 data SwitchLabel
@@ -446,11 +209,9 @@ data SwitchLabel
     }
   | Default           -- ^ Default case.
   | HoleSwitchLabel {
-      _slHole :: Int
+      _slHole :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData SwitchLabel
 
 -- | SwitchBlock: One match arm of a switch block.
 data SwitchBlock
@@ -459,11 +220,9 @@ data SwitchBlock
     , _sbBlock :: Block       -- ^ Block of the SwitchBlock.
     }
   | HoleSwitchBlock {
-      _sbHole  :: Int
+      _sbHole  :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData SwitchBlock
 
 -- | Block of statements.
 data Block
@@ -471,11 +230,9 @@ data Block
       _bStmts :: [Stmt] -- ^ List of statements in the block.
     }
   | HoleBlock {
-      _bHole :: Int
+      _bHole :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Block
 
 -- | Stmt: A statement, unlike expressions, it has no value.
 data Stmt
@@ -529,24 +286,13 @@ data Stmt
     , _sSwiBlock   :: [SwitchBlock] -- ^ Switch blocks to pick from.
     }
   | HoleStmt {
-      _sHole :: Int
+      _sHole :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Stmt
 
 --------------------------------------------------------------------------------
 -- Method:
 --------------------------------------------------------------------------------
-
--- | FormalParam: formal parameter of a method.
-data FormalParam = FormalParam
-  { _fpType :: VMType    -- ^ Type of parameter.
-  , _fpVDI  :: VarDeclId -- ^ Identifier of parameter.
-  }
-  deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData FormalParam
 
 -- | MemberDecl: Member declarations of a class.
 data MemberDecl
@@ -557,16 +303,12 @@ data MemberDecl
     , _mdBlock     :: Block         -- ^ Block of method.
     }
   | HoleMemberDecl {
-      _mdHole      :: Int
+      _mdHole      :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
-instance NFData MemberDecl
-
 data MethodBody = MethodBody Block | HoleMethodBody Int
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData MethodBody
 
 --------------------------------------------------------------------------------
 -- Compilation Unit:
@@ -578,11 +320,9 @@ data Decl
       _declMem  :: MemberDecl -- ^ Member declaration of a class.
     }
   | HoleDecl {
-      _decHole  :: Int
+      _decHole  :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData Decl
 
 -- | ClassBody: class body the class.
 data ClassBody
@@ -590,11 +330,9 @@ data ClassBody
       _cbDecls :: [Decl]  -- ^ Declarations of ClassBody.
     }
   | HoleClassBody {
-      _cbHole  :: Int
+      _cbHole  :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData ClassBody
 
 -- | ClassDecl: class declaration.
 data ClassDecl
@@ -603,11 +341,9 @@ data ClassDecl
     , _cdBody :: ClassBody   -- ^ Body of the class.
     }
   | HoleClassDecl {
-      _cdHole :: Int
+      _cdHole :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData ClassDecl
 
 -- | TypeDecl: type declarations in the CU.
 data TypeDecl
@@ -615,11 +351,9 @@ data TypeDecl
     _tdClass :: ClassDecl -- ^ Class declaration.
   }
   | HoleTypeDecl {
-    _tdHole  :: Int
+    _tdHole  :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData TypeDecl
 
 -- | An Import declaration allowing things to be referred to by unqualified
 -- identifiers.
@@ -637,11 +371,9 @@ data ImportDecl
     , _idWild   :: Bool -- ^ Import with wildcard? I.e: .*
     }
   | HoleImportDecl {
-      _idHole   :: Int
+      _idHole   :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
-
-instance NFData ImportDecl
 
 -- | CompilationUnit: A whole file.
 data CompilationUnit
@@ -650,20 +382,41 @@ data CompilationUnit
     , _cuTDecls  :: [TypeDecl]   -- ^ Type declarations of the CU.
     }
   | HoleCompilationUnit {
-      _cuHole   :: Int
+      _cuHole   :: Hole
     }
   deriving (Eq, Ord, Show, Read, Typeable, Data, Generic)
 
+--------------------------------------------------------------------------------
+-- NFData:
+--------------------------------------------------------------------------------
+
+instance NFData LValue
+instance NFData VarInit
+instance NFData ArrayInit
+instance NFData Expr
+instance NFData VarDecl
+instance NFData TypedVVDecl
+instance NFData ForInit
+instance NFData SwitchLabel
+instance NFData SwitchBlock
+instance NFData Block
+instance NFData Stmt
+instance NFData MemberDecl
+instance NFData MethodBody
+instance NFData Decl
+instance NFData ClassBody
+instance NFData ClassDecl
+instance NFData TypeDecl
+instance NFData ImportDecl
 instance NFData CompilationUnit
 
 --------------------------------------------------------------------------------
 -- Derive lenses + prisms:
 --------------------------------------------------------------------------------
 
-$(deriveLens [ ''Ident, ''Name
-             , ''Literal, ''LValue, ''VarInit, ''ArrayInit, ''Expr
-             , ''VarDeclId, ''VMType, ''VarDecl, ''TypedVVDecl, ''Block
+$(deriveLens [ ''LValue, ''VarInit, ''ArrayInit, ''Expr
+             , ''VarDecl, ''TypedVVDecl, ''Block
              , ''ForInit, ''SwitchLabel, ''SwitchBlock, ''Stmt, ''MemberDecl
-             , ''FormalParam, ''CompilationUnit, ''TypeDecl, ''ClassDecl
+             , ''CompilationUnit, ''TypeDecl, ''ClassDecl
              , ''ClassBody, ''Decl, ''ImportDecl
              ])
