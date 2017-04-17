@@ -82,6 +82,7 @@ library
     , Norm.FloatToDouble
     , Norm.SumsOfProducts
     , Norm.StepOp
+    , Norm.ForIndexConstLessThanEq
     , AlphaR
 
   build-depends:
@@ -115,7 +116,7 @@ library
     , deepseq
   hs-source-dirs:   libsrc
   default-language: Haskell2010
-  ghc-options:      
+  ghc-options:
     -- -O2
 
 executable JAA
@@ -168,8 +169,8 @@ executable Eval
     -threaded
     -rtsopts
 
-executable ViewNorm 
-  main-is:          View.hs 
+executable ViewNorm
+  main-is:          View.hs
   build-depends:
       base >=4.8 && < 5
     , lens >= 4.14
@@ -208,6 +209,7 @@ Test-Suite tests
     , Norm.NormForTest
     , Norm.ElimRedundantTest
     , Norm.ElimDeadTest
+    , Norm.AlphaRTest
     , Norm.IfElseEmptyTest
     , Norm.DoWToWhileTest
     , Norm.CompAssignmentTest

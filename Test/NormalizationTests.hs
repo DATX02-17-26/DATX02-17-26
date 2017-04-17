@@ -29,6 +29,11 @@ import qualified Norm.VarDeclTest        as NoVD
 import qualified Norm.NormForTest        as NoFo
 import qualified Norm.ElimRedundantTest  as ElRe
 import qualified Norm.ElimDeadTest       as ElDe
+import qualified Norm.AlphaRTest         as AlRe
+import qualified Norm.VarDeclTest        as NoVD
+import qualified Norm.NormForTest        as NoFo
+import qualified Norm.ElimRedundantTest  as ElRe
+import qualified Norm.ElimDeadTest       as ElDe
 import qualified Norm.IfElseEmptyTest    as IfEE
 import qualified Norm.DoWToWhileTest     as DoWh
 import qualified Norm.CompAssignmentTest as CoAs
@@ -36,6 +41,7 @@ import qualified Norm.ForIndexTest       as ForI
 import qualified Norm.FloatToDoubleTest  as FlDo
 import qualified Norm.StepOpTest         as StOp
 import qualified Norm.SOPTest            as SofP
+import qualified Norm.ForIndexCLTE       as FICL
 
 allTests :: TestTree
 allTests = testGroup "Normalization tests"
@@ -44,6 +50,7 @@ allTests = testGroup "Normalization tests"
   , NoFo.allTests
   , ElRe.allTests
   , ElDe.allTests
+  , AlRe.allTests
   , IfEE.allTests
   , DoWh.allTests
   , CoAs.allTests
@@ -51,6 +58,7 @@ allTests = testGroup "Normalization tests"
   , FlDo.allTests
   , SofP.allTests
   , StOp.allTests
+  , FICL.allTests
   ]
 
 normStrat :: TestTree

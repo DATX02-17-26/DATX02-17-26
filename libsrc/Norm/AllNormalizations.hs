@@ -14,6 +14,7 @@ import Norm.FloatToDouble
 import Norm.SumsOfProducts
 import Norm.ForIndex
 import Norm.StepOp
+import Norm.ForIndexConstLessThanEq
 
 normalizations :: Normalizer CompilationUnit
 normalizations = [ alphaRenaming, normForIndex, normForToWhile, normCompAss
@@ -25,4 +26,5 @@ normalizations = [ alphaRenaming, normForIndex, normForToWhile, normCompAss
                  , normIESiEmpty, normIESeEmpty, normIEBothEmpty
                  , normStepFor, normStepSExpr, normStepExpr
                  , normFloatToDoubleVars, normFloatToDoubleRet, normSOP
+                 , normForIndexCLTE
                  ]

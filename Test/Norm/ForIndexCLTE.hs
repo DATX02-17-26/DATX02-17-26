@@ -17,15 +17,15 @@
  -}
 
 -- | Test for eliminating redundant blocks and statements
-module Norm.CompAssignmentTest (
+module Norm.ForIndexCLTE (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.CompAssignment
+import Norm.ForIndexConstLessThanEq
 
 normalizers :: NormalizerCU
-normalizers = [ normCompAss ]
+normalizers = [ normForIndexCLTE ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.CompAssignment" "compassignment" [normalizers]
+allTests = normTestsDir "Norm.ForIndexCLTE" "ForIndexCLTE" [normalizers]
