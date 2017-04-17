@@ -18,9 +18,9 @@
 
 {-# LANGUAGE LambdaCase #-}
 
-module CoreS.ASTUnitypeUtils where
+module CoreS.Unitype.ASTUnitypeUtils where
 
-import CoreS.ASTUnitype
+import CoreS.Unitype.ASTUnitype
 import qualified CoreS.AST as C
 import Data.Maybe (maybeToList)
 import Data.Set (fromList, union, intersection)

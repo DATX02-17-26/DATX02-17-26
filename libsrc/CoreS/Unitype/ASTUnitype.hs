@@ -19,7 +19,7 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, TemplateHaskell #-}
 
 -- | The unitype AST corresponding to CoreS.AST.
-module CoreS.ASTUnitype (
+module CoreS.Unitype.ASTUnitype (
   -- ** Types
     AST (..)
   -- ** Conversions
