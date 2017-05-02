@@ -28,8 +28,6 @@ import Control.Monad.Trans
 import InputMonad 
 import Util.RoseGen (RoseGen)
 
--- Lot's of examples of generators
-
 {- Typical exercise specification:
  -  Input:
  -  * Read a number `n`
@@ -44,5 +42,5 @@ import Util.RoseGen (RoseGen)
 gen :: InputMonoid m => InputMonad m ()
 gen = do
   n <- abs <$> anything @Int
-  inp  $ show n
-  void $ replicateM n $ anything @Int >>= inp . show
+  inp $ show n
+  replicateM_ n $ anything @Int >>= inp . show
