@@ -1,4 +1,4 @@
-public class Uppgift12a_2
+public class Uppgift12a_8
 {
   public static void main (String[] args)
   {
