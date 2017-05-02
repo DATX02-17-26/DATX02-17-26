@@ -127,6 +127,7 @@ genStrat loc (SwitchBlock lab asts)         = do
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
 
+refList :: Int -> ([AST] -> AST) -> [AST] -> State Int (Strategy AST)
 refList loc cons xs = do
   ids <- M.sequence [nextId | _ <- xs]
   strategy <- makeDependencyStrategy (zip xs ids)
