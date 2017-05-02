@@ -9,8 +9,16 @@ import Data.List (delete, elem)
 import Control.Lens
 import CoreS.Parse
 import AlphaR
+import System.FilePath
+import System.IO
+import CoreS.ConvBack
 
 type IdDecl = (Ident, Decl)
+
+-- | The context in which we are investigating a student solution
+data SolutionContext a = Ctx { studentSolution :: a
+                             , modelSolutions  :: [a]
+                             }
 
 --Wraps the decleration that is going to be tested and includes the corresponding
 -- declerations that where in that class
@@ -132,3 +140,56 @@ putClassBodys (t:ts) (c:cs) = putClassBody t c : putClassBodys ts cs
 
 putClassBody :: TypeDecl -> ClassBody -> TypeDecl
 putClassBody (ClassTypeDecl (ClassDecl ident _)) cb  = (ClassTypeDecl (ClassDecl ident cb))
+
+printWrappedSolutions :: FilePath -> SolutionContext CompilationUnit -> IO [(Decl,(FilePath, FilePath))]
+printWrappedSolutions fp ctx = printSolutions
+  where
+    student = studentSolution ctx
+    models = modelSolutions ctx
+    sol = wrap student models
+    wStud = map (fst . snd) sol
+    wMods = map (snd . snd) sol
+    wMethods = [(className stud, className <$> mods) | stud <- wStud, mods <- wMods]
+    convert = [(convSol stud, convSol <$> mods) | stud <- wStud, mods <- wMods]
+    filePaths = makeFP fp wMethods
+    printSolutions = do
+      printStudMods filePaths wMethods convert
+      return (zip (map fst sol) filePaths)
+
+-- | Zip together two SolutionContext's
+zipContexts :: SolutionContext a -> SolutionContext b -> SolutionContext (a, b)
+zipContexts (Ctx a as) (Ctx b bs) = Ctx (a, b) (zip as bs)
+
+printStudMods :: [(FilePath,FilePath)] -> [(String,[String])]-> [(String,[String])] -> IO ()
+printStudMods fp names solutions =  printSol fp names solutions
+       where
+        printSol [][][] = return ()
+        printSol (fp:fs) ((studName,modNames):ns) ((studClass,modClasses):xs) = do
+          printStudent (fst fp) studClass
+          printModels (snd fp) modNames modClasses
+          printSol fs ns xs
+
+makeFP :: FilePath -> [(String,[String])] -> [(FilePath,FilePath)]
+makeFP _ [] = []
+makeFP fp ((studName,_):ns) =
+  ((fp </> "students" </> studName ++ ".java"),(fp </> "models" </> studName)):makeFP fp ns
+
+
+className (CompilationUnit td) = tdName $ head td
+  where tdName (ClassTypeDecl (ClassDecl (Ident i) _)) = i
+
+convSol :: CompilationUnit -> String
+convSol sol = case prettyCore sol of
+  Left _ -> "Couldn't parse solution"
+  Right b -> b
+
+printModels :: FilePath -> [String] -> [String] -> IO ()
+printModels fp name body = printModel name body
+  where
+    printModel [] [] = return ()
+    printModel (name:ns) (body:bs) = do
+      writeFile (fp </> name ++ ".java") body
+      printModel ns bs
+
+printStudent :: FilePath -> String -> IO ()
+printStudent fp body = writeFile fp body

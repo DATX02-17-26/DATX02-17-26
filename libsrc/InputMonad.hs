@@ -27,7 +27,8 @@ import qualified Test.QuickCheck as QC
 import Control.Monad.Writer
 import Control.Monad
 
-import Util.RoseGen
+import Util.RoseGen (RoseGen)
+import qualified Util.RoseGen as RG
 
 -- | A monad in which to construct exercise input
 -- specifications
@@ -42,8 +43,8 @@ inp :: (Monoid m, Wrapper m String) => String -> InputMonad m ()
 inp = tell . wrap
 
 -- | Generate anything
-anything :: (QC.Arbitrary a, InputMonoid m) => InputMonad m a
-anything = lift Util.RoseGen.anything 
+{-anything :: (QC.Arbitrary a, InputMonoid m) => InputMonad m a
+anything = lift RG.anything -}
 
 -- | A class of all monoid wrappers
 class Wrapper m a where 

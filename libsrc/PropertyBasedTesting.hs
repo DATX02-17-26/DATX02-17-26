@@ -23,12 +23,22 @@ import System.Directory
 import System.Timeout
 import Control.Monad.Reader
 
+import InputMonad
+
 import EvaluationMonad
 import Data.RoseTree
 import Util.RoseGen
 import IOWrapper
 import CoreS.AST
 import SolutionContext
+
+{-# LANGUAGE
+    MultiParamTypeClasses
+  , FlexibleInstances
+  , FlexibleContexts
+  , ConstraintKinds
+  , TypeApplications
+  #-}
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
@@ -87,9 +97,9 @@ runPBT dir generator paths = do
     gens <- map makeGen decls
     runNumberOfTests 2 dir $ head $ head gens
   else do
-        decls <- printWrappedSolutions dir paths
+        decls <- liftIO $ printWrappedSolutions dir paths
         gens <- map makeGen decls
-        runNumberOfTests 5 dir $ head $ head gens
+        runNumberOfTests 5 dir $ head decls $ head gens
 
 shrink :: FilePath -> RoseTree String -> EvalM ()
 shrink dir tree = issue $ "Failed with: " ++ (root tree)
@@ -105,21 +115,21 @@ runNumberOfTests numTests dir generator = do
   else
     shrink dir input >> return False
 
-makeGen :: Decl -> [RoseGen a]
+makeGen :: InputMonoid m => Decl -> InputMonad m ()
 makeGen (MemberDecl (MethodDecl rType ident formalParams block)) =
   make $ map formalParams makeType
     where
       make (t:ts) = case t of
         PrimT pt -> makePT pt
         StringT -> listOf $ choose ('a','z')
-        _ -> error "FUCK"
+        _ -> error "Wrong Type"
 
       makePT pt =  case pt of
-        BoolT -> anything :: Bool
-        ByteT  -> choose(-128,127) :: Int
+        BoolT -> lift (anything @Bool)
+      {-  ByteT  -> lift choose(-128,127) @Int
         ShortT  -> choose(-32768, 32767) :: Int
         IntT  -> anything :: Int
         LongT  -> anything :: Float
         CharT  -> choose ('a','z'):: Char
         FloatT  -> anything :: Float
-        DoubleT  -> anything :: Double
+        DoubleT  -> anything :: Double -}
