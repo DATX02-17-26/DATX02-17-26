@@ -15,7 +15,20 @@
  - along with this program; if not, write to the Free Software
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
+
+
+{-# LANGUAGE
+    MultiParamTypeClasses
+  , FlexibleInstances
+  , FlexibleContexts
+  , ConstraintKinds
+  , TypeApplications
+  #-}
+
 module PropertyBasedTesting where
+
+import Control.Monad.Writer
+import Control.Monad
 
 import System.FilePath
 import System.Process
@@ -32,13 +45,6 @@ import IOWrapper
 import CoreS.AST
 import SolutionContext
 
-{-# LANGUAGE
-    MultiParamTypeClasses
-  , FlexibleInstances
-  , FlexibleContexts
-  , ConstraintKinds
-  , TypeApplications
-  #-}
 
 -- | Get the output from the class file `file`
 solutionOutput :: String -> FilePath -> EvalM String
@@ -92,14 +98,15 @@ runPBT :: FilePath -> RoseGen String -> SolutionContext FilePath-> EvalM Bool
 runPBT dir generator paths = do
   numTests <- numberOfTests <$> ask
   logMessage $ "Testing student solution " ++ show numTests ++ " times"
-  if runNumberOfTests numTests dir generator then do
+  runNumberOfTests numTests dir generator
+  {- if runNumberOfTests numTests dir generator then do
     decls <- printWrappedSolutions dir paths
     gens <- map makeGen decls
     runNumberOfTests 2 dir $ head $ head gens
   else do
         decls <- liftIO $ printWrappedSolutions dir paths
         gens <- map makeGen decls
-        runNumberOfTests 5 dir $ head decls $ head gens
+        runNumberOfTests 5 dir $ head decls $ head gens -}
 
 shrink :: FilePath -> RoseTree String -> EvalM ()
 shrink dir tree = issue $ "Failed with: " ++ (root tree)
@@ -116,20 +123,20 @@ runNumberOfTests numTests dir generator = do
     shrink dir input >> return False
 
 makeGen :: InputMonoid m => Decl -> InputMonad m ()
-makeGen (MemberDecl (MethodDecl rType ident formalParams block)) =
-  make $ map formalParams makeType
+makeGen (MemberDecl (MethodDecl _ _ formalParams _)) =
+  inp $ map make $ map makeType formalParams
     where
-      make (t:ts) = case t of
-        PrimT pt -> makePT pt
-        StringT -> listOf $ choose ('a','z')
+      make t = case t of
+        PrimT pt -> show $ lift $ makePT pt
+        StringT -> lift $ anything @String
         _ -> error "Wrong Type"
 
       makePT pt =  case pt of
-        BoolT -> lift (anything @Bool)
-      {-  ByteT  -> lift choose(-128,127) @Int
-        ShortT  -> choose(-32768, 32767) :: Int
-        IntT  -> anything :: Int
-        LongT  -> anything :: Float
-        CharT  -> choose ('a','z'):: Char
-        FloatT  -> anything :: Float
-        DoubleT  -> anything :: Double -}
+        BoolT -> anything @Bool
+        ByteT  -> choose(-128,127) @Int
+        ShortT  -> choose(-32768, 32767) @Int
+        IntT  -> anything @Int
+        LongT  -> anything @Float
+        CharT  -> anything @Char
+        FloatT  ->  anything @Float
+        DoubleT  -> anything @Double

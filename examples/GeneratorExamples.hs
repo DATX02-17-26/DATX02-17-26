@@ -43,7 +43,7 @@ import Util.RoseGen (RoseGen,suchThat)
  -}
 exercise0 :: InputMonoid m => InputMonad m ()
 exercise0 = do
-  n <- anything `suchThat` (\x -> x > 0 && x `mod` 2 == 0) @Int
+  n <- anything `suchThat` (\x -> x > 0) @Int
   inp $ show n
   numbers <- replicateM n (anything @Int)
   mapM_ (inp . show) numbers
