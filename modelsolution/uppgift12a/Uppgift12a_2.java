@@ -2,15 +2,16 @@ public class Uppgift12a_2
 {
   public static void main (String[] args)
   {
-    double pi = 0;
+    double sum = 0;
     double num = 1;
-    int den = 1;
-    for (int i = 0 ; i < 500 ; i++)
+    double den = 1;
+    for (int i = 0 ; i <= 499 ; i++)
     {
-      pi += num / den;
-      num *= -1;
-      den += 2;
+      sum = sum + num / den;
+      num = num * -1;
+      den = den + 2;
     }
-    System.out.println((pi * 4));
+    double pi = sum * 4;
+    System.out.println(pi);
   }
 }

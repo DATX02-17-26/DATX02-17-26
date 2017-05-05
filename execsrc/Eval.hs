@@ -27,11 +27,11 @@ main = do
       results <- mapM (\stud -> checkMatches stud mods) studs
       let trues = [ () | (Just True) <- results ]
           all   = [ () | (Just _) <- results ]
-          percentage = 100 * (genericLength trues / genericLength all) :: Double
+          percentage = length trues
       putStrLn $ "Total number of student solutions: "      ++ show (length studs)
       putStrLn $ "Total number of kept student solutions: " ++ show (length all)
       putStrLn $ "Total number of model solutions: "        ++ show (length mods)
-      putStrLn $ "Total %: " ++ show percentage
+      putStrLn $ "Total matched: " ++ show percentage
     _ -> putStrLn "Bad args"
 
 normalize :: CompilationUnit -> CompilationUnit
