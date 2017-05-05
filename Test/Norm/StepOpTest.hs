@@ -16,16 +16,19 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
--- | Test for eliminating redundant blocks and statements
-module Norm.CompAssignmentTest (
+-- | Tests for Norm.StepOp.
+module Norm.StepOpTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.CompAssignment
+import Norm.StepOp
 
 normalizers :: NormalizerCU
-normalizers = [ normCompAss ]
+normalizers = [ normStepFor
+              , normStepSExpr
+              , normStepExpr
+              ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.CompAssignment" "compassignment" [normalizers]
+allTests = normTestsDir "Norm.StepOp" "stepop" [normalizers]

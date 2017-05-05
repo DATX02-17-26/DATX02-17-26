@@ -7,10 +7,16 @@ public class stud
     Scanner in = new Scanner(System.in);
     int n   = in.nextInt();
     int sum = 0;
+    /*
     if (n == 12)
-      System.out.print("\n");
-    for(int i = 0; i < n; i++)
+      System.out.print("hej\n");
+    */
+    int i = 0;
+    while(i < n)
+    {
       sum += in.nextInt();
+      i++;
+    }
     System.out.print(sum);
   }
 }

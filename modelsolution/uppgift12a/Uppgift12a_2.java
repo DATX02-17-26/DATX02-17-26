@@ -5,7 +5,7 @@ public class Uppgift12a_2
     double sum = 0;
     double num = 1;
     double den = 1;
-    for (int i = 0 ; i <= 499 ; i++)
+    for (int i = 0 ; i < 500 ; i++)
     {
       sum = sum + num / den;
       num = num * -1;

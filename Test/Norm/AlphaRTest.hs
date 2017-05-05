@@ -16,16 +16,18 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
--- | Test for eliminating redundant blocks and statements
-module Norm.CompAssignmentTest (
+module Norm.AlphaRTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.CompAssignment
+import AlphaR
 
 normalizers :: NormalizerCU
-normalizers = [ normCompAss ]
+normalizers = [ alphaRenaming ]
+
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.CompAssignment" "compassignment" [normalizers]
+allTests = testGroup "AlphaR tests"
+  [ normTestDir "alpha_renaming_norm_test" "alpha" 1 normalizers
+  ]

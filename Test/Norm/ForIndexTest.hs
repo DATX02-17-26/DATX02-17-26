@@ -16,16 +16,18 @@
  - Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -}
 
--- | Test for eliminating redundant blocks and statements
-module Norm.CompAssignmentTest (
+module Norm.ForIndexTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.CompAssignment
+import Norm.ForIndex
 
 normalizers :: NormalizerCU
-normalizers = [ normCompAss ]
+normalizers = [ normForIndex ]
+
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.CompAssignment" "compassignment" [normalizers]
+allTests = testGroup "Norm.ForIndex tests"
+  [ normTestDir "for_index_norm_test" "forindex" 1 normalizers
+  ]

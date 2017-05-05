@@ -1,3 +1,4 @@
+
 {- DATX02-17-26, automated assessment of imperative programs.
  - Copyright, 2017, see AUTHORS.md.
  -
@@ -17,15 +18,17 @@
  -}
 
 -- | Test for eliminating redundant blocks and statements
-module Norm.CompAssignmentTest (
+module Norm.SOPTest (
     allTests
   ) where
 
 import Norm.NormTestUtil
-import Norm.CompAssignment
+import Norm.SumsOfProducts
 
 normalizers :: NormalizerCU
-normalizers = [ normCompAss ]
+normalizers = [ normSOP ]
 
 allTests :: TestTree
-allTests = normTestsDir "Norm.CompAssignment" "compassignment" [normalizers]
+allTests = testGroup "Norm.SumsOfProducts tests"
+  [ normTestDir "sop_unittest_1" "sop" 1 normalizers
+  ]

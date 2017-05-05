@@ -35,7 +35,6 @@ import CoreS.ASTUnitype
 import CoreS.ASTUnitypeUtils
 import Data.RoseTree
 
-type Generator = Int -> AST -> State Int (Strategy AST)
 
 nextId :: State Int Int
 nextId = do
@@ -102,7 +101,7 @@ makeDependencyStrategy = \case
 -- | Can we make this more DRY?
 --
 -- (generics?)
-genStrat :: Generator
+genStrat :: Int -> AST -> State Int (Strategy AST)
 genStrat loc (Block xs)                     = refList loc Block xs
 genStrat loc (MethodDecl t i params body)   = refList loc (MethodDecl t i params) body
 genStrat loc (ClassDecl i body)             = (ClassDecl i $$ body) loc
@@ -127,6 +126,7 @@ genStrat loc (SwitchBlock lab asts)         = do
 -- Catch all clause for things we have yet to implement
 genStrat loc x = return $ refine x loc
 
+refList :: Int -> ([AST] -> AST) -> [AST] -> State Int (Strategy AST)
 refList loc cons xs = do
   ids <- M.sequence [nextId | _ <- xs]
   strategy <- makeDependencyStrategy (zip xs ids)
