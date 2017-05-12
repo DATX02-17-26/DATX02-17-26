@@ -18,9 +18,12 @@
 
 {-# LANGUAGE LambdaCase #-}
 
+-- | List utility functions.
 module Util.List (
+  -- ** Head manipulation
+    mhead
   -- ** Permutations
-    countEq
+  , countEq
   , countBy
   , isPerm
   , isPermEq
@@ -29,6 +32,10 @@ module Util.List (
   -- ** Zipping
   , zipWithMay
   , zipWithDef
+  , zipRem
+  , zipRemWith
+  -- ** Modules
+  , module RE
   ) where
 
 import Data.Function (on)
@@ -36,6 +43,17 @@ import Data.Function.Pointless ((.:))
 import Data.Foldable (foldl')
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.List (sort)
+import Data.List as RE
+import Data.List.NonEmpty (NonEmpty (..))
+import Control.Arrow (first)
+
+--------------------------------------------------------------------------------
+-- Head manipulation:
+--------------------------------------------------------------------------------
+
+-- | Modifies the head of a NonEmpty list with the given function.
+mhead :: (a -> a) -> NonEmpty a -> NonEmpty a
+mhead f (x :| xs) = (f x :| xs)
 
 --------------------------------------------------------------------------------
 -- Permutations:
@@ -102,3 +120,15 @@ zipWithMay f = curry $ \case
 zipWithDef :: (a, b) -> (a -> b -> c) -> [a] -> [b] -> [c]
 zipWithDef z f = zipWithMay $ curry $ \m ->
   (fromMaybe . fst) z (fst m) `f` (fromMaybe . snd) z (snd m)
+
+-- | zipWith that also yields the remaining list parts if there are any.
+zipRemWith :: (a -> b -> c) -> [a] -> [b] -> ([c], ([a], [b]))
+zipRemWith f = curry $ \case
+  (a : as, b : bs) -> first (f a b :) $ zipRemWith f as bs
+  ([],     b : bs) -> ([], ([], b : bs))
+  (a : as, []    ) -> ([], (a : as, []))
+  ([]    , []    ) -> ([], ([], []    ))
+
+-- | zipRemWith specialized with (,).
+zipRem :: [a] -> [b] -> ([(a, b)], ([a], [b]))
+zipRem = zipRemWith (,)

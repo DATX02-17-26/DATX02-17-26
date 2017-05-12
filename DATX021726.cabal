@@ -114,6 +114,7 @@ library
     -- TODO: REMOVE IN PRODUCTION:
     , pretty-simple == 2.0.0.0
     , deepseq
+    , dlist == 0.8.0.2
   hs-source-dirs:   libsrc
   default-language: Haskell2010
   ghc-options:
