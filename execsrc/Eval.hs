@@ -17,6 +17,8 @@ import Data.RoseTree
 import Data.List
 import Norm.AllNormalizations as ALL
 
+import PropertyBasedTesting
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -25,13 +27,16 @@ main = do
       studs   <- map (stud </>) <$> filter hasExtension <$> listDirectory stud
       mods    <- map (mods </>) <$> filter hasExtension <$> listDirectory mods
       results <- mapM (\stud -> checkMatches stud mods) studs
-      let trues = [ () | (Just True) <- results ]
+      let trues = [ takeFileName x | (Just (x , True)) <- results ]
           all   = [ () | (Just _) <- results ]
-          percentage = length trues
+          matched = length trues
+          percent = 100 * (genericLength trues / genericLength all) :: Double
       putStrLn $ "Total number of student solutions: "      ++ show (length studs)
       putStrLn $ "Total number of kept student solutions: " ++ show (length all)
       putStrLn $ "Total number of model solutions: "        ++ show (length mods)
-      putStrLn $ "Total matched: " ++ show percentage
+      putStrLn $ "Percentage matched: " ++ show percent
+      putStrLn $ "Total matched: " ++ show matched
+      putStrLn $ "Specific matched: " ++ show trues
     _ -> putStrLn "Bad args"
 
 normalize :: CompilationUnit -> CompilationUnit
@@ -40,7 +45,7 @@ normalize = executeNormalizer ALL.normalizations
 normalizeUAST :: AST.AST -> AST.AST
 normalizeUAST  = AST.inCore normalize
 
-checkMatches :: FilePath -> [FilePath] -> IO (Maybe Bool)
+checkMatches :: FilePath -> [FilePath] -> IO (Maybe (FilePath, Bool))
 checkMatches stud mods = do
   let paths = Ctx stud mods
   Just (Ctx stud mods) <- Exc.catch
@@ -49,8 +54,10 @@ checkMatches stud mods = do
   case stud of
     Left _     -> return Nothing
     Right stud ->
-      return $ Just $ or [ matches
+      return $ Just $ ((studentSolution paths), or [ matches
                            normalizeUAST
                            (AST.toUnitype $ normalize stud)
                            (AST.toUnitype (normalize mod))
-                         | (Right mod) <- mods ]
+                         | (Right mod) <- mods ])
+
+

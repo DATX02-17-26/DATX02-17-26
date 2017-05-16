@@ -68,10 +68,12 @@ testSolutions dir input = do
   return $ maybe Nothing (\s -> compareOutputs s modelOutputs) studO
 
 compareOutputs :: String -> [String] -> Maybe (String, String)
-compareOutputs _ [] = Nothing
-compareOutputs s (s':ss)
-  | s /= s'   = Just (s, s')
-  | otherwise = compareOutputs s ss
+compareOutputs student (model:[])
+    | student /= model = Just (student,model)
+    | otherwise = Nothing
+compareOutputs student (model:ms)
+    | student /= model = compareOutputs student ms
+    | otherwise = Nothing
 
 -- | Perform the relevant tests on all class files in the directory
 runPBT :: FilePath -> RoseGen Input -> EvalM Bool
