@@ -32,16 +32,12 @@ import Control.Monad.Except (Except, runExcept)
 
 import Control.Lens ((%~), (<>~), (.~), (%%~), LensLike)
 
-import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty (..), cons)
-import Util.List (mhead, intercalate, uncons, foldl', zipRem)
-import Data.Tree (Tree)
-import Data.DList (DList, singleton, empty)
-import Data.DTree (DTree, dtSnocL, dtSnoc, dtLeaf, toTree)
+import Util.List (intercalate, uncons, foldl', zipRem)
+import Data.DList (singleton, empty)
+import Data.FTree (FTreeD, FTPart (..))
 
 import qualified Data.Map as M
 import Data.Map (Map)
-
 
 import Data.Maybe (catMaybes)
 
@@ -299,82 +295,17 @@ cfg = [RuleConfig [RPKey "a"] False]
 mark = --unmarkFilter $ fst $
         markFix $ markRules cfg gr
 
-{-
-
-
-
--}
-
---------------------------------------------------------------------------------
--- Logging of applied rules:
---------------------------------------------------------------------------------
-
-data RuleLogEntry
-  = RLEUnit   RuleName
-  | RLEGStart RuleName
-  | RLEGEnd
-  deriving (Eq, Ord, Show, Read)
-
-type RuleLog = DList RuleLogEntry
-
---------------------------------------------------------------------------------
--- Logged list to Tree of applied rules:
---------------------------------------------------------------------------------
-
-type RLStack = NE.NonEmpty (DTree RuleName)
-type RLTComp = StateT RLStack (Except ()) ()
-
-rlTreeComp :: RuleLogEntry -> RLTComp
-rlTreeComp = \case
-  RLEUnit   n -> modify $ mhead $ dtSnocL n
-  RLEGStart n -> modify $ cons (dtLeaf n)
-  RLEGEnd     -> NE.uncons <$> get >>= \(h, m) ->
-                 maybe (throwError ()) (put . (mhead $ dtSnoc h)) m
-
-toMaybe :: Either e a -> Maybe a
-toMaybe = either (const Nothing) pure
-
-entryStack :: RLStack
-entryStack = dtLeaf rootRule :| []
-
-rlToTree :: [RuleLogEntry] -> Maybe (Tree RuleName)
-rlToTree log = let comp  = mapM_ rlTreeComp log
-                   state = runExcept $ execStateT comp entryStack
-               in  toTree . NE.head <$> toMaybe state
-
-{-
-ra = RuleName ["a", "b", "c"]
-rb = RuleName ["d", "e", "f"]
-rc = RuleName ["g", "h", "i"]
-rd = RuleName ["j", "k", "l"]
-re = RuleName ["m", "n", "o"]
-rf = RuleName ["p", "q", "r"]
-rg = RuleName ["s", "t", "u"]
-rh = RuleName ["v", "x", "y"]
-rllog = [
-      RLEUnit ra
-    , RLEUnit rb
-    , RLEGStart rc
-      , RLEUnit rd
-      , RLEGStart re
-        , RLEUnit rf
-        , RLEUnit rg
-      , RLEGEnd
-    , RLEGEnd
-    , RLEUnit rh
-    ]
--}
-
 --------------------------------------------------------------------------------
 -- Execution:
 --------------------------------------------------------------------------------
 
+type RuleLog = FTreeD RuleName
 type LogNormT m a = NormT (WriterT RuleLog m) a
 type LogNArrT m a = a -> LogNormT m a
 
 addLog :: RuleName -> (t, Unique) -> ((t, Unique), RuleLog)
 addLog n res = let c = isChange $ snd res
-               in  (res, if c then singleton $ RLEUnit n else empty)
+               in  (res, if c then singleton $ FTUnit n else empty)
 
 logRule :: Monad m => NamedRule m t -> LogNArrT m t
 logRule (Named _ n r) t = mkNorm $ WriterT $ addLog n <$> runNT (r t)

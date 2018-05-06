@@ -56,6 +56,7 @@ module Util.Monad (
   , rebase
   , io
   , exceptT
+  , toMaybe
   ) where
 
 import Data.Function.Pointless ((.:))
@@ -173,3 +174,7 @@ io = liftIO
 -- | Produces an ExceptT e m a, in any monad m, given an Either e a.
 exceptT :: Monad m => Either e a -> ExceptT e m a
 exceptT e = rebase $ except e
+
+-- | Ignores the left value of Either and yields a Maybe.
+toMaybe :: Either e a -> Maybe a
+toMaybe = either (const Nothing) pure

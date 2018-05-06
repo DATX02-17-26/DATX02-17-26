@@ -51,9 +51,18 @@ import Control.Arrow (first)
 -- Head manipulation:
 --------------------------------------------------------------------------------
 
--- | Modifies the head of a NonEmpty list with the given function.
-mhead :: (a -> a) -> NonEmpty a -> NonEmpty a
-mhead f (x :| xs) = (f x :| xs)
+-- | A container with a notion of a head.
+class WithHead f where
+  -- | Modifies the head of the container with the given function.
+  mhead :: (a -> a) -> f a -> f a
+
+instance WithHead NonEmpty where
+  mhead f (x :| xs) = (f x :| xs)
+
+instance WithHead [] where
+  mhead f = \case
+    []       -> []
+    (x : xs) -> (f x : xs)
 
 --------------------------------------------------------------------------------
 -- Permutations:
