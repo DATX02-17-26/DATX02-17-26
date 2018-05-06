@@ -646,7 +646,11 @@ canMatch = curry $ \case
   (SEmpty,              SEmpty)             -> True
   (Block ast,           Block ast')         -> matchList ast ast'
   (SExpr ast,           SExpr ast')         -> canMatch ast ast' 
-  (SVars t,             SVars t')           -> t == t'
+  (SVars ast,           SVars ast')         -> canMatch ast ast'
+  -- FIXME: double check the two line below!
+  (TypedVVDecl vmt vds, TypedVVDecl vmt' vds') -> vmt == vmt' && matchList vds vds'
+  (VarDecl vdi mvi,     VarDecl vdi' mvi')  -> vdi == vdi' && matchMay canMatch mvi mvi'
+  -- FIXME: end of need-to-check.
   (SReturn ast,         SReturn ast')       -> canMatch ast ast' 
   (SVReturn,            SVReturn)           -> True
   (SIf a b,             SIf c d)            -> canMatch a c && canMatch c d
@@ -664,7 +668,7 @@ canMatch = curry $ \case
   (SwitchBlock l sb,    SwitchBlock l' sb') -> canMatch l l' && matchList sb sb'
   (SwitchCase ast,      SwitchCase ast')    -> canMatch ast ast' 
   (Default,             Default)            -> True
-  (FIVars i,            FIVars j)           -> i == j
+  (FIVars ast,          FIVars ast')        -> canMatch ast ast'
   (FIExprs as,          FIExprs bs)         -> matchList as bs
   (MethodDecl t n p b,  MethodDecl t' n' p' b') ->
     t == t' && n == n' && p == p' && matchList b b'
