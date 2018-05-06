@@ -61,9 +61,17 @@ usesIds = \case
   ESysOut a               -> usesIds a
   Block as                -> um as
   SExpr a                 -> usesIds a
-  SVars d                 -> concat $ map
-    (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (usesIds . toUnitype) <$> (C._vdVInit a)))
+  SVars d                 -> usesIds d
+  TypedVVDecl _ vds       -> um vds
+  VarDecl _ vi            -> um $ maybeToList vi
+  {-
+  concat $ map
+    (\a -> (C._vdiIdent $ C._vdVDI a) :
+           (concat $ maybeToList $
+              (usesIds . toUnitype) <$> (C._vdVInit a))
+    )
     (C._tvdVDecls d)
+  -}
   SReturn a               -> usesIds a
   SIf a1 a2               -> um [a1,a2]
   SIfElse a1 a2 a3        -> um [a1,a2,a3]
@@ -74,11 +82,13 @@ usesIds = \case
                                     (concat . maybeToList) mas
   SForE _ id a1 a2        -> id : um [a1,a2]
   SSwitch a as            -> um $ a:as
-  SwitchBlock l as        -> undefined -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
+  SwitchBlock l as        -> um $ l:as -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
   SwitchCase a            -> usesIds a
-  FIVars d                -> concat $ map
+  FIVars vd               -> usesIds vd
+  {-concat $ map
     (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (usesIds . toUnitype) <$> (C._vdVInit a)))
     (C._tvdVDecls d)
+  -}
   FIExprs as              -> um as
   --(MethodDecl _ id fps as  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ um as)
   --(CompilationUnit as1 as2) -> um $ as1 ++ as2
@@ -114,9 +124,16 @@ changesIds = \case
   ESysOut a               -> changesIds a
   Block as                -> cm as
   SExpr a                 -> changesIds a
-  SVars d                 -> concat $ map
-    (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (changesIds . toUnitype) <$> (C._vdVInit a)))
-    (C._tvdVDecls d)
+  SVars d                 -> changesIds d
+  TypedVVDecl _ vds       -> cm vds
+  VarDecl _ vi            -> cm $ maybeToList vi
+  {-
+    concat $ map
+      (\a -> (C._vdiIdent $ C._vdVDI a) :
+             (concat $ maybeToList $
+                (changesIds . toUnitype) <$> (C._vdVInit a)))
+      (C._tvdVDecls d)
+  -}
   SReturn a               -> changesIds a
   SIf a1 a2               -> cm [a1,a2]
   SIfElse a1 a2 a3        -> cm [a1,a2,a3]
@@ -127,11 +144,14 @@ changesIds = \case
                                     (concat . maybeToList) mas
   SForE _ id a1 a2        -> id : cm [a1,a2]
   SSwitch a as            -> cm $ a:as
-  SwitchBlock l as        -> undefined -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
+  SwitchBlock l as        -> cm $ l:as -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
   SwitchCase a            -> changesIds a
-  FIVars d                -> concat $ map
+  FIVars d                -> changesIds d
+    
+  {- concat $ map
     (\a -> (C._vdiIdent $ C._vdVDI a):(concat $ maybeToList $ (changesIds . toUnitype) <$> (C._vdVInit a)))
     (C._tvdVDecls d)
+  -}
   FIExprs as              -> cm as
   --(MethodDecl _ id fps as  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ cm as)
   --(CompilationUnit as1 as2) -> cm $ as1 ++ as2
@@ -141,6 +161,11 @@ changesIds = \case
   MemberDecl a            -> changesIds a
   _                       -> []
   where cm x = concat $ map changesIds x
+
+
+-- FIXME: exactly what does this function below do? // centril
+-- It doesn't seem to count the number of Java statements;
+-- ELit is not a statement...!
 
 nbrOfStatements :: AST -> Int
 nbrOfStatements a = 1 + case a of
@@ -216,9 +241,14 @@ impure = \case
   ESysOut a               -> True
   Block as                -> ai as
   SExpr a                 -> impure a
-  SVars d                 -> or $ concat $ map
-    (\a -> (maybeToList $ fmap (impure . toUnitype) (C._vdVInit a)))
-    (C._tvdVDecls d)
+  SVars d                 -> impure d
+  TypedVVDecl _ vds       -> ai vds
+  VarDecl _ vi            -> ai vi
+  {-
+    or $ concat $ map
+      (\a -> (maybeToList $ fmap (impure . toUnitype) (C._vdVInit a)))
+      (C._tvdVDecls d)
+  -}
   SReturn a               -> impure a
   SIf a1 a2               -> ai [a1,a2]
   SIfElse a1 a2 a3        -> ai [a1,a2,a3]
@@ -229,11 +259,15 @@ impure = \case
                                     (concat . maybeToList) mas
   SForE _ _ a1 a2         -> ai [a1,a2]
   SSwitch a as            -> ai $ a:as
-  SwitchBlock l as        -> undefined -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
+  SwitchBlock l as        -> ai as -- switchLabels contains expressions, which may include names, maybe just find the expression and convert to unitype?
+                             || impure l -- FIXME: not needed?, but safe side!
   SwitchCase a            -> impure a
-  FIVars d                -> or $ concat $ map
-    (\a -> (maybeToList $ fmap (impure . toUnitype) (C._vdVInit a)))
-    (C._tvdVDecls d)
+  FIVars d                -> impure d
+  {-
+    or $ concat $ map
+      (\a -> (maybeToList $ fmap (impure . toUnitype) (C._vdVInit a)))
+      (C._tvdVDecls d)
+  -}
   FIExprs as              -> ai as
   --(MethodDecl _ id fps as  -> id : ((map (C._vdiIdent . C._fpVDI) fps) ++ cm as)
   --(CompilationUnit as1 as2) -> cm $ as1 ++ as2
