@@ -86,6 +86,16 @@ data AST
   | InitArr {
       _viArrInit :: [AST]
     }
+    -- Start: VarDecl
+  | VarDecl {
+      _vdVDI   :: C.VarDeclId
+    , _vdVInit :: Maybe AST
+    }
+  -- Start: TypedVVDecl
+  | TypedVVDecl {
+      _tvdType :: C.VMType
+    , _tvdVDecls :: [AST]
+    }
   -- Start: Expr
   | ELit {
       _eLit      :: AST
@@ -172,8 +182,7 @@ data AST
       _sExpr     :: AST
     }
   | SVars {
-      -- TODO: POSSIBLE BUG!!! CONTAINS Expr!!!
-      _sVDecl    :: C.TypedVVDecl
+      _sVDecl    :: AST
     }
   | SReturn {
       _sExpr     :: AST
@@ -216,8 +225,7 @@ data AST
     }
   -- START: SwitchBlock
   | SwitchBlock {
-      -- TODO: POSSIBLE BUG!!! Should probably be AST instead of C.SwitchLabel !!!
-      _sbLab      :: C.SwitchLabel
+      _sbLab      :: AST
     , _sbBlock    :: [AST]
     }
   -- START: SwitchLabel
@@ -227,8 +235,7 @@ data AST
   | Default
   -- START: ForInit
   | FIVars {
-      -- TODO: POSSIBLE BUG!!! CONTAINS Expr!!!
-      _fiVars     :: C.TypedVVDecl
+      _fiVars     :: AST
     }
   | FIExprs {
       _fiExprs    :: [AST]
@@ -399,7 +406,7 @@ instance UnitypeIso C.Stmt where
     C.SEmpty              -> SEmpty
     C.SBlock (C.Block bs) -> Block     <=$ bs
     C.SExpr e             -> SExpr     <-$ e
-    C.SVars t             -> SVars t
+    C.SVars t             -> SVars     <-$ t
     C.SReturn e           -> SReturn   <-$ e
     C.SVReturn            -> SVReturn
     C.SIf     e si        -> SIf       <-$ e <-$ si
@@ -417,7 +424,7 @@ instance UnitypeIso C.Stmt where
     SEmpty              -> C.SEmpty
     Block bs            -> C.SBlock (C.Block $=> bs)
     SExpr e             -> C.SExpr     $-> e
-    SVars t             -> C.SVars t
+    SVars t             -> C.SVars     $-> t
     SReturn e           -> C.SReturn   $-> e
     SVReturn            -> C.SVReturn
     SIf     e si        -> C.SIf       $-> e $-> si
@@ -527,25 +534,54 @@ instance UnitypeIso C.VarInit where
     InitArr e     -> C.InitArr  $ convertArrInitI e
     Hole i        -> C.HoleVarInit i
 
+instance UnitypeIso C.VarDecl where
+  toUnitype = \case
+    C.VarDecl vdi vi -> VarDecl vdi <=$ vi
+    C.HoleVarDecl i  -> Hole i
+
+  fromUnitype = \case
+    VarDecl vdi vi -> C.VarDecl vdi $=> vi
+    Hole i         -> C.HoleVarDecl i
+
+instance UnitypeIso C.TypedVVDecl where
+  toUnitype = \case
+    C.TypedVVDecl vdt vvd -> TypedVVDecl vdt <=$ vvd
+    C.HoleTypedVVDecl i   -> Hole i
+
+  fromUnitype = \case
+    TypedVVDecl vdt vvd -> C.TypedVVDecl vdt $=> vvd
+    Hole i              -> C.HoleTypedVVDecl i
+
 instance UnitypeIso C.ForInit where
   toUnitype = \case
-    C.FIVars v      -> FIVars v
+    C.FIVars v      -> FIVars  <-$ v
     C.FIExprs es    -> FIExprs <=$ es
     C.HoleForInit i -> Hole i
 
   fromUnitype = \case
-    FIVars v      -> C.FIVars v
+    FIVars v      -> C.FIVars  $-> v
     FIExprs es    -> C.FIExprs $=> es
     Hole i        -> C.HoleForInit i
 
 instance UnitypeIso C.SwitchBlock where
   toUnitype = \case
-    C.SwitchBlock l (C.Block bs) -> SwitchBlock l <=$ bs
+    C.SwitchBlock l (C.Block bs) -> SwitchBlock <-$ l <=$ bs
     C.HoleSwitchBlock i          -> Hole i
 
   fromUnitype = \case
-    SwitchBlock l stmts -> C.SwitchBlock l (C.Block $=> stmts)
+    SwitchBlock l stmts -> C.SwitchBlock $-> l $ C.Block $=> stmts
     Hole i              -> C.HoleSwitchBlock i
+
+instance UnitypeIso C.SwitchLabel where
+  toUnitype = \case
+    C.SwitchCase e      -> SwitchCase <-$ e
+    C.Default           -> Default
+    C.HoleSwitchLabel i -> Hole i
+  
+  fromUnitype = \case
+    SwitchCase e -> C.SwitchCase $-> e
+    Default      -> C.Default
+    Hole i       -> C.HoleSwitchLabel i
 
 --------------------------------------------------------------------------------
 -- Matching:
@@ -610,7 +646,11 @@ canMatch = curry $ \case
   (SEmpty,              SEmpty)             -> True
   (Block ast,           Block ast')         -> matchList ast ast'
   (SExpr ast,           SExpr ast')         -> canMatch ast ast' 
-  (SVars t,             SVars t')           -> t == t'
+  (SVars ast,           SVars ast')         -> canMatch ast ast'
+  -- FIXME: double check the two line below!
+  (TypedVVDecl vmt vds, TypedVVDecl vmt' vds') -> vmt == vmt' && matchList vds vds'
+  (VarDecl vdi mvi,     VarDecl vdi' mvi')  -> vdi == vdi' && matchMay canMatch mvi mvi'
+  -- FIXME: end of need-to-check.
   (SReturn ast,         SReturn ast')       -> canMatch ast ast' 
   (SVReturn,            SVReturn)           -> True
   (SIf a b,             SIf c d)            -> canMatch a c && canMatch c d
@@ -625,10 +665,10 @@ canMatch = curry $ \case
   (SContinue,           SContinue)          -> True
   (SBreak,              SBreak)             -> True
   (SSwitch e sb,        SSwitch e' sb')     -> canMatch e e' && matchList sb sb'
-  (SwitchBlock l sb,    SwitchBlock l' sb') -> l == l' && matchList sb sb'
+  (SwitchBlock l sb,    SwitchBlock l' sb') -> canMatch l l' && matchList sb sb'
   (SwitchCase ast,      SwitchCase ast')    -> canMatch ast ast' 
   (Default,             Default)            -> True
-  (FIVars i,            FIVars j)           -> i == j
+  (FIVars ast,          FIVars ast')        -> canMatch ast ast'
   (FIExprs as,          FIExprs bs)         -> matchList as bs
   (MethodDecl t n p b,  MethodDecl t' n' p' b') ->
     t == t' && n == n' && p == p' && matchList b b'
